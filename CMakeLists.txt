@@ -5,7 +5,7 @@ project(parallax)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
-set(CMAKE_CXX_FLAGS "-std=c++14 -mavx -mfma -openmp") #-O2
+set(CMAKE_CXX_FLAGS "-std=c++14 -mavx -openmp") #-O2 -mfma
 
 find_package(Eigen3 REQUIRED)
 find_package(yaml-cpp REQUIRED)
@@ -20,8 +20,7 @@ find_package(OpenCV REQUIRED)
 #  # ${CERES_INCLUDE_DIRS}
 #)
 
-add_executable(test
+add_executable(test_rcpo
   src/test.cpp
-  src/parallax.cpp
 )
-target_link_libraries(test ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
+target_link_libraries(test_rcpo ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)

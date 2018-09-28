@@ -22,6 +22,15 @@ include_directories(include
 
 add_executable(test_rcpo
   src/test.cpp
+  src/common.cpp
   src/ptr/GN_step.cpp
 )
+
+add_executable(cli
+  src/cli.cpp
+  src/common.cpp
+  src/ptr/GN_step.cpp
+)
+
 target_link_libraries(test_rcpo ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
+target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)

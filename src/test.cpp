@@ -10,7 +10,7 @@ using namespace std;
 using namespace Eigen;
 using namespace cv;
 
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     cout << "Runs" << endl;
     vector<cv::Point2d> pts1;

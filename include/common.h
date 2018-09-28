@@ -133,4 +133,68 @@ bool get_yaml_eigen(const std::string key, const std::string filename, Eigen::Ma
 	}
 }
 
+template <typename T>
+bool get_yaml_node(const std::string key, std::string filename, YAML::Node node, T& val, bool print_error = true)
+{
+	if (node[key])
+	{
+		val = node[key].as<T>();
+		return true;
+	}
+	else
+	{
+		if (print_error)
+		{
+			printf("Unable to load \"%s\" from %s\n", key.c_str(), filename.c_str());
+		}
+		return false;
+	}
+}
+
+// Loads array from a .yaml file into an Eigen-type matrix or vector.
+// Author: James Jackson
+template <typename T>
+bool get_yaml_eigen(const std::string key, std::string filename, YAML::Node node, Eigen::MatrixBase<T>& val)
+{
+	std::vector<double> vec;
+	if (node[key])
+	{
+		vec = node[key].as<std::vector<double>>();
+		if (vec.size() == (val.rows() * val.cols()))
+		{
+			int k = 0;
+			for (int i = 0; i < val.rows(); i++)
+			{
+				for (int j = 0; j < val.cols(); j++)
+				{
+					val(i,j) = vec[k++];
+				}
+			}
+			return true;
+		}
+		else
+		{
+			printf("Eigen Matrix Size does not match parameter size for \"%s\" in %s", key.c_str(), filename.c_str());
+			return false;
+		}
+	}
+	else
+	{
+		printf("Unable to load \"%s\" from %s\n", key.c_str(), filename.c_str());
+		return false;
+	}
+}
+
+class VideoPointData
+{
+public:
+    VideoPointData(std::string yaml_filename);
+    std::string video_filename, points_filename, truth_filename;
+    Eigen::Vector2d image_size;
+    Eigen::Matrix3d camera_matrix;
+    Eigen::Matrix<double, 5, 1> dist_coeffs;
+    std::vector<std::vector<cv::Point2f> > data1;
+    std::vector<std::vector<cv::Point2f> > data2;
+};
+
 #endif //COMMON_H

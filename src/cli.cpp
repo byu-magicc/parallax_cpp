@@ -12,9 +12,16 @@ using namespace std;
 using namespace Eigen;
 using namespace cv;
 
-void timing(int argc, char *argv[])
+void timing(string yaml_filename)
 {
 
+
+
+}
+
+void accuracy(int argc, char *argv[])
+{
+    
 }
 
 int main(int argc, char *argv[])
@@ -29,6 +36,14 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
+	// Read file
+	string yaml_filename = string(argv[0]);
+	VideoPointData video_data = VideoPointData(yaml_filename);
+	cout << "Video filename: " << video_data.video_filename << endl;
+	cout << "Points filename: " << video_data.points_filename << endl;
+	cout << "Frames: " << (int)video_data.data1.size() << endl;
+	return 0;
+
     // Write file
     double a = 1;
     double b = 2;
@@ -40,31 +55,13 @@ int main(int argc, char *argv[])
 
     return 0;
 
-    // Load yaml
-    string yaml_filename = string(argv[0]);
-    string video_filename, points_filename, truth_filename;
-    get_yaml_node("video_filename", yaml_filename, video_filename);
-    get_yaml_node("points_filename", yaml_filename, points_filename);
-    get_yaml_node("truth_filename", yaml_filename, truth_filename);
-    Vector2d image_size;
-    Matrix3d camera_matrix;
-    get_yaml_eigen("image_size", yaml_filename, image_size);
-    get_yaml_eigen("camera_matrix", yaml_filename, camera_matrix);
-    cout << "video_filename: " << video_filename;
-    cout << "camera_matrix: " << camera_matrix;
-    return 0;
 
-    // Load points
-    string filename = string(argv[0]);
-    vector<vector<Point2f> > pts1;
-    vector<vector<Point2f> > pts2;
-    tic();
-    loadPoints(filename, pts1, pts2);
-    toc("loadPoints");
+
+
 
     string s = string(argv[1]);
 	if(s == "timing")
-		timing(argc - 1, argv + 1);
+		timing(yaml_filename);
 	// else if(s == "comp_mpda")
 	// 	compare_mpda(argc - 1, argv + 1);
 	// else if(s == "sweep")

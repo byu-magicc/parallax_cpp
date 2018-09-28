@@ -430,6 +430,8 @@ void loadPoints(string filename, vector<vector<Point2f>>& data1, vector<vector<P
 	Tokenizer file = Tokenizer(str);
 
 	// Read points
+	data1 = vector<vector<Point2f>>();
+	data2 = vector<vector<Point2f>>();
 	while(file.hasToken())
 	{
 		Tokenizer line = file.nextLine();
@@ -448,4 +450,42 @@ void loadPoints(string filename, vector<vector<Point2f>>& data1, vector<vector<P
 			pts2[i].y = line.nextToken(' ').toFloat();
 		}
 	}
+}
+
+VideoPointData::VideoPointData(string yaml_filename)
+{
+	YAML::Node node = YAML::LoadFile(yaml_filename);
+
+	// Filenames	
+    get_yaml_node("video_filename", yaml_filename, node, video_filename);
+    get_yaml_node("points_filename", yaml_filename, node, points_filename);
+    get_yaml_node("truth_filename", yaml_filename, node, truth_filename);
+    get_yaml_eigen("image_size", yaml_filename, node, image_size);
+
+	// Camera matrix
+	if(node["camera_matrix"])
+    	get_yaml_eigen("camera_matrix", yaml_filename, node, camera_matrix);
+	else
+	{
+		// 75 is what we have been doing for DJI video
+		// 35 for egtest05
+		double diag_dist_pixels = sqrt(image_size[0]*image_size[0] + image_size[1]*image_size[1]);
+		double fov_angle_degrees = 50;
+		if(node["camera_fov_degrees"])
+			get_yaml_node("camera_fov_degrees", yaml_filename, node, fov_angle_degrees);
+		else
+			cout << "No camera parameters found, defaulting to FOV of 50 degrees." << endl;
+		double focal_length_pixels = diag_dist_pixels / 2 / tan((fov_angle_degrees * M_PI / 180) / 2);
+		camera_matrix <<
+			focal_length_pixels, 0, image_size[0] / 2,
+			0, focal_length_pixels, image_size[1] / 2,
+			0, 0, 1;
+	}
+	if(node["dist_coeffs"])
+    	get_yaml_eigen("dist_coeffs", yaml_filename, node, dist_coeffs);
+	else
+		dist_coeffs << 0, 0, 0, 0, 0;
+
+	// Point data
+    loadPoints(points_filename, data1, data2);
 }

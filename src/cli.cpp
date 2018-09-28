@@ -6,6 +6,7 @@
 #include "ptr/GN_step.h"
 #include "common.h"
 #include <vector>
+#include <fstream>
 
 using namespace std;
 using namespace Eigen;
@@ -28,15 +29,29 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
+    // Write file
+    double a = 1;
+    double b = 2;
+    std::ofstream log_file;
+    log_file.open("../logs/log_test.bin");
+    log_file.write((char*)&a, sizeof(double));
+    log_file.write((char*)&b, sizeof(double));
+    log_file.close();    
+
+    return 0;
+
     // Load yaml
     string yaml_filename = string(argv[0]);
     string video_filename, points_filename, truth_filename;
     get_yaml_node("video_filename", yaml_filename, video_filename);
     get_yaml_node("points_filename", yaml_filename, points_filename);
     get_yaml_node("truth_filename", yaml_filename, truth_filename);
-    //get_yaml_eigen("image_size", yaml_filename, image_size);
-    //get_yaml_eigen("camera_matrix", yaml_filename, camera_matrix);
+    Vector2d image_size;
+    Matrix3d camera_matrix;
+    get_yaml_eigen("image_size", yaml_filename, image_size);
+    get_yaml_eigen("camera_matrix", yaml_filename, camera_matrix);
     cout << "video_filename: " << video_filename;
+    cout << "camera_matrix: " << camera_matrix;
     return 0;
 
     // Load points

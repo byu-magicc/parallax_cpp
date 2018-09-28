@@ -1,0 +1,5 @@
+# Holodeck video parameters
+video_filename: "/media/jacob/Shared/Videos/dji.mov"
+points_filename: "../data/dji_pts.data"
+image_size: [1920, 1080]
+camera_fov_degrees: 70

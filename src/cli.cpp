@@ -11,7 +11,6 @@ using namespace std;
 using namespace Eigen;
 using namespace cv;
 
-
 void timing(int argc, char *argv[])
 {
 
@@ -23,11 +22,24 @@ int main(int argc, char *argv[])
 	argc--; argv++;
 
 	// Make sure there are sufficient arguments
-	if(argc < 1)
+	if(argc < 2)
 	{
 		cout << "Usage: ./cli pts_in [timing, comp_mpda, or sweep]" << endl;
 		return 0;
 	}
+
+    // Load yaml
+    string yaml_filename = string(argv[0]);
+    string video_filename, points_filename, truth_filename;
+    get_yaml_node("video_filename", yaml_filename, video_filename);
+    get_yaml_node("points_filename", yaml_filename, points_filename);
+    get_yaml_node("truth_filename", yaml_filename, truth_filename);
+    //get_yaml_eigen("image_size", yaml_filename, image_size);
+    //get_yaml_eigen("camera_matrix", yaml_filename, camera_matrix);
+    cout << "video_filename: " << video_filename;
+    return 0;
+
+    // Load points
     string filename = string(argv[0]);
     vector<vector<Point2f> > pts1;
     vector<vector<Point2f> > pts2;
@@ -35,12 +47,7 @@ int main(int argc, char *argv[])
     loadPoints(filename, pts1, pts2);
     toc("loadPoints");
 
-    return 0;
-
-
-    argc--; argv++;
-
-	string s = string(argv[0]);
+    string s = string(argv[1]);
 	if(s == "timing")
 		timing(argc - 1, argv + 1);
 	// else if(s == "comp_mpda")

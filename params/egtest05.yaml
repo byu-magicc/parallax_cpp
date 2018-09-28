@@ -1,0 +1,5 @@
+# Holodeck video parameters
+video_filename: "/media/jacob/Shared/Videos/egtest05.mp4"
+points_filename: "../data/egtest05_pts.data"
+image_size: [640, 480]
+camera_fov_degrees: 35

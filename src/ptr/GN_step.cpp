@@ -2,7 +2,7 @@
 #include "opencv2/calib3d.hpp"
 #include "opencv2/imgproc/imgproc.hpp" 
 #include <vector>
-#include "GN_step.h"
+#include "ptr/GN_step.h"
 
 
 using namespace std;
@@ -544,7 +544,7 @@ void GN_step(const vector<cv::Point2d> pts1, const vector<cv::Point2d> pts2, con
 			cv::solve(-J_mat.t()*J_mat, J_mat.t()*r_mat, dx_mat, cv::DECOMP_CHOLESKY);
 		else if(method == 5);
 		else
-			mexAssert(0, "Invalid solve method. Valid methods are 1, 2, 3, 4");			
+			CV_Assert(0);
 		
 		// [R, TR] = E_boxplus(R, TR, dx);
 		E_boxplus(R, TR, dx, R2, TR2);
@@ -722,7 +722,7 @@ void copyHypothesis(const GNHypothesis& h1, GNHypothesis& h2)
 cv::Mat findEssentialMatGN(vector<cv::Point2d> pts1, vector<cv::Point2d> pts2, 
 		cv::Mat& R0, cv::Mat& t0, cv::Mat& R2, cv::Mat& t2, std::vector<cv::Mat>& all_hypotheses,
 		int n_hypotheses, int n_GNiters, 
-		bool withNormalization = true, bool optimizedCost = false, bool record_all_hypotheses = false)
+		bool withNormalization, bool optimizedCost, bool record_all_hypotheses)
 {
 	// Init
 	cv::RNG rng(cv::getCPUTickCount());

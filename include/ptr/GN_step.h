@@ -90,6 +90,10 @@ public:
 	double cost;
 };
 
-cv::Mat findEssentialMatGN(std::vector<cv::Point2f> pts1, std::vector<cv::Point2f> pts2, GNHypothesis& bestModel, int n_hypotheses = 100, int num_GNiters = 10);
+cv::Mat findEssentialMatGN(std::vector<cv::Point2d> pts1, std::vector<cv::Point2d> pts2, 
+		cv::Mat& R0, cv::Mat& t0, cv::Mat& R2, cv::Mat& t2, std::vector<cv::Mat>& all_hypotheses,
+		int n_hypotheses, int n_GNiters, 
+		bool withNormalization = true, bool optimizedCost = false, bool record_all_hypotheses = false);
+
 
 #endif //GN_STEP_H

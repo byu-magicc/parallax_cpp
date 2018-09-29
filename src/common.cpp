@@ -9,7 +9,10 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/calib3d.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/core/eigen.hpp"
 #include "ptr/GN_step.h"
+#include "opencv2/calib3d.hpp"
+
 #include <vector>
 
 #ifdef _WIN32
@@ -488,7 +491,6 @@ VideoPointData::VideoPointData(string yaml_filename)
 	// Filenames	
     get_yaml_node("video_filename", yaml_filename, node, video_filename);
     get_yaml_node("points_filename", yaml_filename, node, points_filename);
-    get_yaml_node("truth_filename", yaml_filename, node, truth_filename);
     get_yaml_eigen("image_size", yaml_filename, node, image_size);
 
 	// Camera matrix
@@ -519,5 +521,67 @@ VideoPointData::VideoPointData(string yaml_filename)
     loadPoints(points_filename, pts1, pts2);
 
 	// Truth data
-	loadRT(truth_filename, RT);
+	if(node["truth_filename"])
+	{
+		get_yaml_node("truth_filename", yaml_filename, node, truth_filename);
+		loadRT(truth_filename, RT);
+	}
+	else
+	{
+		truth_filename = "";
+		RT = vector<Matrix4d, aligned_allocator<Matrix4d> >();
+	}
+}
+
+Matrix3d skew(Vector3d v)
+{
+	Matrix3d Tx;
+	Tx << 0,    -v(2),   v(1),
+	      v(2),  0,     -v(0),
+	     -v(1),  v(0),   0;
+	return Tx;
+}
+
+Matrix3d vecToR(Vector3d v)
+{
+	Matrix3d R;
+	Mat v_mat;
+	Mat R_mat;
+	eigen2cv(v, v_mat);
+	Rodrigues(v_mat, R_mat);
+	cv2eigen(R_mat, R);
+	return R;
+}
+
+Vector3d RtoVec(Matrix3d R)
+{
+	Vector3d v;
+	Mat R_mat;
+	Mat v_mat;
+	eigen2cv(R, R_mat);
+	Rodrigues(R_mat, v_mat);
+	cv2eigen(v_mat, v);
+	return v;
+}
+
+Vector3d err_truth(const Matrix3d& R_est, const Vector3d& t_est, const Matrix4d& RT)
+{
+	// Extract R and T
+	Matrix3d R = RT.block<3, 3>(0, 0);
+	Vector3d t = RT.block<3, 1>(0, 3);
+	// TODO: Does this modify RT?
+	t = unit(t);
+
+	// E error
+	// Note: To avoid scaling, we are just re-creating E_est. However, we could always use the L2 norm or something.
+	Matrix3d E = skew(t)*R;
+	Matrix3d E_est = skew(t_est)*R_est;
+	double err_E = min((E - E_est).norm(), (E - (-E_est)).norm());
+
+	// R and t error
+	double err_t_angle = acos(unit(t_est).dot(t));
+	double err_R_angle = RtoVec(R * R_est.transpose()).norm();
+	Vector3d err;
+	err << err_E, err_R_angle, err_t_angle;
+	return err;
 }

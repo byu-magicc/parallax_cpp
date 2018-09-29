@@ -76,6 +76,31 @@ void loadPoints(std::string filename, std::vector<std::vector<cv::Point2f>>& pts
 
 void loadRT(std::string filename, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d> >& RT);
 
+template <typename T>
+void print_eig(const char* s, Eigen::MatrixBase<T>& p, int sfAfter = 3, int sfBefore = 2)
+{
+	printf("%s: (%dx%d)\n", s, (int)p.rows(), (int)p.cols());
+	char format[40];
+	//if (p.type() == CV_8U)
+	//	sprintf(format, "%%%dd", sfBefore);
+	//else
+	    sprintf(format, "%%%d.%df", sfBefore + sfAfter, sfAfter);
+	for (int r = 0; r < p.rows(); r++)
+	{
+		if (r == 0)
+			printf("[");
+		else
+			printf("\n ");
+		for (int c = 0; c < p.cols(); c++)
+		{
+			if (c > 0)
+				printf(" ");
+            printf(format, p(r, c));
+		}
+	}
+	printf("]\n");
+}
+
 // Loads scalar parameters from a .yaml file
 // Author: James Jackson
 // JHW: Note that it is easiest to just put the definition for the template function in the header, otherwise
@@ -199,5 +224,17 @@ public:
     std::vector<std::vector<cv::Point2f> > pts2;
     std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d> > RT;
 };
+
+#define unit(vec)  ((vec) / (vec).norm())
+
+// template <typename T>
+// Eigen::MatrixBase<T> unit(Eigen::MatrixBase<T>& val)
+// {
+//     return val / val.norm();
+// }
+
+Eigen::Matrix3d skew(Eigen::Vector3d v);
+
+Eigen::Vector3d err_truth(const Eigen::Matrix3d& R_est, const Eigen::Vector3d& t_est, const Eigen::Matrix4d& RT);
 
 #endif //COMMON_H

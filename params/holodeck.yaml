@@ -1,7 +1,7 @@
 # Holodeck video parameters
 video_filename: "/media/jacob/Shared/Videos/holodeck.mp4"
 points_filename: "../data/holodeck_pts_uncompressed.data"
-truth_filename: "../data/holodeck_poses.data"
+truth_filename: "../data/holodeck_RT.data"
 image_size: [512, 512]
 camera_matrix: [256,   0, 256,
                   0, 256, 256,

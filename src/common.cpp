@@ -32,6 +32,7 @@
 
 using namespace cv;
 using namespace std;
+using namespace Eigen;
 
 // Convenient string format function.
 // See https://stackoverflow.com/questions/69738/c-how-to-get-fprintf-results-as-a-stdstring-w-o-sprintf/69911#69911
@@ -452,6 +453,34 @@ void loadPoints(string filename, vector<vector<Point2f>>& data1, vector<vector<P
 	}
 }
 
+void loadRT(string filename, vector<Matrix4d, aligned_allocator<Matrix4d> >& data)
+{
+	if (! fileExists(filename))
+	{
+		cout << "File " << filename << " does not exist." << endl;
+		assert(0);
+	}
+
+	// Init tokenizer
+	ifstream myStream(filename);
+	stringstream sstr;
+	sstr << myStream.rdbuf();
+	string str = sstr.str();
+	Tokenizer file = Tokenizer(str);
+
+	// Read RT
+	data = vector<Matrix4d, aligned_allocator<Matrix4d> >();
+	while(file.hasToken())
+	{
+		data.push_back(Matrix4d());
+		Matrix4d& RT = data[data.size() - 1];
+		Tokenizer line = file.nextLine();
+		for(int i = 0; i < 4; i++)
+			for(int j = 0; j < 4; j++)
+				RT(i, j) = line.nextToken(' ').toFloat();
+	}
+}
+
 VideoPointData::VideoPointData(string yaml_filename)
 {
 	YAML::Node node = YAML::LoadFile(yaml_filename);
@@ -487,5 +516,8 @@ VideoPointData::VideoPointData(string yaml_filename)
 		dist_coeffs << 0, 0, 0, 0, 0;
 
 	// Point data
-    loadPoints(points_filename, data1, data2);
+    loadPoints(points_filename, pts1, pts2);
+
+	// Truth data
+	loadRT(truth_filename, RT);
 }

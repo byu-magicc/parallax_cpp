@@ -74,6 +74,8 @@ void printMatToStream(std::iostream& ss, std::string s, cv::Mat p, int sigFigAft
 
 void loadPoints(std::string filename, std::vector<std::vector<cv::Point2f>>& pts1, std::vector<std::vector<cv::Point2f>>& pts2);
 
+void loadRT(std::string filename, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d> >& RT);
+
 // Loads scalar parameters from a .yaml file
 // Author: James Jackson
 // JHW: Note that it is easiest to just put the definition for the template function in the header, otherwise
@@ -193,8 +195,9 @@ public:
     Eigen::Vector2d image_size;
     Eigen::Matrix3d camera_matrix;
     Eigen::Matrix<double, 5, 1> dist_coeffs;
-    std::vector<std::vector<cv::Point2f> > data1;
-    std::vector<std::vector<cv::Point2f> > data2;
+    std::vector<std::vector<cv::Point2f> > pts1;
+    std::vector<std::vector<cv::Point2f> > pts2;
+    std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d> > RT;
 };
 
 #endif //COMMON_H

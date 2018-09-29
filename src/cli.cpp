@@ -18,6 +18,10 @@ void timing(string yaml_filename)
 	// Point data
 	VideoPointData video_data = VideoPointData(yaml_filename);
 
+	cout << video_data.RT[0] << endl;
+
+	return;
+
 	// Undistort points
 	int frame = 0;
 	vector<Point2f> pts1;
@@ -26,16 +30,16 @@ void timing(string yaml_filename)
 	cv::Mat dist_coeffs;
 	eigen2cv(video_data.camera_matrix, camera_matrix);
 	eigen2cv(video_data.dist_coeffs, dist_coeffs);
-	undistortPoints(video_data.data2[frame], pts2, camera_matrix, dist_coeffs);
-	undistortPoints(video_data.data1[frame], pts1, camera_matrix, dist_coeffs);
+	undistortPoints(video_data.pts1[frame], pts1, camera_matrix, dist_coeffs);
+	undistortPoints(video_data.pts2[frame], pts2, camera_matrix, dist_coeffs);
 	cout << pts1.size() << " points" << endl;
 
 	// Write random data to plot
 	std::ofstream log_file;
 	log_file.open("../logs/log_test.bin");
-	for (int i = 0; i < video_data.data1.size(); i++)
+	for (int i = 0; i < video_data.pts1.size(); i++)
 	{
-		double n_pts = video_data.data1[i].size();
+		double n_pts = video_data.pts1[i].size();
 		log_file.write((char*)&n_pts, sizeof(double));
 	}
 	log_file.close();

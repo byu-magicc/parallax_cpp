@@ -5,6 +5,7 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "ptr/GN_step.h"
 #include "common.h"
+#include <opencv2/core/eigen.hpp>
 #include <vector>
 #include <fstream>
 
@@ -14,14 +15,35 @@ using namespace cv;
 
 void timing(string yaml_filename)
 {
+	// Point data
+	VideoPointData video_data = VideoPointData(yaml_filename);
 
+	// Undistort points
+	int frame = 0;
+	vector<Point2f> pts1;
+	vector<Point2f> pts2;
+	cv::Mat camera_matrix;
+	cv::Mat dist_coeffs;
+	eigen2cv(video_data.camera_matrix, camera_matrix);
+	eigen2cv(video_data.dist_coeffs, dist_coeffs);
+	undistortPoints(video_data.data2[frame], pts2, camera_matrix, dist_coeffs);
+	undistortPoints(video_data.data1[frame], pts1, camera_matrix, dist_coeffs);
+	cout << pts1.size() << " points" << endl;
 
-
+	// Write random data to plot
+	std::ofstream log_file;
+	log_file.open("../logs/log_test.bin");
+	for (int i = 0; i < video_data.data1.size(); i++)
+	{
+		double n_pts = video_data.data1[i].size();
+		log_file.write((char*)&n_pts, sizeof(double));
+	}
+	log_file.close();
 }
 
 void accuracy(int argc, char *argv[])
 {
-    
+	
 }
 
 int main(int argc, char *argv[])
@@ -36,30 +58,8 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	// Read file
 	string yaml_filename = string(argv[0]);
-	VideoPointData video_data = VideoPointData(yaml_filename);
-	cout << "Video filename: " << video_data.video_filename << endl;
-	cout << "Points filename: " << video_data.points_filename << endl;
-	cout << "Frames: " << (int)video_data.data1.size() << endl;
-	return 0;
-
-    // Write file
-    double a = 1;
-    double b = 2;
-    std::ofstream log_file;
-    log_file.open("../logs/log_test.bin");
-    log_file.write((char*)&a, sizeof(double));
-    log_file.write((char*)&b, sizeof(double));
-    log_file.close();    
-
-    return 0;
-
-
-
-
-
-    string s = string(argv[1]);
+	string s = string(argv[1]);
 	if(s == "timing")
 		timing(yaml_filename);
 	// else if(s == "comp_mpda")

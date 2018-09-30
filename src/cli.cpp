@@ -40,7 +40,9 @@ void accuracy(string yaml_filename)
 	// Loop for all points
 	cv::RNG rng(cv::getCPUTickCount());
 	std::ofstream log_file;
+	std::ofstream log_file2;
 	log_file.open("../logs/log_test.bin");
+	log_file2.open("../logs/time_E.bin");
 	for (int frame = 0; frame < video_data.pts1.size(); frame++)
 	{
 		// Undistort points
@@ -61,7 +63,10 @@ void accuracy(string yaml_filename)
 		Mat t0 = (Mat_<double>(8, 8) << rng.gaussian(1), rng.gaussian(1), rng.gaussian(1));
 		Mat R2, t2;
 		vector<Mat> all_hypotheses;
+		tic();
 		Mat E = findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, all_hypotheses, 100, 10, true, false, false);
+		timeMeasurement time_E = toc("FindE", 1, 2, false);
+		log_file2.write((char*)&time_E.actualTime, sizeof(double));
 
 		// Calculate error to truth essential matrix
 		Matrix3d R2_eig;
@@ -73,7 +78,8 @@ void accuracy(string yaml_filename)
 		if(frame < 5)
 			cout << err << endl;
 	}
-	log_file.close();	
+	log_file.close();
+	log_file2.close();
 }
 
 int main(int argc, char *argv[])

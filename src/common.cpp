@@ -569,7 +569,6 @@ Vector3d err_truth(const Matrix3d& R_est, const Vector3d& t_est, const Matrix4d&
 	// Extract R and T
 	Matrix3d R = RT.block<3, 3>(0, 0);
 	Vector3d t = RT.block<3, 1>(0, 3);
-	// TODO: Does this modify RT?
 	t = unit(t);
 
 	// E error

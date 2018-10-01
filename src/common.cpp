@@ -505,8 +505,8 @@ void undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d camera_matrix)
 	//  0  0  1]
 	double inv_fx = 1./camera_matrix(0, 0);
 	double inv_fy = 1./camera_matrix(1, 1);
-	double cx = camera_matrix(0, 3);
-	double cy = camera_matrix(1, 3);
+	double cx = camera_matrix(0, 2);
+	double cy = camera_matrix(1, 2);
 	pts_u = scan_t(pts.size());
 	for(int i = 0; i < pts.size(); i++)
 		pts_u[i] << (pts[i](0) - cx)*inv_fx, (pts[i](1) - cy)*inv_fy;

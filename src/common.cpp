@@ -350,75 +350,7 @@ bool fileExists(string name)
 	return ifile.good();
 }
 
-void printMat(const char* s, Mat p, int sfAfter, int sfBefore)
-{
-	printf("%s: (%dx%d)\n", s, p.rows, p.cols);
-	char format[40];
-	if (p.type() == CV_8U)
-		sprintf(format, "%%%dd", sfBefore);
-	else
-		sprintf(format, "%%%d.%df", sfBefore + sfAfter, sfAfter);
-	for (int r = 0; r < p.rows; r++)
-	{
-		if (r == 0)
-			printf("[");
-		else
-			printf("\n ");
-		for (int c = 0; c < p.cols; c++)
-		{
-			if (c > 0)
-				printf(" ");
-			if (p.type() == CV_8U)
-				printf(format, p.at<uchar>(r, c));
-			else if (p.type() == CV_32F)
-				printf(format, p.at<float>(r, c));
-			else if (p.type() == CV_64F)
-				printf(format, p.at<double>(r, c));
-		}
-	}
-	printf("]\n");
-}
-
-void printMatToStream(iostream& ss, string s, Mat p, int sfAfter, int sfBefore)
-{
-	//ss << s << ": (" << p.rows << "x" << p.cols << ")\n";
-	ss << s << " = [" << s << " ... %(" << p.rows << "x" << p.cols << ")\n";
-	int precision, width;
-	if (p.type() == CV_8U || p.type() == CV_32S)
-	{
-		width = sfBefore;
-		precision = 0;
-	}
-	else
-	{
-		width = sfBefore + sfAfter;
-		precision = sfAfter;
-	}
-	ss << fixed << setprecision(precision);
-	for (int r = 0; r < p.rows; r++)
-	{
-		if (r == 0)
-			ss << setw(0) << "[";
-		else
-			ss << setw(0) << "\n ";
-		for (int c = 0; c < p.cols; c++)
-		{
-			if (c > 0)
-				ss << setw(0) << " ";
-			if (p.type() == CV_8U)
-				ss << setw(width) << p.at<uchar>(r, c);
-			else if (p.type() == CV_32S)
-				ss << setw(width) << p.at<int>(r, c);
-			else if (p.type() == CV_32F)
-				ss << setw(width) << p.at<float>(r, c);
-			else if (p.type() == CV_64F)
-				ss << setw(width) << p.at<double>(r, c);
-		}
-	}
-	ss << setw(0) << "]];\n";
-}
-
-void loadPoints(string filename, vector<vector<Point2f>>& data1, vector<vector<Point2f>>& data2)
+void loadPoints(string filename, sequence_t& data1, sequence_t& data2)
 {
 	if (! fileExists(filename))
 	{
@@ -434,29 +366,29 @@ void loadPoints(string filename, vector<vector<Point2f>>& data1, vector<vector<P
 	Tokenizer file = Tokenizer(str);
 
 	// Read points
-	data1 = vector<vector<Point2f>>();
-	data2 = vector<vector<Point2f>>();
+	data1 = sequence_t();
+	data2 = sequence_t();
 	while(file.hasToken())
 	{
 		Tokenizer line = file.nextLine();
 		int frame = line.nextToken(' ').toInt();
 		int npts = line.nextToken(' ').toInt();
-		data1.push_back(vector<Point2f>(npts));
-		data2.push_back(vector<Point2f>(npts));
-		vector<Point2f>& pts1 = data1[data1.size() - 1];
-		vector<Point2f>& pts2 = data2[data2.size() - 1];
+		data1.push_back(scan_t(npts));
+		data2.push_back(scan_t(npts));
+		scan_t& pts1 = data1[data1.size() - 1];
+		scan_t& pts2 = data2[data2.size() - 1];
 		for(int i = 0; i < npts; i++)
 		{
 			line = file.nextLine();
-			pts1[i].x = line.nextToken(' ').toFloat();
-			pts1[i].y = line.nextToken(' ').toFloat();
-			pts2[i].x = line.nextToken(' ').toFloat();
-			pts2[i].y = line.nextToken(' ').toFloat();
+			pts1[i](0) = line.nextToken(' ').toFloat();
+			pts1[i](1) = line.nextToken(' ').toFloat();
+			pts2[i](0) = line.nextToken(' ').toFloat();
+			pts2[i](1) = line.nextToken(' ').toFloat();
 		}
 	}
 }
 
-void loadRT(string filename, vector<Matrix4d, aligned_allocator<Matrix4d> >& data)
+void loadRT(string filename, truth_t& data)
 {
 	if (! fileExists(filename))
 	{
@@ -472,7 +404,7 @@ void loadRT(string filename, vector<Matrix4d, aligned_allocator<Matrix4d> >& dat
 	Tokenizer file = Tokenizer(str);
 
 	// Read RT
-	data = vector<Matrix4d, aligned_allocator<Matrix4d> >();
+	data = truth_t();
 	while(file.hasToken())
 	{
 		data.push_back(Matrix4d());
@@ -529,7 +461,7 @@ VideoPointData::VideoPointData(string yaml_filename)
 	else
 	{
 		truth_filename = "";
-		RT = vector<Matrix4d, aligned_allocator<Matrix4d> >();
+		RT = truth_t();
 	}
 }
 
@@ -562,6 +494,22 @@ Vector3d RtoVec(Matrix3d R)
 	Rodrigues(R_mat, v_mat);
 	cv2eigen(v_mat, v);
 	return v;
+}
+
+void undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d camera_matrix)
+{
+	// Note: We aren't inverting the actual camera matrix. We assume camera matrix is formatted
+	// as expected:
+	// [fx 0  cx
+	//  0  fy cy
+	//  0  0  1]
+	double inv_fx = 1./camera_matrix(0, 0);
+	double inv_fy = 1./camera_matrix(1, 1);
+	double cx = camera_matrix(0, 3);
+	double cy = camera_matrix(1, 3);
+	pts_u = scan_t(pts.size());
+	for(int i = 0; i < pts.size(); i++)
+		pts_u[i] << (pts[i](0) - cx)*inv_fx, (pts[i](1) - cy)*inv_fy;
 }
 
 Vector3d err_truth(const Matrix3d& R_est, const Vector3d& t_est, const Matrix4d& RT)

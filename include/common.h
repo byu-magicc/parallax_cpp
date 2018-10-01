@@ -23,6 +23,10 @@ struct timeMeasurement
 	double actualAv;
 };
 
+typedef std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d> > scan_t;
+typedef std::vector<scan_t> sequence_t;
+typedef std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d> > truth_t;
+
 // Convenient string format function.
 // See https://stackoverflow.com/questions/69738/c-how-to-get-fprintf-results-as-a-stdstring-w-o-sprintf/69911#69911
 std::string str_format (const char *fmt, ...);
@@ -68,13 +72,9 @@ struct Tokenizer
 
 bool fileExists(std::string name);
 
-void printMat(const char* s, cv::Mat p, int sigFigAfterDecimal = 3, int sigFigBeforeDecimal = 2);
+void loadPoints(std::string filename, sequence_t& pts1, sequence_t& pts2);
 
-void printMatToStream(std::iostream& ss, std::string s, cv::Mat p, int sigFigAfterDecimal = 3, int sigFigBeforeDecimal = 2);
-
-void loadPoints(std::string filename, std::vector<std::vector<cv::Point2f>>& pts1, std::vector<std::vector<cv::Point2f>>& pts2);
-
-void loadRT(std::string filename, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d> >& RT);
+void loadRT(std::string filename, truth_t& RT);
 
 template <typename T>
 void print_eig(const char* s, Eigen::MatrixBase<T>& p, int sfAfter = 3, int sfBefore = 2)
@@ -220,9 +220,9 @@ public:
     Eigen::Vector2d image_size;
     Eigen::Matrix3d camera_matrix;
     Eigen::Matrix<double, 5, 1> dist_coeffs;
-    std::vector<std::vector<cv::Point2f> > pts1;
-    std::vector<std::vector<cv::Point2f> > pts2;
-    std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d> > RT;
+    sequence_t pts1;
+    sequence_t pts2;
+    truth_t RT;
 };
 
 #define unit(vec)  ((vec) / (vec).norm())
@@ -234,6 +234,12 @@ public:
 // }
 
 Eigen::Matrix3d skew(Eigen::Vector3d v);
+
+Eigen::Matrix3d vecToR(Eigen::Vector3d v);
+
+Eigen::Vector3d RtoVec(Eigen::Matrix3d R);
+
+void undistort_points(const scan_t& pts, scan_t& pts1_u, Eigen::Matrix3d camera_matrix);
 
 Eigen::Vector3d err_truth(const Eigen::Matrix3d& R_est, const Eigen::Vector3d& t_est, const Eigen::Matrix4d& RT);
 

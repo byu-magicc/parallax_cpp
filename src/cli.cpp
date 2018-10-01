@@ -46,16 +46,16 @@ void accuracy(string yaml_filename)
 	for (int frame = 0; frame < video_data.pts1.size(); frame++)
 	{
 		// Undistort points
-		vector<Point2f> pts1_f, pts2_f;
-		undistortPoints(video_data.pts1[frame], pts1_f, camera_matrix, dist_coeffs);
-		undistortPoints(video_data.pts2[frame], pts2_f, camera_matrix, dist_coeffs);
+		scan_t pts1_eig, pts2_eig;
+		undistort_points(video_data.pts1[frame], pts1_eig, video_data.camera_matrix);
+		undistort_points(video_data.pts2[frame], pts2_eig, video_data.camera_matrix);
 
 		// Convert to double
 		vector<Point2d> pts1, pts2;
-		for (int i = 0; i < pts1_f.size(); i++)
+		for (int i = 0; i < pts1_eig.size(); i++)
 		{
-			pts1.push_back(pts1_f[i]);
-			pts2.push_back(pts2_f[i]);
+			pts1.push_back(Point2d(pts1_eig[i](0), pts1_eig[i](1)));
+			pts2.push_back(Point2d(pts2_eig[i](0), pts2_eig[i](1)));
 		}		
 
 		// Calculate essential matrix

@@ -46,34 +46,23 @@ void accuracy(string yaml_filename)
 	for (int frame = 0; frame < video_data.pts1.size(); frame++)
 	{
 		// Undistort points
-		scan_t pts1_eig, pts2_eig;
-		undistort_points(video_data.pts1[frame], pts1_eig, video_data.camera_matrix);
-		undistort_points(video_data.pts2[frame], pts2_eig, video_data.camera_matrix);
-
-		// Convert to double
-		vector<Point2d> pts1, pts2;
-		for (int i = 0; i < pts1_eig.size(); i++)
-		{
-			pts1.push_back(Point2d(pts1_eig[i](0), pts1_eig[i](1)));
-			pts2.push_back(Point2d(pts2_eig[i](0), pts2_eig[i](1)));
-		}		
+		scan_t pts1, pts2;
+		undistort_points(video_data.pts1[frame], pts1, video_data.camera_matrix);
+		undistort_points(video_data.pts2[frame], pts2, video_data.camera_matrix);
 
 		// Calculate essential matrix
-		Mat R0 = Mat::eye(3, 3, CV_64F);
-		Mat t0 = (Mat_<double>(8, 8) << rng.gaussian(1), rng.gaussian(1), rng.gaussian(1));
-		Mat R2, t2;
-		vector<Mat> all_hypotheses;
+		Matrix3d R0 = Matrix3d::Identity();
+		Vector3d t0;
+		t0 << rng.gaussian(1), rng.gaussian(1), rng.gaussian(1);
+		Matrix3d R2;
+		Vector3d t2;
 		tic();
-		Mat E = findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, all_hypotheses, 100, 10, true, false, false);
+		Matrix3d E = findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, 100, 10, true, false);
 		timeMeasurement time_E = toc("FindE", 1, 2, false);
 		log_file2.write((char*)&time_E.actualTime, sizeof(double));
 
 		// Calculate error to truth essential matrix
-		Matrix3d R2_eig;
-		Vector3d t2_eig;
-		cv2eigen(R2, R2_eig);
-		cv2eigen(t2, t2_eig);
-		Vector3d err = err_truth(R2_eig, t2_eig, video_data.RT[frame]);
+		Vector3d err = err_truth(R2, t2, video_data.RT[frame]);
 		log_file.write((char*)&err, sizeof(double) * 3);
 		if(frame < 5)
 			cout << err << endl;

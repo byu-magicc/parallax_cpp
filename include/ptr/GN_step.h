@@ -1,6 +1,9 @@
 #ifndef GN_STEP_H
 #define GN_STEP_H
 
+#include "common.h"
+#include <eigen3/Eigen/Dense>
+
 double sinc(double x);
 
 void skew(const double* w, double* T);
@@ -91,9 +94,13 @@ public:
 };
 
 cv::Mat findEssentialMatGN(std::vector<cv::Point2d> pts1, std::vector<cv::Point2d> pts2, 
-		cv::Mat& R0, cv::Mat& t0, cv::Mat& R2, cv::Mat& t2, std::vector<cv::Mat>& all_hypotheses,
+		cv::Mat& R0, cv::Mat& t0, cv::Mat& R2, cv::Mat& t2,
 		int n_hypotheses, int n_GNiters, 
-		bool withNormalization = true, bool optimizedCost = false, bool record_all_hypotheses = false);
+		bool withNormalization = true, bool optimizedCost = false);
 
+Eigen::Matrix3d findEssentialMatGN(scan_t pts1, scan_t pts2, 
+		Eigen::Matrix3d& R0, Eigen::Vector3d& t0, Eigen::Matrix3d& R2, Eigen::Vector3d& t2,
+		int n_hypotheses, int n_GNiters, 
+		bool withNormalization = true, bool optimizedCost = false);		
 
 #endif //GN_STEP_H

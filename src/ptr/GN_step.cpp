@@ -1,11 +1,14 @@
+#include <eigen3/Eigen/Dense>
 #include "opencv2/core/core.hpp"
 #include "opencv2/calib3d.hpp"
 #include "opencv2/imgproc/imgproc.hpp" 
+#include "opencv2/core/eigen.hpp"
 #include <vector>
 #include "ptr/GN_step.h"
 
 
 using namespace std;
+using namespace Eigen;
 
 double sinc(double x)
 {
@@ -154,7 +157,7 @@ void printArray(const char* s, const double* p, int n, int m, int sfAfter, int s
 
 void printPoints(const char* s, vector<cv::Point2f> pts)
 {
-	printf("%s: (2x%d)\n", s, pts.size());
+	printf("%s: (2x%d)\n", s, (int)pts.size());
 	printf("[");
 	for(int i = 0; i < pts.size(); i++)
 		printf("%10.4f ", pts[i].x);
@@ -720,9 +723,9 @@ void copyHypothesis(const GNHypothesis& h1, GNHypothesis& h2)
 }
 
 cv::Mat findEssentialMatGN(vector<cv::Point2d> pts1, vector<cv::Point2d> pts2, 
-		cv::Mat& R0, cv::Mat& t0, cv::Mat& R2, cv::Mat& t2, std::vector<cv::Mat>& all_hypotheses,
+		cv::Mat& R0, cv::Mat& t0, cv::Mat& R2, cv::Mat& t2,
 		int n_hypotheses, int n_GNiters, 
-		bool withNormalization, bool optimizedCost, bool record_all_hypotheses)
+		bool withNormalization, bool optimizedCost)
 {
 	// Init
 	cv::RNG rng(cv::getCPUTickCount());
@@ -733,8 +736,8 @@ cv::Mat findEssentialMatGN(vector<cv::Point2d> pts1, vector<cv::Point2d> pts2,
 		bestModel.cost = score_LMEDS2(pts1, pts2, bestModel.E, 1e10);
 	else
 		bestModel.cost = score_LMEDS(pts1, pts2, bestModel.E, 1e10);
-	if(record_all_hypotheses)
-		all_hypotheses.push_back(bestModel.E_.clone());
+	//if(record_all_hypotheses)
+	//	all_hypotheses.push_back(bestModel.E_.clone());
 	GNHypothesis model;
 	for(int i = 0; i < n_hypotheses; i++)
 	{
@@ -755,10 +758,37 @@ cv::Mat findEssentialMatGN(vector<cv::Point2d> pts1, vector<cv::Point2d> pts2,
 			model.cost = score_LMEDS(pts1, pts2, model.E, bestModel.cost);
 		if(model.cost < bestModel.cost)
 			copyHypothesis(model, bestModel);
-		if(record_all_hypotheses)
-			all_hypotheses.push_back(bestModel.E_.clone());
+		//if(record_all_hypotheses)
+		//	all_hypotheses.push_back(bestModel.E_.clone());
 	}
 	R2 = bestModel.R_;
 	t2 = bestModel.t_;
 	return bestModel.E_;
+}
+
+Matrix3d findEssentialMatGN(scan_t pts1_eig, scan_t pts2_eig, 
+		Matrix3d& R0_eig, Vector3d& t0_eig, Matrix3d& R2_eig, Vector3d& t2_eig,
+		int n_hypotheses, int n_GNiters, 
+		bool withNormalization, bool optimizedCost)
+{
+	// Convert points and matrices to OpenCV
+	int n_pts = pts1_eig.size();
+	vector<cv::Point2d> pts1 = vector<cv::Point2d>(n_pts);
+	vector<cv::Point2d> pts2 = vector<cv::Point2d>(n_pts);
+	for (int i = 0; i < n_pts; i++)
+	{
+		pts1[i].x = pts1_eig[i](0);
+		pts1[i].y = pts1_eig[i](1);
+		pts2[i].x = pts2_eig[i](0);
+		pts2[i].y = pts2_eig[i](1);
+	}
+	cv::Mat R0, t0, R2, t2;
+	cv::eigen2cv(R0_eig, R0);
+	cv::eigen2cv(t0_eig, t0);
+	cv::Mat E = findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, n_hypotheses, n_GNiters, withNormalization, optimizedCost);
+	Matrix3d E_eig;
+	cv::cv2eigen(E, E_eig);
+	cv::cv2eigen(R2, R2_eig);
+	cv::cv2eigen(t2, t2_eig);
+	return E_eig;
 }

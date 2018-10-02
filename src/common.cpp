@@ -74,7 +74,7 @@ std::string vformat (const char *fmt, va_list ap)
     }
 }
 
-std::string str_format (const char *fmt, ...)
+std::string common::str_format (const char *fmt, ...)
 {
     va_list ap;
     va_start (ap, fmt);
@@ -87,10 +87,10 @@ vector<double> cpuTimes;
 vector<double> actualTimes;
 vector<int> numChildren;
 
-std::map<std::string, AverageTime> averageTimes;
+std::map<std::string, common::AverageTime> averageTimes;
 
 // Source: stackoverflow.com/questions/17432502/how-can-i-measure-cpu-time-and-wall-clock-time-on-both-linux-windows
-double get_wall_time()
+double common::get_wall_time()
 {
 #ifdef _WIN32
 	return (double)clock() / CLOCKS_PER_SEC;
@@ -101,7 +101,7 @@ double get_wall_time()
 #endif
 }
 
-double get_cpu_time()
+double common::get_cpu_time()
 {
 #ifdef _WIN32
 	FILETIME a, b, c, d;
@@ -112,7 +112,7 @@ double get_cpu_time()
 #endif
 }
 
-void tic()
+void common::tic()
 {
 	cpuTimes.push_back(get_cpu_time());
 	actualTimes.push_back(get_wall_time());
@@ -150,7 +150,7 @@ string formatTime2(double cpuTime_ms, double actualTime_ms, int sigFigs)
 // Double ═║╚╝╔╗╠╣╦╩╬
 
 //timeMeasurement toc(string s = "", int count = 1, int sigFigs = 2, bool print = true)
-timeMeasurement toc(string s, int count, int sigFigs, bool print)
+common::timeMeasurement common::toc(string s, int count, int sigFigs, bool print)
 {
 	if (cpuTimes.size() > 0)
 	{
@@ -201,7 +201,7 @@ timeMeasurement toc(string s, int count, int sigFigs, bool print)
 	}
 }
 
-timeMeasurement toc_peek()
+common::timeMeasurement common::toc_peek()
 {
 	if (cpuTimes.size() > 0)
 	{
@@ -216,28 +216,28 @@ timeMeasurement toc_peek()
 	}
 }
 
-void resetTimeAverages()
+void common::resetTimeAverages()
 {
 	averageTimes = std::map<std::string, AverageTime>();
 }
 
-Tokenizer::Tokenizer()
+common::Tokenizer::Tokenizer()
 {
 
 }
 
-Tokenizer::Tokenizer(string& str) : data(&str[0]), length(str.length())
+common::Tokenizer::Tokenizer(string& str) : data(&str[0]), length(str.length())
 {
 
 }
 
-Tokenizer::Tokenizer(char* data_, int length_) : data(data_), length(length_)
+common::Tokenizer::Tokenizer(char* data_, int length_) : data(data_), length(length_)
 {
 
 }
 
 // Get next token and shorten string by token
-Tokenizer Tokenizer::nextToken(char delimiter)
+common::Tokenizer common::Tokenizer::nextToken(char delimiter)
 {
 	int index = 0;
 	while (data[index] != delimiter && index < length)
@@ -248,7 +248,7 @@ Tokenizer Tokenizer::nextToken(char delimiter)
 	return child;
 }
 
-int Tokenizer::countTokens(char delimiter)
+int common::Tokenizer::countTokens(char delimiter)
 {
 	int count = 1;
 	for (int i = 0; i < length; i++)
@@ -257,7 +257,7 @@ int Tokenizer::countTokens(char delimiter)
 	return count;
 }
 
-Tokenizer Tokenizer::nextLine()
+common::Tokenizer common::Tokenizer::nextLine()
 {
 	Tokenizer line = nextToken('\n');
 	// Remove carriage return. For some reason Windows ignores the carriage return,  
@@ -269,22 +269,22 @@ Tokenizer Tokenizer::nextLine()
 	return line;
 }
 
-int Tokenizer::countLines()
+int common::Tokenizer::countLines()
 {
 	return countTokens('\n');
 }
 
-bool Tokenizer::hasToken()
+bool common::Tokenizer::hasToken()
 {
 	return length > 0;
 }
 
-string Tokenizer::str()
+string common::Tokenizer::str()
 {
 	return string(data, length);
 }
 
-int Tokenizer::toInt()
+int common::Tokenizer::toInt()
 {
 	int num = 0;
 	int sign = 1;
@@ -304,7 +304,7 @@ int Tokenizer::toInt()
 	return sign * num;
 }
 
-float Tokenizer::toFloat()
+float common::Tokenizer::toFloat()
 {
 	int num = 0;
 	int divisor = 1;
@@ -339,18 +339,18 @@ float Tokenizer::toFloat()
 //	return atoi(str().c_str());
 //}
 
-Tokenizer Tokenizer::clone()
+common::Tokenizer common::Tokenizer::clone()
 {
 	return Tokenizer(data, length);
 }
 
-bool fileExists(string name)
+bool common::fileExists(string name)
 {
 	ifstream ifile(name);
 	return ifile.good();
 }
 
-void loadPoints(string filename, sequence_t& data1, sequence_t& data2)
+void common::loadPoints(string filename, sequence_t& data1, sequence_t& data2)
 {
 	if (! fileExists(filename))
 	{
@@ -388,7 +388,7 @@ void loadPoints(string filename, sequence_t& data1, sequence_t& data2)
 	}
 }
 
-void loadRT(string filename, truth_t& data)
+void common::loadRT(string filename, truth_t& data)
 {
 	if (! fileExists(filename))
 	{
@@ -416,7 +416,7 @@ void loadRT(string filename, truth_t& data)
 	}
 }
 
-VideoPointData::VideoPointData(string yaml_filename)
+common::VideoPointData::VideoPointData(string yaml_filename)
 {
 	YAML::Node node = YAML::LoadFile(yaml_filename);
 
@@ -465,7 +465,7 @@ VideoPointData::VideoPointData(string yaml_filename)
 	}
 }
 
-Matrix3d skew(Vector3d v)
+Matrix3d common::skew(Vector3d v)
 {
 	Matrix3d Tx;
 	Tx << 0,    -v(2),   v(1),
@@ -474,32 +474,75 @@ Matrix3d skew(Vector3d v)
 	return Tx;
 }
 
-Matrix3d vecToR(Vector3d v)
+Vector3d common::vex(Matrix3d Tx)
 {
-	Matrix3d R;
-	Mat v_mat;
-	Mat R_mat;
-	eigen2cv(v, v_mat);
-	Rodrigues(v_mat, R_mat);
-	cv2eigen(R_mat, R);
+	Vector3d w;
+	w << Tx(2, 1); Tx(0, 2); Tx(1, 0);
+	return w;
+}
+
+double common::sinc(double x)
+{
+    // Taylor series expansion of sin is:           x - x^3/3! + x^5/5! - ...
+    // Thus the Taylor series expansion of sinc is: 1 - x^2/3! + x^4/5! - ...
+    // Double precision is approximately 16 digits. Since the largest term is x^2,
+    // we will experience numerical underflow if |x| < 1e-8.
+    // Of course, floating point arithmetic can handle much smaller values than this (as small as 1e-308).
+    // I haven't seen any problems with small numbers so far, so we could just check for division by zero,
+    // but this solution is guarenteed not to have problems.
+    if (fabs(x) < 1e-8)
+        return 1;
+    else
+        return sin(x) / x;
+}
+
+Matrix3d common::vecToR(Vector3d w)
+{
+	double theta = w.norm();
+	Matrix3d wx = skew(w);
+
+	// R = eye(3) + sinc(theta)*wx + 0.5*sinc(theta/2)^2*wx^2;	
+	double sinc2 = sinc(theta / 2);
+	Matrix3d R = Matrix3d::Identity() + sinc(theta)*wx + 0.5 * sinc2 * sinc2 * wx * wx;
 	return R;
 }
 
-Vector3d RtoVec(Matrix3d R)
+Vector3d common::RtoVec(Matrix3d R)
 {
-	Vector3d v;
-	Mat R_mat;
-	Mat v_mat;
-	eigen2cv(R, R_mat);
-	Rodrigues(R_mat, v_mat);
-	cv2eigen(v_mat, v);
-	return v;
+	// The rodrigues formula gives us
+	// R = I + sin(theta)*wx_hat + (1 - cos(theta))*wx_hat^2
+	// Notice that the first and third terms are symmetric,
+	// while the second term is skew-symmetric and has no diagonal components.
+	// The diagonal components of the matrix are are an easy way to get the "I + (1 - cos)" terms
+	// We can cancel out symmetric terms using (R - R') / 2. This allows us to get the "sin" term.
+	double cos_theta = (R.trace() - 1) / 2;
+	Vector3d sin_theta_w_hat = vex(R - R.transpose()) / 2;
+	double sin_theta = sin_theta_w_hat.norm();
+
+	// To get theta, we could use atan2, but it is slightly more accurate to 
+	// use acos or asin, depending on which area of the unit circle we are in.
+	// For best accuracy, we should avoid using acos or asin if the value is near 1.
+	// An easy way to prevent this is to simply use whichever value is smallest.
+	// (the multiplication by 2 slightly alters the asin/acos regions and was determined hueristically)
+	// We need to handle theta = [0, pi]. (quadrant 1 and 2)
+	// Theta by definition is norm(w), so it can't be negative. Angles larger than pi
+	// end up wrapping around the other way, whichever is shortest.
+	// theta = atan2(sin_theta, cos_theta);
+	double theta;
+	if (abs(cos_theta) < abs(sin_theta)*2)
+		theta = acos(cos_theta);
+	else if (cos_theta > 0)
+		theta = asin(sin_theta);
+	else if (cos_theta < 0)
+		theta = M_PI - asin(sin_theta);
+	Vector3d w = sin_theta_w_hat / sinc(theta);
+	return w;
 }
 
-void undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d camera_matrix)
+void common::undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d camera_matrix)
 {
-	// Note: We aren't inverting the actual camera matrix. We assume camera matrix is formatted
-	// as expected:
+	// Note: We aren't inverting actually the actual camera matrix. We assume 
+	// the camera matrix is formatted as expected:
 	// [fx 0  cx
 	//  0  fy cy
 	//  0  0  1]
@@ -512,7 +555,7 @@ void undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d camera_matrix)
 		pts_u[i] << (pts[i](0) - cx)*inv_fx, (pts[i](1) - cy)*inv_fy;
 }
 
-Vector3d err_truth(const Matrix3d& R_est, const Vector3d& t_est, const Matrix4d& RT)
+Vector3d common::err_truth(const Matrix3d& R_est, const Vector3d& t_est, const Matrix4d& RT)
 {
 	// Extract R and T
 	Matrix3d R = RT.block<3, 3>(0, 0);

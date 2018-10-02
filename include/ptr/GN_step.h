@@ -98,7 +98,7 @@ cv::Mat findEssentialMatGN(std::vector<cv::Point2d> pts1, std::vector<cv::Point2
 		int n_hypotheses, int n_GNiters, 
 		bool withNormalization = true, bool optimizedCost = false);
 
-Eigen::Matrix3d findEssentialMatGN(scan_t pts1, scan_t pts2, 
+Eigen::Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2, 
 		Eigen::Matrix3d& R0, Eigen::Vector3d& t0, Eigen::Matrix3d& R2, Eigen::Vector3d& t2,
 		int n_hypotheses, int n_GNiters, 
 		bool withNormalization = true, bool optimizedCost = false);		

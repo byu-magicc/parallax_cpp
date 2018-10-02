@@ -8,6 +8,9 @@
 #include <yaml-cpp/yaml.h>
 #include <eigen3/Eigen/Eigen>
 
+namespace common
+{
+	
 struct AverageTime
 {
 	double totalCpuTime = 0;
@@ -235,6 +238,10 @@ public:
 
 Eigen::Matrix3d skew(Eigen::Vector3d v);
 
+Eigen::Vector3d vex(Eigen::Matrix3d Tx);
+
+double sinc(double x);
+
 Eigen::Matrix3d vecToR(Eigen::Vector3d v);
 
 Eigen::Vector3d RtoVec(Eigen::Matrix3d R);
@@ -242,5 +249,7 @@ Eigen::Vector3d RtoVec(Eigen::Matrix3d R);
 void undistort_points(const scan_t& pts, scan_t& pts1_u, Eigen::Matrix3d camera_matrix);
 
 Eigen::Vector3d err_truth(const Eigen::Matrix3d& R_est, const Eigen::Vector3d& t_est, const Eigen::Matrix4d& RT);
+
+}
 
 #endif //COMMON_H

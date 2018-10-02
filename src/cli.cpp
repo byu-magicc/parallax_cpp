@@ -1,9 +1,5 @@
 #include <eigen3/Eigen/Dense>
 #include <iostream>
-#include "opencv2/core/core.hpp"
-#include "opencv2/calib3d.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/core/eigen.hpp"
 #include "ptr/GN_step.h"
 #include "common.h"
 #include <vector>
@@ -12,6 +8,7 @@
 using namespace std;
 using namespace Eigen;
 using namespace cv;
+using namespace common;
 
 void timing(string yaml_filename)
 {
@@ -30,12 +27,6 @@ void accuracy(string yaml_filename)
 	else
 		printf("Warning: Truth data size does not match point data size (%d != %d)\n",
 			(int)video_data.RT.size(), (int)video_data.pts1.size());
-
-	// Convert Eigen to OpenCV matrices.
-	cv::Mat camera_matrix;
-	cv::Mat dist_coeffs;
-	eigen2cv(video_data.camera_matrix, camera_matrix);
-	eigen2cv(video_data.dist_coeffs, dist_coeffs);
 
 	// Loop for all points
 	cv::RNG rng(cv::getCPUTickCount());
@@ -62,7 +53,7 @@ void accuracy(string yaml_filename)
 		log_file2.write((char*)&time_E.actualTime, sizeof(double));
 
 		// Calculate error to truth essential matrix
-		Vector3d err = err_truth(R2, t2, video_data.RT[frame]);
+		Vector3d err = common::err_truth(R2, t2, video_data.RT[frame]);
 		log_file.write((char*)&err, sizeof(double) * 3);
 		if(frame < 5)
 			cout << err << endl;

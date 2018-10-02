@@ -226,7 +226,7 @@ void axisAngleGetR(const double* w, double* R)
 	double wx[9];
 	skew(w, wx);
 	
-	// R = eye(3) + sinc(theta)*wx + 1/2*sinc(theta/2)^2*wx^2;	
+	// R = eye(3) + sinc(theta)*wx + 0.5*sinc(theta/2)^2*wx^2;	
 	double I[9];
 	eye3(I);
 	double tmp1[9];
@@ -766,7 +766,7 @@ cv::Mat findEssentialMatGN(vector<cv::Point2d> pts1, vector<cv::Point2d> pts2,
 	return bestModel.E_;
 }
 
-Matrix3d findEssentialMatGN(scan_t pts1_eig, scan_t pts2_eig, 
+Matrix3d findEssentialMatGN(common::scan_t pts1_eig, common::scan_t pts2_eig, 
 		Matrix3d& R0_eig, Vector3d& t0_eig, Matrix3d& R2_eig, Vector3d& t2_eig,
 		int n_hypotheses, int n_GNiters, 
 		bool withNormalization, bool optimizedCost)

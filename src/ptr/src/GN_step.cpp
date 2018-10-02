@@ -4,7 +4,7 @@
 #include "opencv2/imgproc/imgproc.hpp" 
 #include "opencv2/core/eigen.hpp"
 #include <vector>
-#include "ptr/GN_step.h"
+#include "GN_step.h"
 
 
 using namespace std;

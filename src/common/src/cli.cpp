@@ -1,6 +1,6 @@
 #include <eigen3/Eigen/Dense>
 #include <iostream>
-#include "ptr/GN_step.h"
+#include "GN_step.h"
 #include "common.h"
 #include <vector>
 #include <fstream>

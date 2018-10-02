@@ -6,7 +6,6 @@
 #include <eigen3/Eigen/Eigen>
 #include <eigen3/Eigen/Dense>
 #include <iostream>
-#include "ptr/GN_step.h"
 
 #include <vector>
 
@@ -28,7 +27,6 @@
 #include <math.h>
 #include <cstdarg>
 
-using namespace cv;
 using namespace std;
 using namespace Eigen;
 
@@ -293,7 +291,7 @@ int common::Tokenizer::toInt()
 		else if (c != ' ' && c != '\r' && c != '\n')
 		{
 			cout << "Warning: unrecognized character: \"" << c << "\"" << "(" << (int)c << ")" << endl;
-			CV_Assert(false);
+			assert(0);
 		}
 	}
 	return sign * num;
@@ -321,7 +319,7 @@ float common::Tokenizer::toFloat()
 		else if (c != ' ' && c != '\r' && c != '\n')
 		{
 			cout << "Warning: unrecognized character: \"" << c << "\"" << "(" << (int)c << ")" << endl;
-			CV_Assert(false);
+			assert(0);
 		}
 	}
 	float result = (float)sign * num / divisor;

@@ -6,12 +6,7 @@
 #include <eigen3/Eigen/Eigen>
 #include <eigen3/Eigen/Dense>
 #include <iostream>
-#include "opencv2/core/core.hpp"
-#include "opencv2/calib3d.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/core/eigen.hpp"
 #include "ptr/GN_step.h"
-#include "opencv2/calib3d.hpp"
 
 #include <vector>
 

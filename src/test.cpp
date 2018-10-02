@@ -1,8 +1,5 @@
 #include <eigen3/Eigen/Dense>
 #include <iostream>
-#include "opencv2/core/core.hpp"
-#include "opencv2/calib3d.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
 #include "ptr/GN_step.h"
 #include <vector>
 

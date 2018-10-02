@@ -1,8 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include "opencv2/core/core.hpp"
-#include "opencv2/calib3d.hpp"
 #include <deque>
 #include <iostream>
 #include <yaml-cpp/yaml.h>
@@ -10,7 +8,7 @@
 
 namespace common
 {
-	
+
 struct AverageTime
 {
 	double totalCpuTime = 0;

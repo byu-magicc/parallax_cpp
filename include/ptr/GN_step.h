@@ -1,6 +1,7 @@
 #ifndef GN_STEP_H
 #define GN_STEP_H
 
+#include "opencv2/core/core.hpp"
 #include "common.h"
 #include <eigen3/Eigen/Dense>
 

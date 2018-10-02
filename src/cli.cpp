@@ -4,10 +4,11 @@
 #include "common.h"
 #include <vector>
 #include <fstream>
+#include <random>
+#include <chrono>
 
 using namespace std;
 using namespace Eigen;
-using namespace cv;
 using namespace common;
 
 void timing(string yaml_filename)
@@ -28,8 +29,12 @@ void accuracy(string yaml_filename)
 		printf("Warning: Truth data size does not match point data size (%d != %d)\n",
 			(int)video_data.RT.size(), (int)video_data.pts1.size());
 
+	// Random number generation
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::default_random_engine rng(seed);
+	std::normal_distribution<double> dist(0.0, 1.0);
+
 	// Loop for all points
-	cv::RNG rng(cv::getCPUTickCount());
 	std::ofstream log_file;
 	std::ofstream log_file2;
 	log_file.open("../logs/log_test.bin");
@@ -44,7 +49,7 @@ void accuracy(string yaml_filename)
 		// Calculate essential matrix
 		Matrix3d R0 = Matrix3d::Identity();
 		Vector3d t0;
-		t0 << rng.gaussian(1), rng.gaussian(1), rng.gaussian(1);
+		t0 << dist(rng), dist(rng), dist(rng);
 		Matrix3d R2;
 		Vector3d t2;
 		tic();

@@ -1,9 +1,12 @@
-#ifndef GN_STEP_H
-#define GN_STEP_H
+#ifndef GNSAC_PTR_EIG_H
+#define GNSAC_PTR_EIG_H
 
 #include "opencv2/core/core.hpp"
 #include "common.h"
 #include <eigen3/Eigen/Dense>
+
+namespace gnsac_ptr_eigen
+{
 
 double sinc(double x);
 
@@ -104,4 +107,6 @@ Eigen::Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
 		int n_hypotheses, int n_GNiters, 
 		bool withNormalization = true, bool optimizedCost = false);		
 
-#endif //GN_STEP_H
+}
+
+#endif //GNSAC_PTR_EIG_H

@@ -1,6 +1,7 @@
 #include <eigen3/Eigen/Dense>
 #include <iostream>
-#include "GN_step.h"
+#include "gnsac_ptr_eig.h"
+#include "gnsac_ptr_ocv.h"
 #include "common.h"
 #include <vector>
 #include <fstream>
@@ -53,7 +54,7 @@ void accuracy(string yaml_filename)
 		Matrix3d R2;
 		Vector3d t2;
 		tic();
-		Matrix3d E = findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, 100, 10, true, false);
+		Matrix3d E = gnsac_ptr_eigen::findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, 100, 10, true, false);
 		timeMeasurement time_E = toc("FindE", 1, 2, false);
 		log_file2.write((char*)&time_E.actualTime, sizeof(double));
 

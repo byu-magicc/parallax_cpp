@@ -4,11 +4,14 @@
 #include "opencv2/imgproc/imgproc.hpp" 
 #include "opencv2/core/eigen.hpp"
 #include <vector>
-#include "GN_step.h"
+#include "gnsac_ptr_ocv.h"
 
 
 using namespace std;
 using namespace Eigen;
+
+namespace gnsac_ptr_opencv
+{
 
 double sinc(double x)
 {
@@ -791,4 +794,6 @@ Matrix3d findEssentialMatGN(common::scan_t pts1_eig, common::scan_t pts2_eig,
 	cv::cv2eigen(R2, R2_eig);
 	cv::cv2eigen(t2, t2_eig);
 	return E_eig;
+}
+
 }

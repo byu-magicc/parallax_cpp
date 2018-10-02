@@ -13,9 +13,10 @@ find_package(OpenCV REQUIRED)
 # find_package(Ceres REQUIRED)
 
 include_directories(
-  src/5_point/include
-  src/common/include
-  src/ptr/include
+  lib/5_point/include
+  lib/common/include
+  lib/gnsac_ptr_eigen/include
+  lib/gnsac_ptr_opencv/include
   # lib/common_cpp/include
   ${EIGEN3_INCLUDE_DIRS}
   ${YAML_CPP_INCLUDE_DIR}
@@ -23,17 +24,11 @@ include_directories(
   # ${CERES_INCLUDE_DIRS}
 )
 
-add_executable(test_rcpo
-  src/common/src/test.cpp
-  src/common/src/common.cpp
-  src/ptr/src/GN_step.cpp
-)
-
 add_executable(cli
-  src/common/src/cli.cpp
-  src/common/src/common.cpp
-  src/ptr/src/GN_step.cpp
+  src/cli.cpp
+  lib/common/src/common.cpp
+  lib/gnsac_ptr_eigen/src/gnsac_ptr_eig.cpp
+  lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
 )
 
-target_link_libraries(test_rcpo ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
 target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)

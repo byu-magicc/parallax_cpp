@@ -8,8 +8,6 @@
 namespace gnsac_ptr_eigen
 {
 
-typedef Eigen::Matrix<double, 3, 3, Eigen::RowMajor> Matrix3d_rm;
-
 double sinc(double x);
 
 void skew(const double* w, double* T);
@@ -86,12 +84,12 @@ class GNHypothesis
 {
 public:
 	GNHypothesis();
-	GNHypothesis(Matrix3d_rm R0, Eigen::Vector3d t0);
+	GNHypothesis(cv::Mat R0, cv::Mat t0);
 	
-	Matrix3d_rm E_;
-	Matrix3d_rm R_;
-	Matrix3d_rm TR_;
-	Eigen::Vector3d t_;
+	cv::Mat E_;
+	cv::Mat R_;
+	cv::Mat TR_;
+	cv::Mat t_;
 	double* R;
 	double* TR;
 	double* E;
@@ -99,15 +97,16 @@ public:
 	double cost;
 };
 
-Matrix3d_rm findEssentialMatGN_(common::scan_t pts1, common::scan_t pts2,
-		Matrix3d_rm& R0, Eigen::Vector3d& t0, Matrix3d_rm& R2, Eigen::Vector3d& t2,
+cv::Mat findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
+		cv::Mat& R0, cv::Mat& t0, cv::Mat& R2, cv::Mat& t2,
 		int n_hypotheses, int n_GNiters,
 		bool withNormalization = true, bool optimizedCost = false);
 
 Eigen::Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
 		Eigen::Matrix3d& R0, Eigen::Vector3d& t0, Eigen::Matrix3d& R2, Eigen::Vector3d& t2,
-		int n_hypotheses, int n_GNiters, 
+		int n_hypotheses, int n_GNiters,
 		bool withNormalization = true, bool optimizedCost = false);
+		
 }
 
 #endif //GNSAC_PTR_EIG_H

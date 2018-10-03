@@ -214,6 +214,55 @@ void common::resetTimeAverages()
 	averageTimes = std::map<std::string, AverageTime>();
 }
 
+double start_time;
+
+void common::print_duration(double duration)
+{
+	int total_sec = floor(duration);
+	double frac_sec = duration - total_sec;
+	int sec = total_sec % 60;
+	int total_min = total_sec / 60;
+	int min = total_min % 60;
+	int total_hour = total_min / 60;
+	if(total_sec < 10)
+		printf("00:%05.2f", sec + frac_sec);
+	else if(total_min < 60)
+		printf("%02d:%02d", min, sec);
+	else
+		printf("%02d:%02d:%02d", total_hour, min, sec);
+}
+
+string common::repeat_str(string s, int reps)
+{
+	string str = string(s.length() * reps, ' ');
+	for(int i = 0; i < reps; i++)
+		for(int j = 0; j < s.length(); j++)
+			str[i * s.length() + j] = s[j];
+	return str;
+}
+
+void common::progress(int iter, int max_iters)
+{
+	const int progress_bar_size = 100;
+	double ratio = ((double)iter) / max_iters;
+	int prcnt = round(ratio*100);
+	int bars = round(ratio*progress_bar_size);
+	string progress_bar = repeat_str("█", bars) + repeat_str(" ", progress_bar_size - bars);
+	printf("\r%3d%%|%s| %d/%d | ", prcnt, progress_bar.c_str(), iter, max_iters);
+
+	double curr_time = get_wall_time();
+	if(iter == 0)
+		start_time = curr_time;
+	else
+	{
+		double approx_time_left = (max_iters - iter) * (curr_time - start_time) / iter;
+		print_duration(approx_time_left);
+	}
+	if(iter == max_iters)
+		printf("\n");
+	fflush(stdout);
+}
+
 common::Tokenizer::Tokenizer()
 {
 

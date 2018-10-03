@@ -44,6 +44,12 @@ timeMeasurement toc_peek();
 
 void resetTimeAverages();
 
+void print_duration(double duration);
+
+std::string repeat_str(std::string s, int reps);
+
+void progress(int iter, int max_iters);
+
 // Note: A Tokenizer class/struct might seem like reinventing the wheel.
 // It also may seem like it isn't a good idea to use pointers to strings
 // when the underlying string could be deconstructed without warning.

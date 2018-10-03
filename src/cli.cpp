@@ -40,7 +40,9 @@ void accuracy(string yaml_filename)
 	std::ofstream log_file2;
 	log_file.open("../logs/log_test.bin");
 	log_file2.open("../logs/time_E.bin");
-	for (int frame = 0; frame < video_data.pts1.size(); frame++)
+	int frames = video_data.pts1.size();
+	common::progress(0, frames);
+	for (int frame = 0; frame < frames; frame++)
 	{
 		// Undistort points
 		scan_t pts1, pts2;
@@ -61,8 +63,7 @@ void accuracy(string yaml_filename)
 		// Calculate error to truth essential matrix
 		Vector3d err = common::err_truth(R2, t2, video_data.RT[frame]);
 		log_file.write((char*)&err, sizeof(double) * 3);
-		if(frame < 5)
-			cout << err << endl;
+		common::progress(frame + 1, frames);
 	}
 	log_file.close();
 	log_file2.close();

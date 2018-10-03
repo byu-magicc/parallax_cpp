@@ -1,11 +1,8 @@
 #include <eigen3/Eigen/Dense>
-#include "opencv2/core/core.hpp"
-#include "opencv2/calib3d.hpp"
-#include "opencv2/imgproc/imgproc.hpp" 
-#include "opencv2/core/eigen.hpp"
 #include <vector>
 #include "gnsac_ptr_eig.h"
-
+#include <random>
+#include <chrono>
 
 using namespace std;
 using namespace Eigen;
@@ -35,11 +32,11 @@ void skew(const double* w, double* T)
 	T[6] = -w[1]; T[7] = w[0];  T[8] = 0;
 }
 
-void mult3pt(const double* A, const cv::Point2d pt, double* y)
+void mult3pt(const double* A, const Vector2d pt, double* y)
 {
-	y[0] = A[0]*pt.x + A[1]*pt.y + A[2];
-	y[1] = A[3]*pt.x + A[4]*pt.y + A[5];
-	y[2] = A[6]*pt.x + A[7]*pt.y + A[8];
+	y[0] = A[0]*pt(0) + A[1]*pt(1) + A[2];
+	y[1] = A[3]*pt(0) + A[4]*pt(1) + A[5];
+	y[2] = A[6]*pt(0) + A[7]*pt(1) + A[8];
 }
 
 void mult31(const double* A, const double* x, double* y)
@@ -54,9 +51,9 @@ double mult3vtv(const double* x, const double* y)
 	return x[0]*y[0] + x[1]*y[1] + x[2]*y[2];
 }
 
-double multptv(const cv::Point2d pt, const double* v)
+double multptv(const Vector2d pt, const double* v)
 {
-	return pt.x*v[0] + pt.y*v[1] + v[2];
+	return pt(0)*v[0] + pt(1)*v[1] + v[2];
 }
 
 void mult33(const double* A, const double* B, double* C)
@@ -158,15 +155,15 @@ void printArray(const char* s, const double* p, int n, int m, int sfAfter, int s
 	printf("]\n");
 }
 
-void printPoints(const char* s, vector<cv::Point2f> pts)
+void printPoints(const char* s, common::scan_t pts)
 {
 	printf("%s: (2x%d)\n", s, (int)pts.size());
 	printf("[");
 	for(int i = 0; i < pts.size(); i++)
-		printf("%10.4f ", pts[i].x);
+		printf("%10.4f ", pts[i](0));
 	printf("\n ");
 	for(int i = 0; i < pts.size(); i++)
-		printf("%10.4f ", pts[i].y);
+		printf("%10.4f ", pts[i](1));
 	printf("]\n");
 }
 
@@ -372,7 +369,7 @@ void normalizeLine(const double* L, double* LH)
 
 // calculate residual and jacobian of residual for a single measurement
 double residual_diff(const double* R, const double* TR, const double* E, const double* deltaE, 
-		  const cv::Point2d p1, const cv::Point2d p2, double* deltaR)
+		  const Vector2d p1, const Vector2d p2, double* deltaR)
 {
 	// r = p2'*normalizeLine(E*p1);
 	double L[3];
@@ -412,7 +409,7 @@ double residual_diff(const double* R, const double* TR, const double* E, const d
 }
 
 // calculate residual for a single measurement
-double residual(const double* E, const cv::Point2d p1, const cv::Point2d p2)
+double residual(const double* E, const Vector2d p1, const Vector2d p2)
 {
 	// r = p2'*normalizeLine(E*p1);
 	double L[3];
@@ -426,7 +423,7 @@ double residual(const double* E, const cv::Point2d p1, const cv::Point2d p2)
 // calculate residual and jacobian of residual for a single measurement
 double residual_diff_without_normalization(
 		const double* R, const double* TR, const double* E, const double* deltaE, 
-		const cv::Point2d p1, const cv::Point2d p2, double* deltaR)
+		const Vector2d p1, const Vector2d p2, double* deltaR)
 {
 	// r = p2'*normalizeLine(E*p1);
 	double L[3];
@@ -456,7 +453,7 @@ double residual_diff_without_normalization(
 }
 
 // calculate residual for a single measurement
-double residual_without_normalization(const double* E, const cv::Point2d p1, const cv::Point2d p2)
+double residual_without_normalization(const double* E, const Vector2d p1, const Vector2d p2)
 {
 	// r = p2'*E*p1;
 	double L[3];
@@ -465,8 +462,10 @@ double residual_without_normalization(const double* E, const cv::Point2d p1, con
 	return r;
 }
 
+#define MAX_PTS 2000
+
 //function [E, R, TR] = GN_step(pts1, pts2, R, TR)
-void GN_step(const vector<cv::Point2d> pts1, const vector<cv::Point2d> pts2, const double* R, const double* TR,
+void GN_step(const common::scan_t pts1, const common::scan_t pts2, const double* R, const double* TR,
 		  double* E2, double* R2, double* TR2, double* t2, int method, bool withNormalization, bool useLM)
 {
 	// Gauss-Newton
@@ -475,14 +474,21 @@ void GN_step(const vector<cv::Point2d> pts1, const vector<cv::Point2d> pts2, con
 	// J = zeros(N, 5);
 	double lambda = 1e-4;
 	int N = (int)pts1.size();
-	cv::Mat r_mat = cv::Mat::zeros(N, 1, CV_64F);
-	cv::Mat r2_mat = cv::Mat::zeros(N, 1, CV_64F);
-	cv::Mat J_mat = cv::Mat::zeros(N, 5, CV_64F);
-	cv::Mat dx_mat = cv::Mat::zeros(5, 1, CV_64F);	
-	double* r = r_mat.ptr<double>();
-	double* r2 = r2_mat.ptr<double>();
-	double* J = J_mat.ptr<double>();
-	double* dx = dx_mat.ptr<double>();
+	assert(N <= MAX_PTS);
+
+	// Eigen matrices
+	static Matrix<double, MAX_PTS, 1> r_eig;
+	static Matrix<double, MAX_PTS, 1> r2_eig;
+	static Matrix<double, MAX_PTS, 5, RowMajor> J_eig;
+	Matrix<double, 5, 1> dx_eig;
+
+	// Pointers
+	double* r = r_eig.data();
+	double* r2 = r2_eig.data();
+	double* J = J_eig.data();
+	double* dx = dx_eig.data();
+
+	// Dynamic
 	double E[3*3];
 	double deltaE[15*3];
 	getE_diff(R, TR, E, deltaE);
@@ -499,12 +505,21 @@ void GN_step(const vector<cv::Point2d> pts1, const vector<cv::Point2d> pts2, con
 	{
 		// JtJ = J'*J;
 		// Jtr = J'*r;
-		cv::Mat JtJ_mat = J_mat.t()*J_mat;
-		cv::Mat Jtr_mat = J_mat.t()*r_mat;
+		Matrix<double, 5, 5> JtJ_eig = J_eig.topRows(N).transpose()*J_eig.topRows(N);
+		Matrix<double, 5, 1> Jtr_eig = J_eig.topRows(N).transpose()*r_eig.topRows(N);
 		while(true)
 		{
+			// For tradeoffs in the solving method, see
+			// https://eigen.tuxfamily.org/dox/group__DenseDecompositionBenchmark.html
+			// https://eigen.tuxfamily.org/dox/group__TopicLinearAlgebraDecompositions.html
+			// https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html			
 			// dx = -(JtJ + lambda*diag(diag(JtJ)))\J'*r;
-			cv::solve(-(JtJ_mat + lambda*cv::Mat::diag(JtJ_mat.diag())), Jtr_mat, dx_mat, cv::DECOMP_NORMAL);
+			//Matrix<double, 5, 5> A = -(JtJ_eig + lambda*JtJ_eig.diagonal().asDiagonal());
+			Matrix<double, 5, 5> JtJ_diag_only = JtJ_eig.diagonal().asDiagonal();
+			Matrix<double, 5, 5> A = -(JtJ_eig + lambda*JtJ_diag_only);
+			//dx_eig = A.colPivHouseholderQr().solve(Jtr_eig); // very accurate
+			dx_eig = A.fullPivLu().solve(Jtr_eig); // fast, but still accurate
+			//dx_eig = A.llt().solve(Jtr_eig); // fastest, not accurate, must be pos def.
 	
 			// [R2, TR2] = E_boxplus(R, TR, dx);
 			E_boxplus(R, TR, dx, R2, TR2);
@@ -518,7 +533,7 @@ void GN_step(const vector<cv::Point2d> pts1, const vector<cv::Point2d> pts2, con
 					r2[i] = residual_without_normalization(E, pts1[i], pts2[i]);
 			}
 			
-			if(cv::norm(r2_mat) <= cv::norm(r_mat))
+			if(r2_eig.norm() <= r_eig.norm())
 			{
 				// If the new error is lower, keep new values and move onto the next iteration.
 				// Decrease lambda, which makes the algorithm behave more like Gauss-Newton.
@@ -538,20 +553,14 @@ void GN_step(const vector<cv::Point2d> pts1, const vector<cv::Point2d> pts2, con
 	}
 	else
 	{
+		// For tradeoffs in the solving method, see
+		// https://eigen.tuxfamily.org/dox/group__DenseDecompositionBenchmark.html
+		// https://eigen.tuxfamily.org/dox/group__TopicLinearAlgebraDecompositions.html
+		// https://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
 		// dx = -J\r;
-		// QR takes about twice as long on Windows, all the other methods have similar computation times.
-		if(method == 1)
-			cv::solve(-J_mat, r_mat, dx_mat, cv::DECOMP_NORMAL);
-		else if(method == 2)
-			cv::solve(-J_mat, r_mat, dx_mat, cv::DECOMP_NORMAL | cv::DECOMP_QR);
-		else if(method == 3)
-			cv::solve(-J_mat, r_mat, dx_mat, cv::DECOMP_NORMAL | cv::DECOMP_SVD);
-		else if(method == 4)
-			cv::solve(-J_mat.t()*J_mat, J_mat.t()*r_mat, dx_mat, cv::DECOMP_CHOLESKY);
-		else if(method == 5);
-		else
-			CV_Assert(0);
-		
+		//dx_eig = -J_eig.topRows(N).colPivHouseholderQr().solve(r_eig.topRows(N)); // very accurate
+		dx_eig = -J_eig.topRows(N).fullPivLu().solve(r_eig.topRows(N)); // fast, but still accurate
+
 		// [R, TR] = E_boxplus(R, TR, dx);
 		E_boxplus(R, TR, dx, R2, TR2);
 	}
@@ -566,31 +575,31 @@ void GN_step(const vector<cv::Point2d> pts1, const vector<cv::Point2d> pts2, con
 }
 
 GNHypothesis::GNHypothesis() : cost(0), 
-	E_(cv::Mat::zeros(3, 3, CV_64F)), R_(cv::Mat::eye(3, 3, CV_64F)), 
-	TR_(cv::Mat::eye(3, 3, CV_64F)), t_(cv::Mat::zeros(3, 1, CV_64F))
+	E_(Matrix3d_rm::Zero()), R_(Matrix3d_rm::Identity()), 
+	TR_(Matrix3d_rm::Identity()), t_(Vector3d::Zero())
 {
-	R = R_.ptr<double>();
-	TR = TR_.ptr<double>();
-	E = E_.ptr<double>();
-	t = t_.ptr<double>();
+	R = R_.data();
+	TR = TR_.data();
+	E = E_.data();
+	t = t_.data();
 	RT_getE(R, TR, t, E);
 }
 	
-GNHypothesis::GNHypothesis(cv::Mat R0, cv::Mat t0) : cost(0), 
-	E_(cv::Mat::zeros(3, 3, CV_64F)), R_(R0.clone()), 
-	TR_(cv::Mat::eye(3, 3, CV_64F)), t_(cv::Mat::zeros(3, 1, CV_64F))
+GNHypothesis::GNHypothesis(Matrix3d_rm R0, Vector3d t0) : cost(0), 
+	E_(Matrix3d_rm::Zero()), R_(R0),
+	TR_(Matrix3d_rm::Identity()), t_(Vector3d::Zero())
 {
-	R = R_.ptr<double>();
-	TR = TR_.ptr<double>();
-	E = E_.ptr<double>();
-	t = t_.ptr<double>();
-	t2TR(t0.ptr<double>(), TR);
+	R = R_.data();
+	TR = TR_.data();
+	E = E_.data();
+	t = t_.data();
+	t2TR(t0.data(), TR);
 	RT_getE(R, TR, t, E);
 }
 
-void getSubset(vector<cv::Point2d>& pts1, vector<cv::Point2d>& pts2, vector<cv::Point2d>& subset1, vector<cv::Point2d>& subset2, int modelPoints, cv::RNG& rng)
+void getSubset(common::scan_t& pts1, common::scan_t& pts2, common::scan_t& subset1, common::scan_t& subset2, int modelPoints, 
+	std::uniform_int_distribution<> dist, std::default_random_engine rng)
 {
-	int count = pts1.size();
 	vector<int> idxs;
 	for (int i = 0; i < modelPoints; i++)
 	{
@@ -599,7 +608,7 @@ void getSubset(vector<cv::Point2d>& pts1, vector<cv::Point2d>& pts2, vector<cv::
 		while(!unique)
 		{
 			// randomly pick an element index to add to the subset
-			idx = rng.uniform(0, count);
+			idx = dist(rng);
 
 			// ensure element is unique
 			unique = true;
@@ -618,25 +627,27 @@ void getSubset(vector<cv::Point2d>& pts1, vector<cv::Point2d>& pts2, vector<cv::
 	}
 }
 
-double score_LMEDS(vector<cv::Point2d>& pts1, vector<cv::Point2d>& pts2, double* E, double maxMedian)
+double score_LMEDS(common::scan_t& pts1, common::scan_t& pts2, double* E, double maxMedian)
 {
 	int costsAboveMedian = 0;
 	int n_pts = (int)pts1.size();
 	int medianIdx = (int)n_pts/2;
 	vector<double> err = vector<double>(n_pts, 0);
-	cv::Matx33d E_matx(E);
+	Map<Matrix3d_rm> E_mat = Map<Matrix3d_rm>(E);
 	for (int i = 0; i < n_pts; i++)
 	{
-		cv::Vec3d x1(pts1[i].x, pts1[i].y, 1.);
-		cv::Vec3d x2(pts2[i].x, pts2[i].y, 1.);
-		cv::Vec3d Ex1 = E_matx * x1;
-		cv::Vec3d Etx2 = E_matx.t() * x2;
+		Vector3d x1;
+		x1 << pts1[i](0), pts1[i](1), 1.;
+		Vector3d x2;
+		x2 << pts2[i](0), pts2[i](1), 1.;
+		Vector3d Ex1 = E_mat * x1;
+		Vector3d Etx2 = E_mat.transpose() * x2;
 		double x2tEx1 = x2.dot(Ex1);
 		
-		double a = Ex1[0] * Ex1[0];
-		double b = Ex1[1] * Ex1[1];
-		double c = Etx2[0] * Etx2[0];
-		double d = Etx2[1] * Etx2[1];
+		double a = Ex1(0) * Ex1(0);
+		double b = Ex1(1) * Ex1(1);
+		double c = Etx2(0) * Etx2(0);
+		double d = Etx2(1) * Etx2(1);
 
 		double err_i = x2tEx1 * x2tEx1 / (a + b + c + d);
 
@@ -645,16 +656,16 @@ double score_LMEDS(vector<cv::Point2d>& pts1, vector<cv::Point2d>& pts2, double*
 // 		// Find the equation of the line 
 // 		// l = [a b c]' E*x2
 // 		// ax + by + c = 0
-// 		a = E[0]*pts1[i].x + E[1]*pts1[i].y + E[2];
-// 		b = E[3]*pts1[i].x + E[4]*pts1[i].y + E[5];
-// 		c = E[6]*pts1[i].x + E[7]*pts1[i].y + E[8];
+// 		a = E[0]*pts1[i](0) + E[1]*pts1[i](1) + E[2];
+// 		b = E[3]*pts1[i](0) + E[4]*pts1[i](1) + E[5];
+// 		c = E[6]*pts1[i](0) + E[7]*pts1[i](1) + E[8];
 // 		
 // 		// distance to the line can be found be taking the dot product
 // 		// of the normalized line and the homogeneous coordinate of the point.
 // 		// To normalize the line, divide a, b, and c by sqrt(a^2 + b^2), 
 // 		// so that vector [a_new b_new] is a unit vector.
 // 		// We normalize when the square of the distance is computed, thus avoiding a sqrt.
-// 		dotprod = (pts2[i].x*a + pts2[i].y*b + c);
+// 		dotprod = (pts2[i](0)*a + pts2[i](1)*b + c);
 // 		distsqr = dotprod*dotprod / (a*a + b*b);
 //			err_i = distsqr;
 		
@@ -672,7 +683,7 @@ double score_LMEDS(vector<cv::Point2d>& pts1, vector<cv::Point2d>& pts2, double*
 	return err[medianIdx];
 }
 
-double score_LMEDS2(vector<cv::Point2d>& pts1, vector<cv::Point2d>& pts2, double* E, double maxMedian)
+double score_LMEDS2(common::scan_t& pts1, common::scan_t& pts2, double* E, double maxMedian)
 {
 	int costsAboveMedian = 0;
 	int n_pts = (int)pts1.size();
@@ -685,20 +696,20 @@ double score_LMEDS2(vector<cv::Point2d>& pts1, vector<cv::Point2d>& pts2, double
 		// Find the equation of the line 
 		// l = [a b c]' = E*x1
 		// ax + by + c = 0
-		a2 = E[0]*pts1[i].x + E[1]*pts1[i].y + E[2];
-		b2 = E[3]*pts1[i].x + E[4]*pts1[i].y + E[5];
-		c2 = E[6]*pts1[i].x + E[7]*pts1[i].y + E[8];
+		a2 = E[0]*pts1[i](0) + E[1]*pts1[i](1) + E[2];
+		b2 = E[3]*pts1[i](0) + E[4]*pts1[i](1) + E[5];
+		c2 = E[6]*pts1[i](0) + E[7]*pts1[i](1) + E[8];
 		
-		a1 = E[0]*pts2[i].x + E[3]*pts2[i].y + E[6];
-		b1 = E[1]*pts2[i].x + E[4]*pts2[i].y + E[7];
-		c1 = E[2]*pts2[i].x + E[5]*pts2[i].y + E[8];
+		a1 = E[0]*pts2[i](0) + E[3]*pts2[i](1) + E[6];
+		b1 = E[1]*pts2[i](0) + E[4]*pts2[i](1) + E[7];
+		c1 = E[2]*pts2[i](0) + E[5]*pts2[i](1) + E[8];
 		
 		// Distance to the line can be found be taking the dot product
 		// of the normalized line and the homogeneous coordinate of the point.
 		// To normalize the line, divide a, b, and c by sqrt(a^2 + b^2), 
 		// so that vector [a_new b_new] is a unit vector.
 		// We normalize when the square of the distance is computed, thus avoiding a sqrt.
-		dotprod = (pts2[i].x*a2 + pts2[i].y*b2 + c2);
+		dotprod = (pts2[i](0)*a2 + pts2[i](1)*b2 + c2);
 		//distsqr = dotprod*dotprod / (a2*a2 + b2*b2);
 		distsqr = dotprod*dotprod / (a2*a2 + b2*b2 + a1*a1 + b1*b1);
 		err_i = distsqr;
@@ -725,13 +736,15 @@ void copyHypothesis(const GNHypothesis& h1, GNHypothesis& h2)
 	h2.cost = h1.cost;
 }
 
-cv::Mat findEssentialMatGN(vector<cv::Point2d> pts1, vector<cv::Point2d> pts2, 
-		cv::Mat& R0, cv::Mat& t0, cv::Mat& R2, cv::Mat& t2,
+Matrix3d_rm findEssentialMatGN_(common::scan_t pts1, common::scan_t pts2, 
+		Matrix3d_rm& R0, Vector3d& t0, Matrix3d_rm& R2, Vector3d& t2,
 		int n_hypotheses, int n_GNiters, 
 		bool withNormalization, bool optimizedCost)
 {
 	// Init
-	cv::RNG rng(cv::getCPUTickCount());
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::default_random_engine rng(seed);
+	std::uniform_int_distribution<> dist(0, pts1.size() - 1);
 	GNHypothesis bestModel(R0, t0);
 	
 	// Fully score initial hypothesis
@@ -745,9 +758,9 @@ cv::Mat findEssentialMatGN(vector<cv::Point2d> pts1, vector<cv::Point2d> pts2,
 	for(int i = 0; i < n_hypotheses; i++)
 	{
 		// Get subset
-		vector<cv::Point2d> subset1;
-		vector<cv::Point2d> subset2;
-		getSubset(pts1, pts2, subset1, subset2, 5, rng);
+		common::scan_t subset1;
+		common::scan_t subset2;
+		getSubset(pts1, pts2, subset1, subset2, 5, dist, rng);
 
 		// Initialize GN algorithm with best model and then perform 10 GN iterations
 		copyHypothesis(bestModel, model);
@@ -769,31 +782,18 @@ cv::Mat findEssentialMatGN(vector<cv::Point2d> pts1, vector<cv::Point2d> pts2,
 	return bestModel.E_;
 }
 
-Matrix3d findEssentialMatGN(common::scan_t pts1_eig, common::scan_t pts2_eig, 
-		Matrix3d& R0_eig, Vector3d& t0_eig, Matrix3d& R2_eig, Vector3d& t2_eig,
+Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
+		Matrix3d& R0_eig, Vector3d& t0, Matrix3d& R2_eig, Vector3d& t2,
 		int n_hypotheses, int n_GNiters, 
 		bool withNormalization, bool optimizedCost)
 {
-	// Convert points and matrices to OpenCV
-	int n_pts = pts1_eig.size();
-	vector<cv::Point2d> pts1 = vector<cv::Point2d>(n_pts);
-	vector<cv::Point2d> pts2 = vector<cv::Point2d>(n_pts);
-	for (int i = 0; i < n_pts; i++)
-	{
-		pts1[i].x = pts1_eig[i](0);
-		pts1[i].y = pts1_eig[i](1);
-		pts2[i].x = pts2_eig[i](0);
-		pts2[i].y = pts2_eig[i](1);
-	}
-	cv::Mat R0, t0, R2, t2;
-	cv::eigen2cv(R0_eig, R0);
-	cv::eigen2cv(t0_eig, t0);
-	cv::Mat E = findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, n_hypotheses, n_GNiters, withNormalization, optimizedCost);
-	Matrix3d E_eig;
-	cv::cv2eigen(E, E_eig);
-	cv::cv2eigen(R2, R2_eig);
-	cv::cv2eigen(t2, t2_eig);
-	return E_eig;
+	// Convert matrices to be row-major instead of col-major
+	Matrix3d_rm R0_rm = R0_eig;
+	Matrix3d_rm R2_rm;
+	Matrix3d_rm E_rm = findEssentialMatGN_(pts1, pts2, R0_rm, t0, R2_rm, t2, n_hypotheses, n_GNiters, withNormalization, optimizedCost);
+	R2_eig = R2_rm;
+	Matrix3d E = E_rm;
+	return E;
 }
 
 }

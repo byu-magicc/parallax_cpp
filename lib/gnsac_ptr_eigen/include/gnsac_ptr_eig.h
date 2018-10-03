@@ -8,17 +8,19 @@
 namespace gnsac_ptr_eigen
 {
 
+typedef Eigen::Matrix<double, 3, 3, Eigen::RowMajor> Matrix3d_rm;
+
 double sinc(double x);
 
 void skew(const double* w, double* T);
 
-void mult3pt(const double* A, const cv::Point2d pt, double* y);
+void mult3pt(const double* A, const Eigen::Vector2d pt, double* y);
 
 void mult31(const double* A, const double* x, double* y);
 
 double mult3vtv(const double* x, const double* y);
 
-double multptv(const cv::Point2d pt, const double* v);
+double multptv(const Eigen::Vector2d pt, const double* v);
 
 void mult33(const double* A, const double* B, double* C);
 
@@ -40,7 +42,7 @@ void elementaryVector3(int idx, double* v);
 
 void printArray(const char* s, const double* p, int n, int m, int sfAfter = 4, int sfBefore = 5);
 
-void printPoints(const char* s, std::vector<cv::Point2f> pts);
+void printPoints(const char* s, common::scan_t pts);
 
 void zero5(double* r);
 
@@ -73,23 +75,23 @@ void normalizeLine_diffOnly(const double* L, const double* dL, double* dLH);
 void normalizeLine(const double* L, double* LH);
 
 double residual_diff(const double* R, const double* TR, const double* E, const double* deltaE, 
-		  const cv::Point2d p1, const cv::Point2d p2, double* deltaR);
+		  const Eigen::Vector2d p1, const Eigen::Vector2d p2, double* deltaR);
 
-double residual(const double* E, const cv::Point2d p1, const cv::Point2d p2);
+double residual(const double* E, const Eigen::Vector2d p1, const Eigen::Vector2d p2);
 
-void GN_step(const std::vector<cv::Point2d> pts1, const std::vector<cv::Point2d> pts2, const double* R, const double* TR,
+void GN_step(const common::scan_t pts1, const common::scan_t pts2, const double* R, const double* TR,
 		  double* E2, double* R2, double* TR2, double* t2, int method, bool withNormalization = true, bool useLM = false);
 
 class GNHypothesis
 {
 public:
 	GNHypothesis();
-	GNHypothesis(cv::Mat R0, cv::Mat t0);
+	GNHypothesis(Matrix3d_rm R0, Eigen::Vector3d t0);
 	
-	cv::Mat E_;
-	cv::Mat R_;
-	cv::Mat TR_;
-	cv::Mat t_;
+	Matrix3d_rm E_;
+	Matrix3d_rm R_;
+	Matrix3d_rm TR_;
+	Eigen::Vector3d t_;
 	double* R;
 	double* TR;
 	double* E;
@@ -97,16 +99,15 @@ public:
 	double cost;
 };
 
-cv::Mat findEssentialMatGN(std::vector<cv::Point2d> pts1, std::vector<cv::Point2d> pts2, 
-		cv::Mat& R0, cv::Mat& t0, cv::Mat& R2, cv::Mat& t2,
-		int n_hypotheses, int n_GNiters, 
+Matrix3d_rm findEssentialMatGN_(common::scan_t pts1, common::scan_t pts2,
+		Matrix3d_rm& R0, Eigen::Vector3d& t0, Matrix3d_rm& R2, Eigen::Vector3d& t2,
+		int n_hypotheses, int n_GNiters,
 		bool withNormalization = true, bool optimizedCost = false);
 
-Eigen::Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2, 
+Eigen::Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
 		Eigen::Matrix3d& R0, Eigen::Vector3d& t0, Eigen::Matrix3d& R2, Eigen::Vector3d& t2,
 		int n_hypotheses, int n_GNiters, 
-		bool withNormalization = true, bool optimizedCost = false);		
-
+		bool withNormalization = true, bool optimizedCost = false);
 }
 
 #endif //GNSAC_PTR_EIG_H

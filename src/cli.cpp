@@ -1,7 +1,7 @@
 #include <eigen3/Eigen/Dense>
 #include <iostream>
 #include "gnsac_ptr_eig.h"
-#include "gnsac_ptr_ocv.h"
+//#include "gnsac_ptr_ocv.h"
 #include "common.h"
 #include <vector>
 #include <fstream>

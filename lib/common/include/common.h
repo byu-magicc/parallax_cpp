@@ -51,12 +51,27 @@ std::string repeat_str(std::string s, int reps);
 
 void progress(int iter, int max_iters);
 
-// Note: A Tokenizer class/struct might seem like reinventing the wheel.
-// It also may seem like it isn't a good idea to use pointers to strings
-// when the underlying string could be deconstructed without warning.
-// But the main purpose of this class is to optimize code in DEBUG mode. 
-// In DEBUG mode it can decrease the time to read large files like
-// campus.txt from 10s to 2s.
+enum TimeCategory { TimeCatNone = -1, TimeCatHypoGen, TimeCatHypoScoring, TIME_CATS_COUNT };
+
+void cat_timer_reset();
+
+// Fast category timer, overhead of aprox 0.1us
+void time_cat(TimeCategory timeCat);
+
+void cat_timer_print();
+
+double* get_cat_times();
+
+#ifdef TIME_VERBOSE
+#define time_cat_verbose(cat) time_cat(cat)
+#else
+#define time_cat_verbose(cat)
+#endif
+
+
+// Note: A Tokenizer class/struct might seem like reinventing the wheel,
+// and the char pointers could have problems if the string is deconstructed.
+// But it is really fast, even in DEBUG mode!
 struct Tokenizer
 {
 	Tokenizer();

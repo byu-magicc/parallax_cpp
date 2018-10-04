@@ -56,9 +56,11 @@ void accuracy(string yaml_filename)
 		Matrix3d R2;
 		Vector3d t2;
 		tic();
+		cat_timer_reset();
 		Matrix3d E = gnsac_ptr_eigen::findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, 100, 10, true, false);
 		timeMeasurement time_E = toc("FindE", 1, 2, false);
-		log_file2.write((char*)&time_E.actualTime, sizeof(double));
+		log_file2.write((char*)get_cat_times(), sizeof(double) * TIME_CATS_COUNT);
+		log_file2.write((char*)&time_E.actualTime, sizeof(double));		
 
 		// Calculate error to truth essential matrix
 		Vector3d err = common::err_truth(R2, t2, video_data.RT[frame]);

@@ -30,6 +30,10 @@
 using namespace std;
 using namespace Eigen;
 
+///////////////////
+// String Format //
+///////////////////
+
 // Convenient string format function.
 // See https://stackoverflow.com/questions/69738/c-how-to-get-fprintf-results-as-a-stdstring-w-o-sprintf/69911#69911
 std::string vformat (const char *fmt, va_list ap)
@@ -75,6 +79,10 @@ std::string common::str_format (const char *fmt, ...)
     va_end (ap);
     return buf;
 }
+
+/////////////////
+// Tic and Toc //
+/////////////////
 
 vector<double> cpuTimes;
 vector<double> actualTimes;
@@ -214,6 +222,10 @@ void common::resetTimeAverages()
 	averageTimes = std::map<std::string, AverageTime>();
 }
 
+/////////////////
+// Progres Bar //
+/////////////////
+
 double start_time;
 
 void common::print_duration(double duration)
@@ -262,6 +274,52 @@ void common::progress(int iter, int max_iters)
 		printf("\n");
 	fflush(stdout);
 }
+
+////////////////////
+// Category Timer //
+////////////////////
+
+double catTimes[common::TIME_CATS_COUNT] = {}; // Init to zero
+double catTimerStartTime;
+common::TimeCategory currentTimeCat = common::TimeCatNone;
+
+void common::cat_timer_reset()
+{
+	for(int i = 0; i < common::TIME_CATS_COUNT; i++)
+		catTimes[i] = 0;
+	currentTimeCat = TimeCatNone;
+}
+
+// Fast category timer, overhead of aprox 0.1us
+void common::time_cat(common::TimeCategory timeCat)
+{
+	// Get elapsed time
+	double currTime = get_wall_time();
+	double elapsedTime = currTime - catTimerStartTime;
+	
+	// Add timer value to 
+	if(currentTimeCat != TimeCatNone)
+		catTimes[(int)currentTimeCat] += elapsedTime;
+
+	// Start next timer
+	catTimerStartTime = currTime;
+	currentTimeCat = timeCat;
+}
+
+void common::cat_timer_print()
+{
+	for(int i = 0; i < TIME_CATS_COUNT; i++)
+		printf("Cat %d, time %f\n", i, catTimes[i]);
+}
+
+double* common::get_cat_times()
+{
+	return catTimes;
+}
+
+///////////////
+// Tokenizer //
+///////////////
 
 common::Tokenizer::Tokenizer()
 {

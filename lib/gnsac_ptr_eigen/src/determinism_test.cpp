@@ -20,12 +20,12 @@ void determinism_test(int trial)
 	common::VideoPointData video_data = common::VideoPointData(yaml_filename);
 
 	// Init random number generator
-	unsigned seed = 0;
-	cv::RNG rng(0);
+	std::default_random_engine rng(0);
+	std::normal_distribution<double> dist(0.0, 1.0);
 	for(int i = 0; i < 100; i++)
 	{
 		// First make sure random number generator is deterministic!
-		write_check_val(checker, rng.gaussian(1));
+		write_check_val(checker, dist(rng));
 
 		// Load real data, undistort points
 		common::scan_t pts1, pts2;
@@ -43,7 +43,7 @@ void determinism_test(int trial)
 		// Calculate essential matrix
 		Matrix3d R0 = Matrix3d::Identity();
 		Vector3d t0;
-		t0 << rng.gaussian(1), rng.gaussian(1), rng.gaussian(1);
+		t0 << dist(rng), dist(rng), dist(rng);
 		Matrix3d R2;
 		Vector3d t2;
 		Matrix3d E = findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, 100, 10, true, false);

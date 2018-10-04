@@ -1,7 +1,6 @@
 #ifndef GNSAC_PTR_EIG_H
 #define GNSAC_PTR_EIG_H
 
-#include "opencv2/core/core.hpp"
 #include "common.h"
 #include <eigen3/Eigen/Dense>
 
@@ -84,24 +83,7 @@ class GNHypothesis
 {
 public:
 	GNHypothesis();
-	GNHypothesis(cv::Mat R0, cv::Mat t0);
-	
-	cv::Mat E_;
-	cv::Mat R_;
-	cv::Mat TR_;
-	cv::Mat t_;
-	double* R;
-	double* TR;
-	double* E;
-	double* t;
-	double cost;
-};
-
-class GNHypothesis2
-{
-public:
-	GNHypothesis2();
-	GNHypothesis2(Eigen::Matrix3d R0, Eigen::Vector3d t0);
+	GNHypothesis(Eigen::Matrix3d R0, Eigen::Vector3d t0);
 	
 	Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> R_map;
 	Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> TR_map;

@@ -1,8 +1,4 @@
 #include <eigen3/Eigen/Dense>
-#include "opencv2/core/core.hpp"
-#include "opencv2/calib3d.hpp"
-#include "opencv2/imgproc/imgproc.hpp" 
-#include "opencv2/core/eigen.hpp"
 #include <vector>
 #include "gnsac_ptr_eig.h"
 #include <random>
@@ -524,19 +520,6 @@ double residual_without_normalization(const double* E, const Vector2d p1, const 
 	return r;
 }
 
-void eig_solve(cv::Mat A_cv, cv::Mat b_cv, cv::Mat& x_cv)
-{
-	int N = A_cv.rows;
-	static Matrix<double, 2000, 5> A_buffer;
-	static Matrix<double, 2000, 1> b_buffer;
-	Matrix<double, -1, 5> A_eig = A_buffer.topRows(N);
-	Matrix<double, -1, 1> b_eig = b_buffer.topRows(N);
-	cv2eigen(A_cv, A_eig);
-	cv2eigen(b_cv, b_eig);
-	MatrixXd x_eig = A_eig.fullPivLu().solve(b_eig);
-	eigen2cv(x_eig, x_cv);
-}
-
 #define MAX_PTS 2000
 
 //function [E, R, TR] = GN_step(pts1, pts2, R, TR)
@@ -631,37 +614,14 @@ void GN_step(const common::scan_t pts1, const common::scan_t pts2, const double*
 	mult33(tx, R2, E2);
 }
 
-GNHypothesis::GNHypothesis() : cost(0), 
-	E_(cv::Mat::zeros(3, 3, CV_64F)), R_(cv::Mat::eye(3, 3, CV_64F)), 
-	TR_(cv::Mat::eye(3, 3, CV_64F)), t_(cv::Mat::zeros(3, 1, CV_64F))
-{
-	R = R_.ptr<double>();
-	TR = TR_.ptr<double>();
-	E = E_.ptr<double>();
-	t = t_.ptr<double>();
-	RT_getE(R, TR, t, E);
-}
-	
-GNHypothesis::GNHypothesis(cv::Mat R0, cv::Mat t0) : cost(0), 
-	E_(cv::Mat::zeros(3, 3, CV_64F)), R_(R0.clone()), 
-	TR_(cv::Mat::eye(3, 3, CV_64F)), t_(cv::Mat::zeros(3, 1, CV_64F))
-{
-	R = R_.ptr<double>();
-	TR = TR_.ptr<double>();
-	E = E_.ptr<double>();
-	t = t_.ptr<double>();
-	t2TR(t0.ptr<double>(), TR);
-	RT_getE(R, TR, t, E);
-}
-
-GNHypothesis2::GNHypothesis2() : R_map(R), TR_map(TR), E_map(E), t_map(t), cost(0)
+GNHypothesis::GNHypothesis() : R_map(R), TR_map(TR), E_map(E), t_map(t), cost(0)
 {
 	R_map = Matrix<double, 3, 3, RowMajor>::Identity();
 	TR_map = Matrix<double, 3, 3, RowMajor>::Identity();
 	RT_getE(R, TR, t, E);
 }
 	
-GNHypothesis2::GNHypothesis2(Matrix3d R0, Vector3d t0) : R_map(R), TR_map(TR), E_map(E), t_map(t), cost(0)
+GNHypothesis::GNHypothesis(Matrix3d R0, Vector3d t0) : R_map(R), TR_map(TR), E_map(E), t_map(t), cost(0)
 {
 	R_map = R0;
 	t_map = t0;
@@ -706,13 +666,15 @@ double score_LMEDS(common::scan_t& pts1, common::scan_t& pts2, double* E, double
 	int n_pts = (int)pts1.size();
 	int medianIdx = (int)n_pts/2;
 	vector<double> err = vector<double>(n_pts, 0);
-	cv::Matx33d E_matx(E);
+	Map<Matrix<double, 3, 3, RowMajor>> E_map = Map<Matrix<double, 3, 3, RowMajor>>(E);
 	for (int i = 0; i < n_pts; i++)
 	{
-		cv::Vec3d x1(pts1[i](0), pts1[i](1), 1.);
-		cv::Vec3d x2(pts2[i](0), pts2[i](1), 1.);
-		cv::Vec3d Ex1 = E_matx * x1;
-		cv::Vec3d Etx2 = E_matx.t() * x2;
+		Vector3d x1;
+		x1 << pts1[i](0), pts1[i](1), 1.;
+		Vector3d x2;
+		x2 << pts2[i](0), pts2[i](1), 1.;
+		Vector3d Ex1 = E_map * x1;
+		Vector3d Etx2 = E_map.transpose() * x2;
 		double x2tEx1 = x2.dot(Ex1);
 		
 		double a = Ex1[0] * Ex1[0];
@@ -807,14 +769,14 @@ void copyHypothesis(const GNHypothesis& h1, GNHypothesis& h2)
 	h2.cost = h1.cost;
 }
 
-cv::Mat findEssentialMatGN(common::scan_t pts1, common::scan_t pts2, 
-		cv::Mat& R0, cv::Mat& t0, cv::Mat& R2, cv::Mat& t2,
+Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2, 
+		Matrix3d& R0, Vector3d& t0, Matrix3d& R2, Vector3d& t2,
 		int n_hypotheses, int n_GNiters, 
 		bool withNormalization, bool optimizedCost)
 {
 	// Init
-	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-	std::default_random_engine rng(seed);
+	//unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::default_random_engine rng(0);
 	std::uniform_int_distribution<> dist(0, pts1.size() - 1);
 	GNHypothesis bestModel(R0, t0);
 	
@@ -823,6 +785,7 @@ cv::Mat findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
 		bestModel.cost = score_LMEDS2(pts1, pts2, bestModel.E, 1e10);
 	else
 		bestModel.cost = score_LMEDS(pts1, pts2, bestModel.E, 1e10);
+
 	//if(record_all_hypotheses)
 	//	all_hypotheses.push_back(bestModel.E_.clone());
 	GNHypothesis model;
@@ -848,26 +811,9 @@ cv::Mat findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
 		//if(record_all_hypotheses)
 		//	all_hypotheses.push_back(bestModel.E_.clone());
 	}
-	R2 = bestModel.R_;
-	t2 = bestModel.t_;
-	return bestModel.E_;
-}
-
-Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2, 
-		Matrix3d& R0_eig, Vector3d& t0_eig, Matrix3d& R2_eig, Vector3d& t2_eig,
-		int n_hypotheses, int n_GNiters, 
-		bool withNormalization, bool optimizedCost)
-{
-	// Convert points and matrices to OpenCV
-	cv::Mat R0, t0, R2, t2;
-	cv::eigen2cv(R0_eig, R0);
-	cv::eigen2cv(t0_eig, t0);
-	cv::Mat E = findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, n_hypotheses, n_GNiters, withNormalization, optimizedCost);
-	Matrix3d E_eig;
-	cv::cv2eigen(E, E_eig);
-	cv::cv2eigen(R2, R2_eig);
-	cv::cv2eigen(t2, t2_eig);
-	return E_eig;
+	R2 = bestModel.R_map;
+	t2 = bestModel.t_map;
+	return bestModel.E_map;
 }
 
 }

@@ -97,6 +97,14 @@ public:
 	double cost;
 };
 
+void getSubset(std::vector<cv::Point2d>& pts1, std::vector<cv::Point2d>& pts2, std::vector<cv::Point2d>& subset1, std::vector<cv::Point2d>& subset2, int modelPoints, cv::RNG& rng);
+
+double score_LMEDS(std::vector<cv::Point2d>& pts1, std::vector<cv::Point2d>& pts2, double* E, double maxMedian);
+
+double score_LMEDS2(std::vector<cv::Point2d>& pts1, std::vector<cv::Point2d>& pts2, double* E, double maxMedian);
+
+void copyHypothesis(const GNHypothesis& h1, GNHypothesis& h2);
+
 cv::Mat findEssentialMatGN(std::vector<cv::Point2d> pts1, std::vector<cv::Point2d> pts2,
 		cv::Mat& R0, cv::Mat& t0, cv::Mat& R2, cv::Mat& t2,
 		int n_hypotheses, int n_GNiters,

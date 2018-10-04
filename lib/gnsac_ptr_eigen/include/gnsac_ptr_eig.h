@@ -97,10 +97,22 @@ public:
 	double cost;
 };
 
-cv::Mat findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
-		cv::Mat& R0, cv::Mat& t0, cv::Mat& R2, cv::Mat& t2,
-		int n_hypotheses, int n_GNiters,
-		bool withNormalization = true, bool optimizedCost = false);
+class GNHypothesis2
+{
+public:
+	GNHypothesis2();
+	GNHypothesis2(Eigen::Matrix3d R0, Eigen::Vector3d t0);
+	
+	Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> R_map;
+	Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> TR_map;
+	Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> E_map;
+	Eigen::Map<Eigen::Matrix<double, 3, 1>> t_map;
+	double R[3*3];
+	double TR[3*3];
+	double E[3*3];
+	double t[3*1];
+	double cost;
+};
 
 Eigen::Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
 		Eigen::Matrix3d& R0, Eigen::Vector3d& t0, Eigen::Matrix3d& R2, Eigen::Vector3d& t2,

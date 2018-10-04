@@ -6,6 +6,8 @@ number = fread(file, 'double');
 plot(number)
 
 %% Accuracy
+figure(1)
+clf
 file = fopen('../logs/log_test.bin', 'r');
 number = fread(file, 'double');
 fclose(file);

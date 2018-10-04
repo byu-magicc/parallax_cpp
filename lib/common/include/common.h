@@ -3,6 +3,7 @@
 
 #include <deque>
 #include <iostream>
+#include <fstream>
 #include <yaml-cpp/yaml.h>
 #include <eigen3/Eigen/Eigen>
 
@@ -253,6 +254,32 @@ Eigen::Vector3d RtoVec(Eigen::Matrix3d R);
 void undistort_points(const scan_t& pts, scan_t& pts1_u, Eigen::Matrix3d camera_matrix);
 
 Eigen::Vector3d err_truth(const Eigen::Matrix3d& R_est, const Eigen::Vector3d& t_est, const Eigen::Matrix4d& RT);
+
+// Macro to call a determinism checker object with the file, line, and function information
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#define write_check(checker, data, size) checker.write(data, size, __FILE__, __LINE__, __func__, "write_check(" STR(checker) ", " STR(data) ", " STR(size) ")")
+
+#define write_check_val(checker, val_) { auto val = (val_); checker.write((char*)&val, sizeof(val), __FILE__, __LINE__, __func__, "write_check_val(" STR(checker) ", " STR(val_) ")"); }
+
+#define DETERMINISM_CHECKER_BUFFER_SIZE 10000
+
+class DeterminismChecker
+{
+public:
+	DeterminismChecker(std::string name, int trial);
+
+	void write(const char* data, std::size_t size, const char* file, int line, const char* func, std::string message = "");
+
+private:
+	std::string format_name_trial(std::string name, int trial);
+
+	char in_buffer[DETERMINISM_CHECKER_BUFFER_SIZE];
+	bool check;
+	std::ofstream out_file;
+	std::ifstream in_file;
+};
 
 }
 

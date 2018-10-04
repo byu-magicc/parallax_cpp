@@ -731,7 +731,7 @@ cv::Mat findEssentialMatGN(vector<cv::Point2d> pts1, vector<cv::Point2d> pts2,
 		bool withNormalization, bool optimizedCost)
 {
 	// Init
-	cv::RNG rng(cv::getCPUTickCount());
+	cv::RNG rng(0);
 	GNHypothesis bestModel(R0, t0);
 	
 	// Fully score initial hypothesis

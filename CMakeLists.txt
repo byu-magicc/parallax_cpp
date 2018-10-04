@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(parallax)
 
 # default to release build
+# Note: Release mode disables assert statements, so be wary when testing.
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
@@ -31,4 +32,18 @@ add_executable(cli
   lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
 )
 
+add_executable(det_test_ocv
+  lib/gnsac_ptr_opencv/src/determinism_test.cpp
+  lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
+  lib/common/src/common.cpp
+)
+
+add_executable(det_test_eig
+  lib/gnsac_ptr_eigen/src/determinism_test.cpp
+  lib/gnsac_ptr_eigen/src/gnsac_ptr_eig.cpp
+  lib/common/src/common.cpp
+)
+
 target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
+target_link_libraries(det_test_ocv ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
+target_link_libraries(det_test_eig ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)

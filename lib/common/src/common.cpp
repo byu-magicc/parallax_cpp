@@ -519,7 +519,7 @@ Matrix3d common::skew(Vector3d v)
 Vector3d common::vex(Matrix3d Tx)
 {
 	Vector3d w;
-	w << Tx(2, 1); Tx(0, 2); Tx(1, 0);
+	w << Tx(2, 1), Tx(0, 2), Tx(1, 0);
 	return w;
 }
 
@@ -571,11 +571,11 @@ Vector3d common::RtoVec(Matrix3d R)
 	// end up wrapping around the other way, whichever is shortest.
 	// theta = atan2(sin_theta, cos_theta);
 	double theta;
-	if (abs(cos_theta) < abs(sin_theta)*2)
+	if (fabs(cos_theta) < fabs(sin_theta)*2)
 		theta = acos(cos_theta);
 	else if (cos_theta > 0)
 		theta = asin(sin_theta);
-	else if (cos_theta < 0)
+	else //if (cos_theta < 0)
 		theta = M_PI - asin(sin_theta);
 	Vector3d w = sin_theta_w_hat / sinc(theta);
 	return w;
@@ -616,4 +616,41 @@ Vector3d common::err_truth(const Matrix3d& R_est, const Vector3d& t_est, const M
 	Vector3d err;
 	err << err_E, err_R_angle, err_t_angle;
 	return err;
+}
+
+common::DeterminismChecker::DeterminismChecker(string name, int trial) : check(false)
+{
+	string out_filename = format_name_trial(name, trial);
+	out_file.open(out_filename);
+	if (trial > 0)
+	{
+		string in_filename = format_name_trial(name, trial - 1);
+		in_file.open(in_filename);
+		check = true;
+	}
+}
+
+void common::DeterminismChecker::write(const char* data, std::size_t size, const char* file, int line, const char* func, string message)
+{
+	out_file.write(data, size);		
+	if(check)
+	{
+		if(size >= DETERMINISM_CHECKER_BUFFER_SIZE)
+		{
+			cout << "DeterminismChecker buffer to small (" << size << " > " << DETERMINISM_CHECKER_BUFFER_SIZE << ")" << endl;
+			exit(EXIT_FAILURE);
+		}
+		in_file.read(in_buffer, size);
+		if(memcmp(data, in_buffer, size) != 0)
+		{
+			cout << "Determinism check failed in " << func << ", file " << file << ", line " << line << endl;
+			cout << message << endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+}
+
+string common::DeterminismChecker::format_name_trial(string name, int trial)
+{
+	return "../logs/" + name + str_format("%d", trial) + ".bin";
 }

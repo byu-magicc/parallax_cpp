@@ -159,6 +159,64 @@ void printArray(const char* s, const double* p, int n, int m, int sfAfter, int s
 	printf("]\n");
 }
 
+//#define RED_TEXT "\033[31m[49m"
+#define RED_TEXT "\033[101m"
+#define GREEN_TEXT "\033[32m"
+#define BLACK_TEXT "\033[0m\033[49m"
+
+void printArrayComp(const char* s, const double* p, const double* p2, int n, int m, float eps = 1e-6, int sfAfter = 4, int sfBefore = 5)
+{
+	printf("%s: (%dx%d)\n", s, n, m);
+	char format[40];
+	sprintf(format, "%%%d.%df", sfBefore + sfAfter, sfAfter);
+	for (int r = 0; r < n; r++)
+	{
+		if (r == 0)
+			printf("[");
+		else
+			printf("\n ");
+		for (int c = 0; c < m; c++)
+		{
+			if (c > 0)
+				printf(" ");
+			bool equal = fabs(p[r*m + c] - p2[r*m + c]) <= eps;
+			if(!equal)
+				printf(RED_TEXT);
+			printf(format, p[r*m + c]);
+			if(!equal)
+				printf(BLACK_TEXT);
+		}
+	}
+	printf("]\n");
+}
+
+void checkArrays(const char* s1, const char* s2, const double* p1, const double* p2, int n, int m, float eps = 1e-6, int sfAfter = 4, int sfBefore = 5)
+{
+	// First, find out if the arrays are equal
+	bool equal = true;
+	for (int r = 0; r < n; r++)
+	{
+		for (int c = 0; c < m; c++)
+		{
+			if (fabs(p1[r*m + c] - p2[r*m + c]) > eps)
+			{
+				equal = false;
+				break;
+			}
+		}
+		if (!equal)
+			break;
+	}
+	if(equal)
+		return;
+
+	// If the arrays are not equal, print them both out
+	printArrayComp(s1, p1, p2, n, m, eps, sfAfter, sfBefore);
+	printArrayComp(s2, p2, p1, n, m, eps, sfAfter, sfBefore);
+	printf("\n");
+}
+
+
 void printPoints(const char* s, common::scan_t pts)
 {
 	printf("%s: (2x%d)\n", s, (int)pts.size());
@@ -593,6 +651,21 @@ GNHypothesis::GNHypothesis(cv::Mat R0, cv::Mat t0) : cost(0),
 	E = E_.ptr<double>();
 	t = t_.ptr<double>();
 	t2TR(t0.ptr<double>(), TR);
+	RT_getE(R, TR, t, E);
+}
+
+GNHypothesis2::GNHypothesis2() : R_map(R), TR_map(TR), E_map(E), t_map(t), cost(0)
+{
+	R_map = Matrix<double, 3, 3, RowMajor>::Identity();
+	TR_map = Matrix<double, 3, 3, RowMajor>::Identity();
+	RT_getE(R, TR, t, E);
+}
+	
+GNHypothesis2::GNHypothesis2(Matrix3d R0, Vector3d t0) : R_map(R), TR_map(TR), E_map(E), t_map(t), cost(0)
+{
+	R_map = R0;
+	t_map = t0;
+	t2TR(t, TR);
 	RT_getE(R, TR, t, E);
 }
 

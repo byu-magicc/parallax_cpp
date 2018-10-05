@@ -182,6 +182,22 @@ void common::loadPoints(string filename, sequence_t& data1, sequence_t& data2)
 	}
 }
 
+void common::undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d camera_matrix)
+{
+	// Note: We aren't inverting actually the actual camera matrix. We assume 
+	// the camera matrix is formatted as expected:
+	// [fx 0  cx
+	//  0  fy cy
+	//  0  0  1]
+	double inv_fx = 1./camera_matrix(0, 0);
+	double inv_fy = 1./camera_matrix(1, 1);
+	double cx = camera_matrix(0, 2);
+	double cy = camera_matrix(1, 2);
+	pts_u = scan_t(pts.size());
+	for(int i = 0; i < pts.size(); i++)
+		pts_u[i] << (pts[i](0) - cx)*inv_fx, (pts[i](1) - cy)*inv_fy;
+}
+
 void common::loadRT(string filename, truth_t& data)
 {
 	if (! fileExists(filename))
@@ -215,13 +231,13 @@ common::VideoPointData::VideoPointData(string yaml_filename)
 	YAML::Node node = YAML::LoadFile(yaml_filename);
 
 	// Filenames	
-    get_yaml_node("video_filename", yaml_filename, node, video_filename);
-    get_yaml_node("points_filename", yaml_filename, node, points_filename);
-    get_yaml_eigen("image_size", yaml_filename, node, image_size);
+	get_yaml_node("video_filename", yaml_filename, node, video_filename);
+	get_yaml_node("points_filename", yaml_filename, node, points_filename);
+	get_yaml_eigen("image_size", yaml_filename, node, image_size);
 
 	// Camera matrix
 	if(node["camera_matrix"])
-    	get_yaml_eigen("camera_matrix", yaml_filename, node, camera_matrix);
+		get_yaml_eigen("camera_matrix", yaml_filename, node, camera_matrix);
 	else
 	{
 		// 75 is what we have been doing for DJI video
@@ -239,12 +255,12 @@ common::VideoPointData::VideoPointData(string yaml_filename)
 			0, 0, 1;
 	}
 	if(node["dist_coeffs"])
-    	get_yaml_eigen("dist_coeffs", yaml_filename, node, dist_coeffs);
+		get_yaml_eigen("dist_coeffs", yaml_filename, node, dist_coeffs);
 	else
 		dist_coeffs << 0, 0, 0, 0, 0;
 
 	// Point data
-    loadPoints(points_filename, pts1, pts2);
+	loadPoints(points_filename, pts1, pts2);
 
 	// Truth data
 	if(node["truth_filename"])
@@ -257,20 +273,4 @@ common::VideoPointData::VideoPointData(string yaml_filename)
 		truth_filename = "";
 		RT = truth_t();
 	}
-}
-
-void common::undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d camera_matrix)
-{
-	// Note: We aren't inverting actually the actual camera matrix. We assume 
-	// the camera matrix is formatted as expected:
-	// [fx 0  cx
-	//  0  fy cy
-	//  0  0  1]
-	double inv_fx = 1./camera_matrix(0, 0);
-	double inv_fy = 1./camera_matrix(1, 1);
-	double cx = camera_matrix(0, 2);
-	double cy = camera_matrix(1, 2);
-	pts_u = scan_t(pts.size());
-	for(int i = 0; i < pts.size(); i++)
-		pts_u[i] << (pts[i](0) - cx)*inv_fx, (pts[i](1) - cy)*inv_fy;
 }

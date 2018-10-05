@@ -41,6 +41,8 @@ bool fileExists(std::string name);
 
 void loadPoints(std::string filename, sequence_t& pts1, sequence_t& pts2);
 
+void undistort_points(const scan_t& pts, scan_t& pts1_u, Eigen::Matrix3d camera_matrix);
+
 void loadRT(std::string filename, truth_t& RT);
 
 // Loads scalar parameters from a .yaml file
@@ -157,17 +159,15 @@ bool get_yaml_eigen(const std::string key, std::string filename, YAML::Node node
 class VideoPointData
 {
 public:
-    VideoPointData(std::string yaml_filename);
-    std::string video_filename, points_filename, truth_filename;
-    Eigen::Vector2d image_size;
-    Eigen::Matrix3d camera_matrix;
-    Eigen::Matrix<double, 5, 1> dist_coeffs;
-    sequence_t pts1;
-    sequence_t pts2;
-    truth_t RT;
+	VideoPointData(std::string yaml_filename);
+	std::string video_filename, points_filename, truth_filename;
+	Eigen::Vector2d image_size;
+	Eigen::Matrix3d camera_matrix;
+	Eigen::Matrix<double, 5, 1> dist_coeffs;
+	sequence_t pts1;
+	sequence_t pts2;
+	truth_t RT;
 };
-
-void undistort_points(const scan_t& pts, scan_t& pts1_u, Eigen::Matrix3d camera_matrix);
 
 }
 

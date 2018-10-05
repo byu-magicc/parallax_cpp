@@ -71,7 +71,7 @@ void print_eig(const char* s, Eigen::MatrixBase<T>& p, int sfAfter = 3, int sfBe
 	//if (p.type() == CV_8U)
 	//	sprintf(format, "%%%dd", sfBefore);
 	//else
-	    sprintf(format, "%%%d.%df", sfBefore + sfAfter, sfAfter);
+		sprintf(format, "%%%d.%df", sfBefore + sfAfter, sfAfter);
 	for (int r = 0; r < p.rows(); r++)
 	{
 		if (r == 0)
@@ -82,7 +82,7 @@ void print_eig(const char* s, Eigen::MatrixBase<T>& p, int sfAfter = 3, int sfBe
 		{
 			if (c > 0)
 				printf(" ");
-            printf(format, p(r, c));
+			printf(format, p(r, c));
 		}
 	}
 	printf("]\n");

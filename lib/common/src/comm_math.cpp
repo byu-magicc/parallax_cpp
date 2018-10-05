@@ -12,8 +12,8 @@ Matrix3d common::skew(Vector3d v)
 {
 	Matrix3d Tx;
 	Tx << 0,    -v(2),   v(1),
-	      v(2),  0,     -v(0),
-	     -v(1),  v(0),   0;
+		  v(2),  0,     -v(0),
+		 -v(1),  v(0),   0;
 	return Tx;
 }
 
@@ -26,17 +26,17 @@ Vector3d common::vex(Matrix3d Tx)
 
 double common::sinc(double x)
 {
-    // Taylor series expansion of sin is:           x - x^3/3! + x^5/5! - ...
-    // Thus the Taylor series expansion of sinc is: 1 - x^2/3! + x^4/5! - ...
-    // Double precision is approximately 16 digits. Since the largest term is x^2,
-    // we will experience numerical underflow if |x| < 1e-8.
-    // Of course, floating point arithmetic can handle much smaller values than this (as small as 1e-308).
-    // I haven't seen any problems with small numbers so far, so we could just check for division by zero,
-    // but this solution is guarenteed not to have problems.
-    if (fabs(x) < 1e-8)
-        return 1;
-    else
-        return sin(x) / x;
+	// Taylor series expansion of sin is:           x - x^3/3! + x^5/5! - ...
+	// Thus the Taylor series expansion of sinc is: 1 - x^2/3! + x^4/5! - ...
+	// Double precision is approximately 16 digits. Since the largest term is x^2,
+	// we will experience numerical underflow if |x| < 1e-8.
+	// Of course, floating point arithmetic can handle much smaller values than this (as small as 1e-308).
+	// I haven't seen any problems with small numbers so far, so we could just check for division by zero,
+	// but this solution is guarenteed not to have problems.
+	if (fabs(x) < 1e-8)
+		return 1;
+	else
+		return sin(x) / x;
 }
 
 Matrix3d common::R1toR2(Matrix3d R1, Vector3d t_)

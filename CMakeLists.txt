@@ -35,6 +35,7 @@ add_executable(cli
 	lib/common/src/common.cpp
 	lib/common/src/comm_loaders.cpp
 	lib/common/src/comm_math.cpp
+	lib/common/src/solvers.cpp
 	lib/gnsac_ptr_eigen/src/gnsac_ptr_eig.cpp
 	lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
 )
@@ -45,6 +46,7 @@ add_executable(det_test_ocv
 	lib/common/src/common.cpp
 	lib/common/src/comm_loaders.cpp
 	lib/common/src/comm_math.cpp
+	lib/common/src/solvers.cpp
 )
 
 add_executable(det_test_eig
@@ -53,6 +55,7 @@ add_executable(det_test_eig
 	lib/common/src/common.cpp
 	lib/common/src/comm_loaders.cpp
 	lib/common/src/comm_math.cpp
+	lib/common/src/solvers.cpp
 )
 
 target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)

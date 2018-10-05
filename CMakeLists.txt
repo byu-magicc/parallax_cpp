@@ -33,6 +33,8 @@ include_directories(
 add_executable(cli
 	src/cli.cpp
 	lib/common/src/common.cpp
+	lib/common/src/comm_loaders.cpp
+	lib/common/src/comm_math.cpp
 	lib/gnsac_ptr_eigen/src/gnsac_ptr_eig.cpp
 	lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
 )
@@ -41,12 +43,16 @@ add_executable(det_test_ocv
 	lib/gnsac_ptr_opencv/src/determinism_test.cpp
 	lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
 	lib/common/src/common.cpp
+	lib/common/src/comm_loaders.cpp
+	lib/common/src/comm_math.cpp
 )
 
 add_executable(det_test_eig
 	lib/gnsac_ptr_eigen/src/determinism_test.cpp
 	lib/gnsac_ptr_eigen/src/gnsac_ptr_eig.cpp
 	lib/common/src/common.cpp
+	lib/common/src/comm_loaders.cpp
+	lib/common/src/comm_math.cpp
 )
 
 target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)

@@ -1,6 +1,7 @@
 #include <eigen3/Eigen/Dense>
 #include <vector>
 #include "gnsac_ptr_eig.h"
+#include <iostream>
 #include <random>
 #include <chrono>
 

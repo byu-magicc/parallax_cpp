@@ -3,6 +3,7 @@
 #include <eigen3/Eigen/Dense>
 #include "gnsac_ptr_ocv.h"
 #include <vector>
+#include <iostream>
 #include <fstream>
 #include <random>
 #include <chrono>
@@ -135,8 +136,8 @@ void determinism_test(int trial)
 
 		// Error
 		write_check(checker, (char*)video_data.RT[i].data(), sizeof(double)*4*4);
-		Vector3d err = common::err_truth(R2, t2, video_data.RT[i]);
-		write_check(checker, (char*)err.data(), sizeof(double)*3);		
+		Vector2d err = common::err_truth(R2, t2, video_data.RT[i]);
+		write_check(checker, (char*)err.data(), sizeof(double)*2);
 	}	
 }
 

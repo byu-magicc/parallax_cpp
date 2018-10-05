@@ -1,7 +1,7 @@
 #include <eigen3/Eigen/Dense>
 #include <iostream>
 #include "gnsac_ptr_eig.h"
-//#include "gnsac_ptr_ocv.h"
+#include "gnsac_ptr_ocv.h"
 #include "common.h"
 #include <vector>
 #include <fstream>
@@ -36,10 +36,10 @@ void accuracy(string yaml_filename)
 	std::normal_distribution<double> dist(0.0, 1.0);
 
 	// Loop for all points
-	std::ofstream log_file;
-	std::ofstream log_file2;
-	log_file.open("../logs/log_test.bin");
-	log_file2.open("../logs/time_E.bin");
+	std::ofstream accuracy_log_file;
+	std::ofstream timing_log_file;
+	accuracy_log_file.open("../logs/gnsac_ptr_opencv/accuracy.bin");
+	timing_log_file.open("../logs/gnsac_ptr_opencv/timing.bin");
 	int frames = video_data.pts1.size();
 	common::progress(0, frames);
 	for (int frame = 0; frame < frames; frame++)
@@ -57,18 +57,18 @@ void accuracy(string yaml_filename)
 		Vector3d t2;
 		tic();
 		cat_timer_reset();
-		Matrix3d E = gnsac_ptr_eigen::findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, 100, 10, true, false);
+		Matrix3d E = gnsac_ptr_opencv::findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, 100, 10, true, false);
 		timeMeasurement time_E = toc("FindE", 1, 2, false);
-		log_file2.write((char*)get_cat_times(), sizeof(double) * TIME_CATS_COUNT);
-		log_file2.write((char*)&time_E.actualTime, sizeof(double));		
+		timing_log_file.write((char*)get_cat_times(), sizeof(double) * TIME_CATS_COUNT);
+		timing_log_file.write((char*)&time_E.actualTime, sizeof(double));		
 
 		// Calculate error to truth essential matrix
-		Vector3d err = common::err_truth(R2, t2, video_data.RT[frame]);
-		log_file.write((char*)&err, sizeof(double) * 3);
+		Vector2d err = common::err_truth(R2, t2, video_data.RT[frame]);
+		accuracy_log_file.write((char*)&err, sizeof(double) * 2);
 		common::progress(frame + 1, frames);
 	}
-	log_file.close();
-	log_file2.close();
+	accuracy_log_file.close();
+	timing_log_file.close();
 }
 
 int main(int argc, char *argv[])

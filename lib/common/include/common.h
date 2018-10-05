@@ -28,6 +28,8 @@ struct timeMeasurement
 // See https://stackoverflow.com/questions/69738/c-how-to-get-fprintf-results-as-a-stdstring-w-o-sprintf/69911#69911
 std::string str_format (const char *fmt, ...);
 
+std::string replace(std::string str, const std::string from, const std::string to);
+
 double get_wall_time();
 
 double get_cpu_time();
@@ -87,6 +89,12 @@ void print_eig(const char* s, Eigen::MatrixBase<T>& p, int sfAfter = 3, int sfBe
 	}
 	printf("]\n");
 }
+
+// Enum string and macro
+int get_enum_from_string(std::string comma_separated_enums, std::string str);
+
+#define enum_str(name, str_name, ...) enum name {__VA_ARGS__}; const std::string str_name = #__VA_ARGS__;
+
 
 // Macro to call a determinism checker object with the file, line, and function information
 #define STR_HELPER(x) #x

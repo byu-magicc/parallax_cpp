@@ -7,20 +7,20 @@
 #include <fstream>
 #include <random>
 #include <chrono>
+#include <memory>
 
 using namespace std;
 using namespace Eigen;
 using namespace common;
 
-void timing(string yaml_filename)
+void run_test(string video_yaml, string solver_yaml)
 {
+	shared_ptr<ESolver> solver = ESolver::from_yaml(solver_yaml);
+	exit(0);
 
-}
 
-void accuracy(string yaml_filename)
-{
 	// Point data
-	VideoPointData video_data = VideoPointData(yaml_filename);
+	VideoPointData video_data = VideoPointData(video_yaml);
 	if (video_data.RT.size() < video_data.pts1.size())
 	{
 		printf("Error: Missing truth data (%d < %d)\n", (int)video_data.RT.size(), (int)video_data.pts1.size());
@@ -79,18 +79,10 @@ int main(int argc, char *argv[])
 	// Make sure there are sufficient arguments
 	if(argc < 2)
 	{
-		cout << "Usage: ./cli pts_in [timing, accuracy, or sweep]" << endl;
+		cout << "Usage: ./cli video_yaml solver_yaml" << endl;
 		return 0;
 	}
-
-	string yaml_filename = string(argv[0]);
-	string s = string(argv[1]);
-	if(s == "timing")
-		timing(yaml_filename);
-	else if(s == "accuracy")
-		accuracy(yaml_filename);
-	// else if(s == "sweep")
-	// 	sweep_sensor_noise(argc - 1, argv + 1);
-	else
-		cout << "Usage: cli [timing, accuracy, or sweep]" << endl;
+	string video_yaml = string(argv[0]);
+	string solver_yaml = string(argv[1]);
+	run_test(video_yaml, solver_yaml);
 }

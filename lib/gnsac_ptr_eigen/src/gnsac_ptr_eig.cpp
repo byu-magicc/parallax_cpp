@@ -821,4 +821,38 @@ Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
 	return bestModel.E_map;
 }
 
+GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node) : common::ESolver(yaml_filename, node)
+{
+	string optimizer_str, optimizer_cost_str, scoring_cost_str, consensus_alg_str;
+	common::get_yaml_node("optimizer", yaml_filename, node, optimizer_str);
+	common::get_yaml_node("optimizer_cost", yaml_filename, node, optimizer_cost_str);
+	common::get_yaml_node("scoring_cost", yaml_filename, node, scoring_cost_str);
+	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
+
+	optimizer = (optimizer_t)common::get_enum_from_string(consensus_t_str, optimizer_str);
+	optimizer_cost = (cost_function_t)common::get_enum_from_string(consensus_t_str, optimizer_cost_str);
+	scoring_cost = (cost_function_t)common::get_enum_from_string(consensus_t_str, scoring_cost_str);
+	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
+}
+
+void GNSAC_Solver::generate_hypotheses(const common::scan_t& min_subset1, const common::scan_t& min_subset2, std::vector<Eigen::Matrix3d>& hypotheses)
+{
+
+}
+
+double GNSAC_Solver::score_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& hypothesis)
+{
+	
+}
+
+void GNSAC_Solver::refine_hypothesis(const common::EHypothesis& hypothesis0, common::EHypothesis& result)
+{
+
+}
+
+void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, common::EHypothesis& result, const common::EHypothesis hypothesis0)
+{
+		
+}
+
 }

@@ -4,6 +4,7 @@
 #include "comm_loaders.h"
 #include <string>
 #include <vector>
+#include <memory>
 #include <yaml-cpp/yaml.h>
 #include <eigen3/Eigen/Eigen>
 
@@ -23,7 +24,7 @@ public:
 
 class ESolver
 {
-private:
+public:
 	ESolver(std::string yaml_filename, YAML::Node node);
 
 public:
@@ -31,9 +32,11 @@ public:
 
 	double score_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& hypothesis);
 
+	void refine_hypothesis(const common::EHypothesis& hypothesis0, common::EHypothesis& result);
+
 	void find_best_hypothesis(const scan_t& pts1, const scan_t& pts2, EHypothesis& result, const EHypothesis hypothesis0 = EHypothesis());
 
-	static ESolver from_yaml(std::string yaml_filename);
+	static std::shared_ptr<ESolver> from_yaml(std::string yaml_filename);
 };
 
 }

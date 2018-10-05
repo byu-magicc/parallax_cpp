@@ -1,4 +1,5 @@
 #include "common.h"
+#include "comm_loaders.h"
 #include <chrono>
 #include <eigen3/Eigen/Eigen>
 #include <iostream>
@@ -17,9 +18,9 @@
 using namespace std;
 using namespace Eigen;
 
-///////////////////
-// String Format //
-///////////////////
+///////////////////////
+// String Formatting //
+///////////////////////
 
 // Convenient string format function.
 // See https://stackoverflow.com/questions/69738/c-how-to-get-fprintf-results-as-a-stdstring-w-o-sprintf/69911#69911
@@ -65,6 +66,17 @@ std::string common::str_format (const char *fmt, ...)
 	std::string buf = vformat (fmt, ap);
 	va_end (ap);
 	return buf;
+}
+
+string common::replace(string str, const string from, const string to)
+{
+	size_t start_pos = 0;
+	while((start_pos = str.find(from, start_pos)) != string::npos)
+	{
+		str.replace(start_pos, from.length(), to);
+		start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+	}
+	return str;
 }
 
 /////////////////
@@ -303,6 +315,29 @@ double* common::get_cat_times()
 {
 	return catTimes;
 }
+
+/////////////////
+// Enum String //
+/////////////////
+
+int common::get_enum_from_string(string comma_separated_enums, string str)
+{
+	// Get rid of any spaces
+	string enums = replace(comma_separated_enums, " ", "");
+	Tokenizer tokenizer = Tokenizer(enums);
+	for(int i = 0; tokenizer.hasToken(); i++)
+		if(tokenizer.nextToken(',').str() == str)
+		{
+			cout << str << " = " << i << endl;
+			return i;
+		}
+	cout << str << " is not a valid option. Valid options are {" << comma_separated_enums << "}" << endl;
+	exit(EXIT_FAILURE);
+}
+
+/////////////////////////
+// Determinism Checker //
+/////////////////////////
 
 common::DeterminismChecker::DeterminismChecker(string name, int trial) : check(false)
 {

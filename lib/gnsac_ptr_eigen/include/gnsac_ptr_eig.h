@@ -2,6 +2,7 @@
 #define GNSAC_PTR_EIG_H
 
 #include "common.h"
+#include "solvers.h"
 #include <eigen3/Eigen/Dense>
 
 namespace gnsac_ptr_eigen
@@ -100,7 +101,36 @@ Eigen::Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
 		Eigen::Matrix3d& R0, Eigen::Vector3d& t0, Eigen::Matrix3d& R2, Eigen::Vector3d& t2,
 		int n_hypotheses, int n_GNiters,
 		bool withNormalization = true, bool optimizedCost = false);
-		
+
+enum_str(optimizer_t, optimizer_t_str, optimizer_GN, optimizer_LM)
+
+enum_str(cost_function_t, cost_function_t_str, cost_algebraic, cost_single, cost_sampson)
+
+enum_str(consensus_t, consensus_t_str, consensus_RANSAC, consensus_LMEDS)
+
+class GNSAC_Solver : common::ESolver
+{
+public:
+	GNSAC_Solver(std::string yaml_filename, YAML::Node node);
+
+public:
+	void generate_hypotheses(const common::scan_t& min_subset1, const common::scan_t& min_subset2, std::vector<Eigen::Matrix3d>& hypotheses);
+
+	double score_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& hypothesis);
+
+	void refine_hypothesis(const common::EHypothesis& hypothesis0, common::EHypothesis& result);
+
+	void find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, common::EHypothesis& result, const common::EHypothesis hypothesis0 = common::EHypothesis());
+
+	optimizer_t optimizer;
+
+	cost_function_t optimizer_cost;
+
+	cost_function_t scoring_cost;
+
+	consensus_t consensus_alg;
+};
+
 }
 
 #endif //GNSAC_PTR_EIG_H

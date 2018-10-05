@@ -1,2 +1,6 @@
 # GNSAC, pointer opencv version
 library: gnsac_ptr_opencv
+optimizer: LM
+optimizer_cost: algebraic
+scoring_cost: sampson
+consensus_alg: LMEDS

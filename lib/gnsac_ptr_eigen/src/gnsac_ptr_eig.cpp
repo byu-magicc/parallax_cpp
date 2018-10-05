@@ -829,9 +829,9 @@ GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node) : common::ESol
 	common::get_yaml_node("scoring_cost", yaml_filename, node, scoring_cost_str);
 	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
 
-	optimizer = (optimizer_t)common::get_enum_from_string(consensus_t_str, optimizer_str);
-	optimizer_cost = (cost_function_t)common::get_enum_from_string(consensus_t_str, optimizer_cost_str);
-	scoring_cost = (cost_function_t)common::get_enum_from_string(consensus_t_str, scoring_cost_str);
+	optimizer = (optimizer_t)common::get_enum_from_string(optimizer_t_str, optimizer_str);
+	optimizer_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, optimizer_cost_str);
+	scoring_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, scoring_cost_str);
 	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
 }
 

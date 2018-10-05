@@ -322,16 +322,37 @@ double* common::get_cat_times()
 
 int common::get_enum_from_string(string comma_separated_enums, string str)
 {
-	// Get rid of any spaces
-	string enums = replace(comma_separated_enums, " ", "");
-	Tokenizer tokenizer = Tokenizer(enums);
+	// Tokenize the comma-separated enum names
+	string enums_names_no_spaces = replace(comma_separated_enums, " ", "");
+	vector<string> enum_names_vector;
+	Tokenizer tokenizer = Tokenizer(enums_names_no_spaces);
 	for(int i = 0; tokenizer.hasToken(); i++)
-		if(tokenizer.nextToken(',').str() == str)
+	{
+		Tokenizer item = tokenizer.nextToken(',');
+
+		// Remove enum prefix and underscore
+		if(item.countTokens('_') > 1)
+			item.nextToken('_');
+		enum_names_vector.push_back(item.str());
+	}
+
+	// Find the enum name that matches the input
+	for(int i = 0; i < enum_names_vector.size(); i++)
+	{
+		if(str == enum_names_vector[i])
 		{
 			cout << str << " = " << i << endl;
 			return i;
 		}
-	cout << str << " is not a valid option. Valid options are {" << comma_separated_enums << "}" << endl;
+	}
+	string options = "";
+	for(int i = 0; i < enum_names_vector.size(); i++)
+	{
+		if (i > 0)
+			options += ", ";
+		options += enum_names_vector[i];
+	}
+	cout << str << " is not a valid option. Valid options are {" << options << "}" << endl;
 	exit(EXIT_FAILURE);
 }
 

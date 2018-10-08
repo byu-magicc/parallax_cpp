@@ -517,103 +517,11 @@ double residual_without_normalization(const double* E, const Vector2d p1, const 
 	// r = p2'*E*p1;
 	double L[3];
 	mult3pt(E, p1, L);
-	double r = multptv(p2, L);	
+	double r = multptv(p2, L);
 	return r;
 }
 
 #define MAX_PTS 2000
-
-//function [E, R, TR] = GN_step(pts1, pts2, R, TR)
-void GN_step(const common::scan_t pts1, const common::scan_t pts2, const double* R, const double* TR,
-		  double* E2, double* R2, double* TR2, double* t2, int method, bool withNormalization, bool useLM)
-{
-	// Gauss-Newton
-	// N = size(pts1, 2);
-	// r = zeros(N, 1);
-	// J = zeros(N, 5);
-	double lambda = 1e-4;
-	int N = (int)pts1.size();
-	assert(N < MAX_PTS);
-	static double r[MAX_PTS*1];
-	static double r2[MAX_PTS*1];
-	static double J[MAX_PTS*5];
-	static double dx[5*1];
-	Map<Matrix<double, -1, -1, RowMajor>> r_map = Map<Matrix<double, -1, -1, RowMajor>>(r, N, 1);
-	Map<Matrix<double, -1, -1, RowMajor>> r2_map = Map<Matrix<double, -1, -1, RowMajor>>(r2, N, 1);
-	Map<Matrix<double, -1, -1, RowMajor>> J_map = Map<Matrix<double, -1, -1, RowMajor>>(J, N, 5);
-	Map<Matrix<double, -1, -1, RowMajor>> dx_map = Map<Matrix<double, -1, -1, RowMajor>>(dx, 5, 1);
-
-	double E[3*3];
-	double deltaE[15*3];
-	getE_diff(R, TR, E, deltaE);
-	for(int i = 0; i < N; i++)
-	{
-		// [r(i), J(i, :)] = residual_diff(R, TR, pts1(:, i), pts2(:, i));
-		if(withNormalization)
-			r[i] = residual_diff(R, TR, E, deltaE, pts1[i], pts2[i], &J[i*5]);
-		else
-			r[i] = residual_diff_without_normalization(R, TR, E, deltaE, pts1[i], pts2[i], &J[i*5]);
-	}
-	
-	if(useLM)
-	{
-		// JtJ = J'*J;
-		// Jtr = J'*r;
-		Matrix<double, 5, 5> JtJ = J_map.transpose()*J_map;
-		Matrix<double, 5, 1> Jtr = J_map.transpose()*r_map;
-		while(true)
-		{
-			// dx = -(JtJ + lambda*diag(diag(JtJ)))\J'*r;
-			Matrix<double, 5, 5> JtJ_diag_only = JtJ.diagonal().asDiagonal();
-			dx_map = -(JtJ + lambda*JtJ_diag_only).fullPivLu().solve(Jtr);
-	
-			// [R2, TR2] = E_boxplus(R, TR, dx);
-			E_boxplus(R, TR, dx, R2, TR2);
-			
-			// r2 = residual_batch(R2, TR2, pts1, pts2);
-			for(int i = 0; i < N; i++)
-			{
-				if(withNormalization)
-					r2[i] = residual(E, pts1[i], pts2[i]);
-				else
-					r2[i] = residual_without_normalization(E, pts1[i], pts2[i]);
-			}
-			
-			if(r2_map.norm() <= r_map.norm())
-			{
-				// If the new error is lower, keep new values and move onto the next iteration.
-				// Decrease lambda, which makes the algorithm behave more like Gauss-Newton.
-				// Gauss-Newton gives very fast convergence when the function is well-behaved.
-				R = R2;
-				TR = TR2;
-				lambda = lambda / 2;
-				break;
-			}
-			else
-				// If the new error is higher, discard new values and try again. 
-				// This time increase lambda, which makes the algorithm behave more
-				// like gradient descent and decreases the step size.
-				// Keep trying until we succeed at decreasing the error.
-				lambda = lambda * 2;
-		}
-	}
-	else
-	{
-		// dx = -J\r;
-		dx_map = -J_map.fullPivLu().solve(r_map);
-		
-		// [R, TR] = E_boxplus(R, TR, dx);
-		E_boxplus(R, TR, dx, R2, TR2);
-	}
-	
-	// t = unitvector_getV(TR);
-	unitvector_getV(TR2, t2);
-	
-	// E = skew(t)*R;
-	double tx[9];
-	skew(t2, tx);
-	mult33(tx, R2, E2);
-}
 
 GNHypothesis::GNHypothesis() : R_map(R), TR_map(TR), E_map(E), t_map(t), cost(0)
 {
@@ -630,7 +538,7 @@ GNHypothesis::GNHypothesis(Matrix3d R0, Vector3d t0) : R_map(R), TR_map(TR), E_m
 	RT_getE(R, TR, t, E);
 }
 
-void getSubset(common::scan_t& pts1, common::scan_t& pts2, common::scan_t& subset1, common::scan_t& subset2, int modelPoints, 
+void getSubset(const common::scan_t& pts1, const common::scan_t& pts2, common::scan_t& subset1, common::scan_t& subset2, int modelPoints, 
 	std::uniform_int_distribution<>& dist, std::default_random_engine& rng)
 {
 	int count = pts1.size();
@@ -661,106 +569,6 @@ void getSubset(common::scan_t& pts1, common::scan_t& pts2, common::scan_t& subse
 	}
 }
 
-double score_LMEDS(common::scan_t& pts1, common::scan_t& pts2, double* E, double maxMedian)
-{
-	int costsAboveMedian = 0;
-	int n_pts = (int)pts1.size();
-	int medianIdx = (int)n_pts/2;
-	vector<double> err = vector<double>(n_pts, 0);
-	Map<Matrix<double, 3, 3, RowMajor>> E_map = Map<Matrix<double, 3, 3, RowMajor>>(E);
-	for (int i = 0; i < n_pts; i++)
-	{
-		Vector3d x1;
-		x1 << pts1[i](0), pts1[i](1), 1.;
-		Vector3d x2;
-		x2 << pts2[i](0), pts2[i](1), 1.;
-		Vector3d Ex1 = E_map * x1;
-		Vector3d Etx2 = E_map.transpose() * x2;
-		double x2tEx1 = x2.dot(Ex1);
-		
-		double a = Ex1[0] * Ex1[0];
-		double b = Ex1[1] * Ex1[1];
-		double c = Etx2[0] * Etx2[0];
-		double d = Etx2[1] * Etx2[1];
-
-		double err_i = x2tEx1 * x2tEx1 / (a + b + c + d);
-
-// 		double a, b, c, dotprod, distsqr;
-// 		
-// 		// Find the equation of the line 
-// 		// l = [a b c]' E*x2
-// 		// ax + by + c = 0
-// 		a = E[0]*pts1[i](0) + E[1]*pts1[i](1) + E[2];
-// 		b = E[3]*pts1[i](0) + E[4]*pts1[i](1) + E[5];
-// 		c = E[6]*pts1[i](0) + E[7]*pts1[i](1) + E[8];
-// 		
-// 		// distance to the line can be found be taking the dot product
-// 		// of the normalized line and the homogeneous coordinate of the point.
-// 		// To normalize the line, divide a, b, and c by sqrt(a^2 + b^2), 
-// 		// so that vector [a_new b_new] is a unit vector.
-// 		// We normalize when the square of the distance is computed, thus avoiding a sqrt.
-// 		dotprod = (pts2[i](0)*a + pts2[i](1)*b + c);
-// 		distsqr = dotprod*dotprod / (a*a + b*b);
-//			err_i = distsqr;
-		
-		err[i] = err_i;
-		
-		// Preempt scoring if median is guaranteed to be above a certain amount
-		if(err_i > maxMedian)
-		{
-			costsAboveMedian++;
-			if(costsAboveMedian > medianIdx)
-				return maxMedian;
-		}
-	}
-	std::nth_element(err.begin(), err.begin() + medianIdx, err.end());
-	return err[medianIdx];
-}
-
-double score_LMEDS2(common::scan_t& pts1, common::scan_t& pts2, double* E, double maxMedian)
-{
-	int costsAboveMedian = 0;
-	int n_pts = (int)pts1.size();
-	int medianIdx = (int)n_pts/2;
-	vector<double> err = vector<double>(n_pts, 0);
-	for (int i = 0; i < n_pts; i++)
-	{
-		double a1, b1, c1, a2, b2, c2, dotprod, distsqr, err_i;
-		
-		// Find the equation of the line 
-		// l = [a b c]' = E*x1
-		// ax + by + c = 0
-		a2 = E[0]*pts1[i](0) + E[1]*pts1[i](1) + E[2];
-		b2 = E[3]*pts1[i](0) + E[4]*pts1[i](1) + E[5];
-		c2 = E[6]*pts1[i](0) + E[7]*pts1[i](1) + E[8];
-		
-		a1 = E[0]*pts2[i](0) + E[3]*pts2[i](1) + E[6];
-		b1 = E[1]*pts2[i](0) + E[4]*pts2[i](1) + E[7];
-		c1 = E[2]*pts2[i](0) + E[5]*pts2[i](1) + E[8];
-		
-		// Distance to the line can be found be taking the dot product
-		// of the normalized line and the homogeneous coordinate of the point.
-		// To normalize the line, divide a, b, and c by sqrt(a^2 + b^2), 
-		// so that vector [a_new b_new] is a unit vector.
-		// We normalize when the square of the distance is computed, thus avoiding a sqrt.
-		dotprod = (pts2[i](0)*a2 + pts2[i](1)*b2 + c2);
-		//distsqr = dotprod*dotprod / (a2*a2 + b2*b2);
-		distsqr = dotprod*dotprod / (a2*a2 + b2*b2 + a1*a1 + b1*b1);
-		err_i = distsqr;
-		err[i] = err_i;
-		
-		// Preempt scoring if median is guaranteed to be above a certain amount
-		if(err_i > maxMedian)
-		{
-			costsAboveMedian++;
-			if(costsAboveMedian > medianIdx)
-				return maxMedian;
-		}
-	}
-	std::nth_element(err.begin(), err.begin() + medianIdx, err.end());
-	return err[medianIdx];
-}
-
 void copyHypothesis(const GNHypothesis& h1, GNHypothesis& h2)
 {
 	copy33(h1.E, h2.E);
@@ -770,28 +578,330 @@ void copyHypothesis(const GNHypothesis& h1, GNHypothesis& h2)
 	h2.cost = h1.cost;
 }
 
-Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2, 
-		Matrix3d& R0, Vector3d& t0, Matrix3d& R2, Vector3d& t2,
-		int n_hypotheses, int n_GNiters, 
-		bool withNormalization, bool optimizedCost)
+GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node) : common::ESolver(yaml_filename, node)
+{
+	string optimizer_str, optimizer_cost_str, scoring_cost_str, scoring_impl_str, consensus_alg_str;
+	common::get_yaml_node("optimizer", yaml_filename, node, optimizer_str);
+	common::get_yaml_node("optimizer_cost", yaml_filename, node, optimizer_cost_str);
+	common::get_yaml_node("n_subsets", yaml_filename, node, n_subsets);
+	common::get_yaml_node("scoring_cost", yaml_filename, node, scoring_cost_str);
+	common::get_yaml_node("scoring_impl", yaml_filename, node, scoring_impl_str);
+	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
+	common::get_yaml_node("max_iterations", yaml_filename, node, max_iterations);
+	common::get_yaml_node("exit_tolerance", yaml_filename, node, exit_tolerance);
+	common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
+	optimizer = (optimizer_t)common::get_enum_from_string(optimizer_t_str, optimizer_str);
+	optimizer_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, optimizer_cost_str);
+	scoring_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, scoring_cost_str);
+	scoring_impl = (implementation_t)common::get_enum_from_string(implementation_t_str, scoring_impl_str);
+	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
+}
+
+double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2)
+{
+	const double* R = h1.R;
+	const double* TR = h1.R;
+	double* E2 = h2.E;
+	double* R2 = h2.R;
+	double* TR2 = h2.TR;
+	double* t2 = h2.t;
+
+	// Gauss-Newton
+	// N = size(pts1, 2);
+	// r = zeros(N, 1);
+	// J = zeros(N, 5);
+	double lambda = 1e-4;
+	int N = (int)pts1.size();
+	assert(N < MAX_PTS);
+	static double r[MAX_PTS*1];
+	static double r2[MAX_PTS*1];
+	static double J[MAX_PTS*5];
+	static double dx[5*1];
+	double r_norm, r2_norm;
+	Map<Matrix<double, -1, -1, RowMajor>> r_map = Map<Matrix<double, -1, -1, RowMajor>>(r, N, 1);
+	Map<Matrix<double, -1, -1, RowMajor>> r2_map = Map<Matrix<double, -1, -1, RowMajor>>(r2, N, 1);
+	Map<Matrix<double, -1, -1, RowMajor>> J_map = Map<Matrix<double, -1, -1, RowMajor>>(J, N, 5);
+	Map<Matrix<double, -1, -1, RowMajor>> dx_map = Map<Matrix<double, -1, -1, RowMajor>>(dx, 5, 1);
+
+	double E[3*3];
+	double deltaE[15*3];
+	getE_diff(R, TR, E, deltaE);
+	for(int i = 0; i < N; i++)
+	{
+		// [r(i), J(i, :)] = residual_diff(R, TR, pts1(:, i), pts2(:, i));
+		if (scoring_cost == cost_single)
+			r[i] = residual_diff(R, TR, E, deltaE, pts1[i], pts2[i], &J[i*5]);
+		else //if (scoring_cost == cost_algebraic)
+			r[i] = residual_diff_without_normalization(R, TR, E, deltaE, pts1[i], pts2[i], &J[i*5]);
+	}
+	r_norm = r_map.norm();
+	
+	if(optimizer == optimizer_LM)
+	{
+		// JtJ = J'*J;
+		// Jtr = J'*r;
+		Matrix<double, 5, 5> JtJ = J_map.transpose()*J_map;
+		Matrix<double, 5, 1> Jtr = J_map.transpose()*r_map;
+		while(true)
+		{		
+			// dx = -(JtJ + lambda*diag(diag(JtJ)))\J'*r;
+			Matrix<double, 5, 5> JtJ_diag_only = JtJ.diagonal().asDiagonal();
+			dx_map = -(JtJ + lambda*JtJ_diag_only).fullPivLu().solve(Jtr);
+	
+			// [R2, TR2] = E_boxplus(R, TR, dx);
+			E_boxplus(R, TR, dx, R2, TR2);
+			
+			// r2 = residual_batch(R2, TR2, pts1, pts2);
+			for(int i = 0; i < N; i++)
+			{
+				if (scoring_cost == cost_single)
+					r2[i] = residual(E, pts1[i], pts2[i]);
+				else //if (scoring_cost == cost_algebraic)
+					r2[i] = residual_without_normalization(E, pts1[i], pts2[i]);
+			}
+			r2_norm = r2_map.norm();
+
+			
+			if(r2_norm <= r_norm)
+			{
+				// If the new error is lower, keep new values and move onto the next iteration.
+				// Decrease lambda, which makes the algorithm behave more like Gauss-Newton.
+				// Gauss-Newton gives very fast convergence when the function is well-behaved.
+				R = R2;
+				TR = TR2;
+				lambda = lambda / 2;
+				r_norm = r2_norm;
+				break;
+			}
+			else
+				// If the new error is higher, discard new values and try again. 
+				// This time increase lambda, which makes the algorithm behave more
+				// like gradient descent and decreases the step size.
+				// Keep trying until we succeed at decreasing the error.
+				lambda = lambda * 2;
+		}
+	}
+	else //if optimizer == optimizer_GN
+	{
+		// dx = -J\r;
+		dx_map = -J_map.fullPivLu().solve(r_map);
+		
+		// [R, TR] = E_boxplus(R, TR, dx);
+		E_boxplus(R, TR, dx, R2, TR2);
+	}
+	
+	// t = unitvector_getV(TR);
+	unitvector_getV(TR2, t2);
+	
+	// E = skew(t)*R;
+	double tx[9];
+	skew(t2, tx);
+	mult33(tx, R2, E2);
+	return r_norm;
+}
+
+int GNSAC_Solver::optimize(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2)
+{
+	int iters;
+	double residual_norm;
+	for(iters = 0; iters < max_iterations; iters++)
+	{
+		if(iters == 0)
+			residual_norm = step(pts1, pts2, h1, h2);
+		else
+			residual_norm = step(pts1, pts2, h2, h2);
+		if (residual_norm < exit_tolerance)
+			break;
+	}
+	return iters;
+}
+
+void GNSAC_Solver::generate_hypotheses(const common::scan_t& subset1, const common::scan_t& subset2, const common::EHypothesis& initial_guess, vector<common::EHypothesis>& hypotheses)
+{
+	GNHypothesis model = GNHypothesis(initial_guess.R, initial_guess.t);
+	hypotheses.resize(1);
+	time_cat_verbose(common::TimeCatHypoGen);
+	optimize(subset1, subset2, model, model);
+	hypotheses[0] = common::EHypothesis(model.E_map, model.R_map, model.t_map);
+}
+
+double GNSAC_Solver::score_single_ptr(const Vector2d& pt1, const Vector2d& pt2, const GNHypothesis& hypothesis)
+{
+	const double* E = hypothesis.E;
+	double a, b, c, dotprod, distsqr;
+	
+	// Find the equation of the line 
+	// l = [a b c]' = E*x1
+	// ax + by + c = 0
+	a = E[0]*pt1(0) + E[1]*pt1(1) + E[2];
+	b = E[3]*pt1(0) + E[4]*pt1(1) + E[5];
+	c = E[6]*pt1(0) + E[7]*pt1(1) + E[8];
+	
+	// distance to the line can be found be taking the dot product
+	// of the normalized line and the homogeneous coordinate of the point.
+	// To normalize the line, divide a, b, and c by sqrt(a^2 + b^2), 
+	// so that vector [a_new b_new] is a unit vector.
+	// We normalize when the square of the distance is computed, thus avoiding a sqrt.
+	dotprod = (pt2(0)*a + pt2(1)*b + c);
+	distsqr = dotprod*dotprod / (a*a + b*b);
+	return distsqr;
+}
+
+double GNSAC_Solver::score_sampson_eig(const Vector2d& pt1, const Vector2d& pt2, const GNHypothesis& hypothesis)
+{
+	const Map<Matrix<double, 3, 3, RowMajor>>& E = hypothesis.E_map;
+	Vector3d x1;
+	x1 << pt1(0), pt1(1), 1.;
+	Vector3d x2;
+	x2 << pt2(0), pt2(1), 1.;
+	Vector3d Ex1 = E * x1;
+	Vector3d Etx2 = E.transpose() * x2;
+	double x2tEx1 = x2.dot(Ex1);
+	
+	double a = Ex1[0] * Ex1[0];
+	double b = Ex1[1] * Ex1[1];
+	double c = Etx2[0] * Etx2[0];
+	double d = Etx2[1] * Etx2[1];
+	double err_i = x2tEx1 * x2tEx1 / (a + b + c + d);
+	return err_i;
+}
+
+double GNSAC_Solver::score_sampson_ptr(const Vector2d& pt1, const Vector2d& pt2, const GNHypothesis& hypothesis)
+{
+	double a1, b1, c1, a2, b2, c2, dotprod, distsqr, err_i;
+	const double* E = hypothesis.E;
+	
+	// Find the equation of the line 
+	// l = [a b c]' = E*x1
+	// ax + by + c = 0
+	a2 = E[0]*pt1(0) + E[1]*pt1(1) + E[2];
+	b2 = E[3]*pt1(0) + E[4]*pt1(1) + E[5];
+	c2 = E[6]*pt1(0) + E[7]*pt1(1) + E[8];
+	
+	a1 = E[0]*pt2(0) + E[3]*pt2(1) + E[6];
+	b1 = E[1]*pt2(0) + E[4]*pt2(1) + E[7];
+	c1 = E[2]*pt2(0) + E[5]*pt2(1) + E[8];
+	
+	// Distance to the line can be found be taking the dot product
+	// of the normalized line and the homogeneous coordinate of the point.
+	// To normalize the line, divide a, b, and c by sqrt(a^2 + b^2), 
+	// so that vector [a_new b_new] is a unit vector.
+	// We normalize when the square of the distance is computed, thus avoiding a sqrt.
+	dotprod = (pt2(0)*a2 + pt2(1)*b2 + c2);
+	distsqr = dotprod*dotprod / (a2*a2 + b2*b2 + a1*a1 + b1*b1);
+	return distsqr;
+}
+
+double GNSAC_Solver::score(const common::scan_t& pts1, const common::scan_t& pts2, GNHypothesis hypothesis, double best_cost)
+{
+	int costsAboveMedian, n_pts, medianIdx, RANSAC_outliers;
+	static vector<double> err;
+	double RANSAC_threshold_sqr;
+
+	// Only initialize the variables relevant to the chosen consensus algorithm
+	if (consensus_alg == consensus_LMEDS)
+	{
+		costsAboveMedian = 0;
+		n_pts = (int)pts1.size();
+		medianIdx = (int)n_pts/2;
+		err = vector<double>(n_pts, 0);
+	}
+	else if (consensus_alg == consensus_RANSAC)
+	{
+		RANSAC_outliers = 0;
+		RANSAC_threshold_sqr = RANSAC_threshold * RANSAC_threshold;
+	}
+	else
+	{
+		cout << "Invalid consensus algorithm" << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// Make sure scoring cost function and scoring combination are a valid combination
+	if (!((scoring_cost == cost_sampson && scoring_impl == impl_eig) ||
+	      (scoring_cost == cost_sampson && scoring_impl == impl_ptr) ||
+	      (scoring_cost == cost_single && scoring_impl == impl_ptr)))
+	{
+		cout << "Invalid scoring cost function and scoring combination" << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// Score each hypothesis.
+	for (int i = 0; i < n_pts; i++)
+	{
+		// Residual for point pair
+		double err_i;
+		if (scoring_cost == cost_sampson && scoring_impl == impl_eig)
+			err_i = score_sampson_eig(pts1[i], pts2[i], hypothesis);
+		else if (scoring_cost == cost_sampson && scoring_impl == impl_ptr)
+			err_i = score_sampson_ptr(pts1[i], pts2[i], hypothesis);
+		else if (scoring_cost == cost_single && scoring_impl == impl_ptr)
+			err_i = score_single_ptr(pts1[i], pts2[i], hypothesis);
+
+		// Cost function 		
+		if (consensus_alg == consensus_LMEDS)
+		{
+			err[i] = err_i;
+			
+			// Preempt scoring if median is guaranteed to be higher than the best hypotheses median error.
+			if(err_i > best_cost)
+			{
+				costsAboveMedian++;
+				if(costsAboveMedian > medianIdx)
+					return best_cost;
+			}
+		}
+		else if (consensus_alg == consensus_RANSAC)
+		{
+			// Preempt scoring if there are more outliers than the best hypothesis has.
+			if(err_i > RANSAC_threshold_sqr)
+			{
+				RANSAC_outliers++;
+				if(RANSAC_outliers > best_cost)
+					return RANSAC_outliers;
+			}			
+		}
+
+	}
+
+	// Calculate LMEDS or RANSAC score
+	if (consensus_alg == consensus_LMEDS)
+	{
+		std::nth_element(err.begin(), err.begin() + medianIdx, err.end());
+		return err[medianIdx];
+	}
+	else if (consensus_alg == consensus_RANSAC)
+		return RANSAC_outliers;
+}
+
+double GNSAC_Solver::score_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& hypothesis)
+{
+	GNHypothesis h = GNHypothesis();
+	h.E_map = hypothesis.E;
+	return score(pts1, pts2, h, 1e10);
+}
+
+void GNSAC_Solver::refine_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& best_hypothesis, common::EHypothesis& result)
+{
+	GNHypothesis model = GNHypothesis(best_hypothesis.R, best_hypothesis.t);
+	optimize(pts1, pts2, model, model);
+	result = common::EHypothesis(model.E_map, model.R_map, model.t_map);
+}
+
+void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& initial_guess, common::EHypothesis& result)
 {
 	// Init
 	//unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine rng(0);
 	std::uniform_int_distribution<> dist(0, pts1.size() - 1);
-	GNHypothesis bestModel(R0, t0);
+	GNHypothesis bestModel(initial_guess.R, initial_guess.t);
 	
 	// Fully score initial hypothesis
 	time_cat_verbose(common::TimeCatHypoScoring);
-	if(optimizedCost)
-		bestModel.cost = score_LMEDS2(pts1, pts2, bestModel.E, 1e10);
-	else
-		bestModel.cost = score_LMEDS(pts1, pts2, bestModel.E, 1e10);
+	bestModel.cost = score(pts1, pts2, bestModel, 1e10);
 
-	//if(record_all_hypotheses)
-	//	all_hypotheses.push_back(bestModel.E_.clone());
 	GNHypothesis model;
-	for(int i = 0; i < n_hypotheses; i++)
+	for(int i = 0; i < n_subsets; i++)
 	{
 		// Get subset
 		common::scan_t subset1;
@@ -799,60 +909,20 @@ Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
 		getSubset(pts1, pts2, subset1, subset2, 5, dist, rng);
 
 		// Initialize GN algorithm with best model and then perform 10 GN iterations
-		time_cat_verbose(common::TimeCatHypoGen);
 		copyHypothesis(bestModel, model);
-		for(int j = 0; j < n_GNiters; j++)
-			GN_step(subset1, subset2, model.R, model.TR, model.E, model.R, model.TR, model.t, 1, withNormalization);
+		time_cat_verbose(common::TimeCatHypoGen);
+		optimize(subset1, subset2, model, model);
 
 		// Partially score hypothesis (terminate early if cost exceeds lowest cost)
 		time_cat_verbose(common::TimeCatHypoScoring);
-		if(optimizedCost)
-			model.cost = score_LMEDS2(pts1, pts2, model.E, bestModel.cost);
-		else
-			model.cost = score_LMEDS(pts1, pts2, model.E, bestModel.cost);
+		model.cost = score(pts1, pts2, model, bestModel.cost);
 		if(model.cost < bestModel.cost)
 			copyHypothesis(model, bestModel);
-		//if(record_all_hypotheses)
-		//	all_hypotheses.push_back(bestModel.E_.clone());
 	}
 	time_cat_verbose(common::TimeCatNone);
-	R2 = bestModel.R_map;
-	t2 = bestModel.t_map;
-	return bestModel.E_map;
-}
-
-GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node) : common::ESolver(yaml_filename, node)
-{
-	string optimizer_str, optimizer_cost_str, scoring_cost_str, consensus_alg_str;
-	common::get_yaml_node("optimizer", yaml_filename, node, optimizer_str);
-	common::get_yaml_node("optimizer_cost", yaml_filename, node, optimizer_cost_str);
-	common::get_yaml_node("scoring_cost", yaml_filename, node, scoring_cost_str);
-	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
-
-	optimizer = (optimizer_t)common::get_enum_from_string(optimizer_t_str, optimizer_str);
-	optimizer_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, optimizer_cost_str);
-	scoring_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, scoring_cost_str);
-	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
-}
-
-void GNSAC_Solver::generate_hypotheses(const common::scan_t& min_subset1, const common::scan_t& min_subset2, std::vector<Eigen::Matrix3d>& hypotheses)
-{
-
-}
-
-double GNSAC_Solver::score_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& hypothesis)
-{
-	
-}
-
-void GNSAC_Solver::refine_hypothesis(const common::EHypothesis& hypothesis0, common::EHypothesis& result)
-{
-
-}
-
-void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, common::EHypothesis& result, const common::EHypothesis hypothesis0)
-{
-		
+	result.R = bestModel.R_map;
+	result.t = bestModel.t_map;
+	result.E = bestModel.E_map;		
 }
 
 }

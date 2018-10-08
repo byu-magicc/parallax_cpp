@@ -14,27 +14,31 @@ namespace common
 class EHypothesis
 {
 public:
-	EHypothesis() : cost(0)
-	{
-		
-	}
+	EHypothesis();
+	EHypothesis(Eigen::Matrix3d E);
+	EHypothesis(Eigen::Matrix3d E, Eigen::Matrix3d R, Eigen::Vector3d t);
 	Eigen::Matrix3d E;
+	Eigen::Matrix3d R;
+	Eigen::Vector3d t;
 	double cost;
 };
 
+// Note that the "vitual" keyword is important, otherwise the parent class method 
+// gets called if calling it from a parent-class pointer!
+// See https://stackoverflow.com/questions/2391679/why-do-we-need-virtual-functions-in-c
 class ESolver
 {
 public:
 	ESolver(std::string yaml_filename, YAML::Node node);
 
 public:
-	void generate_hypotheses(const scan_t& min_subset1, const scan_t& min_subset2, std::vector<Eigen::Matrix3d>& hypotheses);
+	virtual void generate_hypotheses(const scan_t& subset1, const scan_t& subset2, const EHypothesis& initial_guess, std::vector<EHypothesis>& hypotheses);
 
-	double score_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& hypothesis);
+	virtual void refine_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& best_hypothesis, EHypothesis& result);
 
-	void refine_hypothesis(const common::EHypothesis& hypothesis0, common::EHypothesis& result);
+	virtual void find_best_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& initial_guess, EHypothesis& result);
 
-	void find_best_hypothesis(const scan_t& pts1, const scan_t& pts2, EHypothesis& result, const EHypothesis hypothesis0 = EHypothesis());
+	virtual double score_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& hypothesis);
 
 	static std::shared_ptr<ESolver> from_yaml(std::string yaml_filename);
 };

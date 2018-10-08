@@ -13,14 +13,30 @@
 using namespace std;
 using namespace Eigen;
 
+common::EHypothesis::EHypothesis() : cost(0), E(Matrix3d::Zero()), R(Matrix3d::Zero()), t(Vector3d::Zero())
+{
+    
+}
+
+common::EHypothesis::EHypothesis(Matrix3d E_) : cost(0), E(E_), R(Matrix3d::Zero()), t(Vector3d::Zero())
+{
+    
+}
+
+common::EHypothesis::EHypothesis(Matrix3d E_, Matrix3d R_, Vector3d t_) : cost(0), E(E_), R(R_), t(t_)
+{
+    
+}
+
+
 common::ESolver::ESolver(string yaml_filename, YAML::Node node)
 {
     
 }
 
-void common::ESolver::generate_hypotheses(const scan_t& min_subset1, const scan_t& min_subset2, std::vector<Eigen::Matrix3d>& hypotheses)
+void common::ESolver::generate_hypotheses(const scan_t& subset1, const scan_t& subset2, const EHypothesis& initial_guess, vector<EHypothesis>& hypotheses)
 {
-    
+
 }
 
 double common::ESolver::score_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& hypothesis)
@@ -28,9 +44,15 @@ double common::ESolver::score_hypothesis(const scan_t& pts1, const scan_t& pts2,
 
 }
 
-void common::ESolver::find_best_hypothesis(const scan_t& pts1, const scan_t& pts2, EHypothesis& result, const EHypothesis hypothesis0)
+void common::ESolver::refine_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& best_hypothesis, EHypothesis& result)
 {
 
+}
+
+void common::ESolver::find_best_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& initial_guess, EHypothesis& result)
+{
+    cout <<"Error: Not Implemented!" << endl;
+    exit(EXIT_FAILURE);
 }
 
 shared_ptr<common::ESolver> common::ESolver::from_yaml(string yaml_filename)

@@ -106,6 +106,8 @@ enum_str(optimizer_t, optimizer_t_str, optimizer_GN, optimizer_LM)
 
 enum_str(cost_function_t, cost_function_t_str, cost_algebraic, cost_single, cost_sampson)
 
+enum_str(implementation_t, implementation_t_str, impl_eig, impl_ptr)
+
 enum_str(consensus_t, consensus_t_str, consensus_RANSAC, consensus_LMEDS)
 
 class GNSAC_Solver : common::ESolver
@@ -114,21 +116,38 @@ public:
 	GNSAC_Solver(std::string yaml_filename, YAML::Node node);
 
 public:
-	void generate_hypotheses(const common::scan_t& min_subset1, const common::scan_t& min_subset2, std::vector<Eigen::Matrix3d>& hypotheses);
+	void generate_hypotheses(const common::scan_t& subset1, const common::scan_t& subset2, const common::EHypothesis& initial_guess, std::vector<common::EHypothesis>& hypotheses);
+
+	void refine_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& best_hypothesis, common::EHypothesis& result);
+
+	void find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& initial_guess, common::EHypothesis& result);
 
 	double score_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& hypothesis);
 
-	void refine_hypothesis(const common::EHypothesis& hypothesis0, common::EHypothesis& result);
 
-	void find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, common::EHypothesis& result, const common::EHypothesis hypothesis0 = common::EHypothesis());
+private:
+	double step(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2);
+
+	int optimize(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2);
+
+	double score_single_ptr(const Eigen::Vector2d& pt1, const Eigen::Vector2d& pt2, const GNHypothesis& hypothesis);
+
+	double score_sampson_eig(const Eigen::Vector2d& pt1, const Eigen::Vector2d& pt2, const GNHypothesis& hypothesis);
+
+	double score_sampson_ptr(const Eigen::Vector2d& pt1, const Eigen::Vector2d& pt2, const GNHypothesis& hypothesis);
+
+	double score(const common::scan_t& pts1, const common::scan_t& pts2, GNHypothesis hypothesis, double best_cost);
 
 	optimizer_t optimizer;
-
 	cost_function_t optimizer_cost;
-
 	cost_function_t scoring_cost;
-
+	implementation_t scoring_impl;
 	consensus_t consensus_alg;
+	int n_subsets;
+	int max_iterations;
+	double exit_tolerance;
+	double RANSAC_threshold;
+	double LM_lambda;
 };
 
 }

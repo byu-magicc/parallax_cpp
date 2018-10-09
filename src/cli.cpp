@@ -63,8 +63,6 @@ void run_test(string video_yaml, string solver_yaml, string result_directory)
 		Matrix3d R0 = Matrix3d::Identity();
 		Vector3d t0;
 		t0 << dist(rng), dist(rng), dist(rng);
-		Matrix3d R2;
-		Vector3d t2;
 		tic();
 		cat_timer_reset();
 		EHypothesis initial_guess = EHypothesis(Matrix3d::Zero(), R0, t0);
@@ -75,10 +73,8 @@ void run_test(string video_yaml, string solver_yaml, string result_directory)
 		timing_log_file.write((char*)&time_E.actualTime, sizeof(double));
 
 		// Calculate error to truth essential matrix.
-		double zero = 0;
 		Vector2d err = common::err_truth(result.R, result.t, video_data.RT[frame]);
-		accuracy_log_file.write((char*)&zero, sizeof(double) * 1);
-		accuracy_log_file.write((char*)&err, sizeof(double) * 2);
+		accuracy_log_file.write((char*)err.data(), sizeof(double) * 2);
 		common::progress(frame + 1, frames);
 	}
 	accuracy_log_file.close();

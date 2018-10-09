@@ -1,4 +1,5 @@
 #include "common.h"
+#include "solvers.h"
 #include <eigen3/Eigen/Dense>
 #include "gnsac_ptr_eig.h"
 #include <vector>
@@ -17,8 +18,12 @@ void determinism_test(int trial)
 	common::DeterminismChecker checker = common::DeterminismChecker("determinism", trial);
 
 	// Video data
-	string yaml_filename = "../params/holodeck.yaml";
+	string yaml_filename = "../params/videos/holodeck.yaml";
 	common::VideoPointData video_data = common::VideoPointData(yaml_filename);
+
+	// Solver
+	string solver_yaml = "../params/solvers/gnsac_ptr_eigen.yaml";
+	shared_ptr<common::ESolver> solver = common::ESolver::from_yaml(solver_yaml);
 
 	// Init random number generator
 	std::default_random_engine rng(0);
@@ -45,16 +50,16 @@ void determinism_test(int trial)
 		Matrix3d R0 = Matrix3d::Identity();
 		Vector3d t0;
 		t0 << dist(rng), dist(rng), dist(rng);
-		Matrix3d R2;
-		Vector3d t2;
-		Matrix3d E = findEssentialMatGN(pts1, pts2, R0, t0, R2, t2, 100, 10, true, false);
-		write_check(checker, (char*)E.data(), sizeof(double)*3*3);
-		write_check(checker, (char*)R2.data(), sizeof(double)*3*3);
-		write_check(checker, (char*)t2.data(), sizeof(double)*3*1);
+		common::EHypothesis initial_guess = common::EHypothesis(Matrix3d::Zero(), R0, t0);
+		common::EHypothesis result;
+		solver->find_best_hypothesis(pts1, pts2, initial_guess, result);
+		write_check(checker, (char*)result.E.data(), sizeof(double)*3*3);
+		write_check(checker, (char*)result.R.data(), sizeof(double)*3*3);
+		write_check(checker, (char*)result.t.data(), sizeof(double)*3*1);
 
 		// Error
 		write_check(checker, (char*)video_data.RT[i].data(), sizeof(double)*4*4);
-		Vector2d err = common::err_truth(R2, t2, video_data.RT[i]);
+		Vector2d err = common::err_truth(result.R, result.t, video_data.RT[i]);
 		write_check(checker, (char*)err.data(), sizeof(double)*2);
 	}	
 }

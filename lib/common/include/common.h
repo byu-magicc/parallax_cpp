@@ -49,19 +49,24 @@ std::string repeat_str(std::string s, int reps);
 void progress(int iter, int max_iters);
 
 enum TimeCategory { TimeCatNone = -1, TimeCatHypoGen, TimeCatHypoScoring, TIME_CATS_COUNT };
+enum TimeCategoryVerbose { TimeCatVerboseNone = -1, TimeCatVerboseHypoGen, TimeCatVerboseHypoScoring, TIME_CATS_VERBOSE_COUNT };
 
 void cat_timer_reset();
 
 // Fast category timer, overhead of aprox 0.1us
-void time_cat(TimeCategory timeCat);
+void time_cat_fcn(TimeCategory timeCat);
+
+void time_cat_verbose_fcn(TimeCategoryVerbose timeCatVerbose);
 
 void cat_timer_print();
 
 double* get_cat_times();
 
 #ifdef TIME_VERBOSE
-#define time_cat_verbose(cat) time_cat(cat)
+#define time_cat(cat) time_cat_fcn(cat)
+#define time_cat_verbose(cat) time_cat_verbose_fcn(cat)
 #else
+#define time_cat(cat)
 #define time_cat_verbose(cat)
 #endif
 

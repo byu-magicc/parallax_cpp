@@ -279,18 +279,24 @@ void common::progress(int iter, int max_iters)
 ////////////////////
 
 double catTimes[common::TIME_CATS_COUNT] = {}; // Init to zero
+double catTimesVerbose[common::TIME_CATS_VERBOSE_COUNT] = {}; // Init to zero
 double catTimerStartTime;
+double catTimerVerboseStartTime;
 common::TimeCategory currentTimeCat = common::TimeCatNone;
+common::TimeCategoryVerbose currentTimeCatVerbose = common::TimeCatVerboseNone;
 
 void common::cat_timer_reset()
 {
 	for(int i = 0; i < common::TIME_CATS_COUNT; i++)
 		catTimes[i] = 0;
+	for(int i = 0; i < common::TIME_CATS_VERBOSE_COUNT; i++)
+		catTimesVerbose[i] = 0;
 	currentTimeCat = TimeCatNone;
+	currentTimeCatVerbose = TimeCatVerboseNone;
 }
 
 // Fast category timer, overhead of aprox 0.1us
-void common::time_cat(common::TimeCategory timeCat)
+void common::time_cat_fcn(common::TimeCategory timeCat)
 {
 	// Get elapsed time
 	double currTime = get_wall_time();
@@ -303,6 +309,21 @@ void common::time_cat(common::TimeCategory timeCat)
 	// Start next timer
 	catTimerStartTime = currTime;
 	currentTimeCat = timeCat;
+}
+
+void common::time_cat_verbose_fcn(common::TimeCategoryVerbose timeCatVerbose)
+{
+	// Get elapsed time
+	double currTime = get_wall_time();
+	double elapsedTime = currTime - catTimerVerboseStartTime;
+	
+	// Add timer value to 
+	if(currentTimeCatVerbose != TimeCatVerboseNone)
+		catTimesVerbose[(int)currentTimeCatVerbose] += elapsedTime;
+
+	// Start next timer
+	catTimerVerboseStartTime = currTime;
+	currentTimeCatVerbose = timeCatVerbose;
 }
 
 void common::cat_timer_print()

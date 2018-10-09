@@ -735,7 +735,7 @@ cv::Mat findEssentialMatGN(vector<cv::Point2d> pts1, vector<cv::Point2d> pts2,
 	GNHypothesis bestModel(R0, t0);
 	
 	// Fully score initial hypothesis
-	time_cat_verbose(common::TimeCatHypoScoring);
+	time_cat(common::TimeCatHypoScoring);
 	if(optimizedCost)
 		bestModel.cost = score_LMEDS2(pts1, pts2, bestModel.E, 1e10);
 	else
@@ -751,13 +751,13 @@ cv::Mat findEssentialMatGN(vector<cv::Point2d> pts1, vector<cv::Point2d> pts2,
 		getSubset(pts1, pts2, subset1, subset2, 5, rng);
 
 		// Initialize GN algorithm with best model and then perform 10 GN iterations
-		time_cat_verbose(common::TimeCatHypoGen);
+		time_cat(common::TimeCatHypoGen);
 		copyHypothesis(bestModel, model);
 		for(int j = 0; j < n_GNiters; j++)
 			GN_step(subset1, subset2, model.R, model.TR, model.E, model.R, model.TR, model.t, 1, withNormalization);
 
 		// Partially score hypothesis (terminate early if cost exceeds lowest cost)
-		time_cat_verbose(common::TimeCatHypoScoring);
+		time_cat(common::TimeCatHypoScoring);
 		if(optimizedCost)
 			model.cost = score_LMEDS2(pts1, pts2, model.E, bestModel.cost);
 		else
@@ -767,7 +767,7 @@ cv::Mat findEssentialMatGN(vector<cv::Point2d> pts1, vector<cv::Point2d> pts2,
 		//if(record_all_hypotheses)
 		//	all_hypotheses.push_back(bestModel.E_.clone());
 	}
-	time_cat_verbose(common::TimeCatNone);
+	time_cat(common::TimeCatNone);
 	R2 = bestModel.R_;
 	t2 = bestModel.t_;
 	return bestModel.E_;

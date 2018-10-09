@@ -720,7 +720,7 @@ void GNSAC_Solver::generate_hypotheses(const common::scan_t& subset1, const comm
 {
 	GNHypothesis model = GNHypothesis(initial_guess.R, initial_guess.t);
 	hypotheses.resize(1);
-	time_cat_verbose(common::TimeCatHypoGen);
+	time_cat(common::TimeCatHypoGen);
 	optimize(subset1, subset2, model, model);
 	hypotheses[0] = common::EHypothesis(model.E_map, model.R_map, model.t_map);
 }
@@ -897,7 +897,7 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 	GNHypothesis bestModel(initial_guess.R, initial_guess.t);
 	
 	// Fully score initial hypothesis
-	time_cat_verbose(common::TimeCatHypoScoring);
+	time_cat(common::TimeCatHypoScoring);
 	bestModel.cost = score(pts1, pts2, bestModel, 1e10);
 
 	GNHypothesis model;
@@ -910,16 +910,16 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 
 		// Initialize GN algorithm with best model and then perform 10 GN iterations
 		copyHypothesis(bestModel, model);
-		time_cat_verbose(common::TimeCatHypoGen);
+		time_cat(common::TimeCatHypoGen);
 		optimize(subset1, subset2, model, model);
 
 		// Partially score hypothesis (terminate early if cost exceeds lowest cost)
-		time_cat_verbose(common::TimeCatHypoScoring);
+		time_cat(common::TimeCatHypoScoring);
 		model.cost = score(pts1, pts2, model, bestModel.cost);
 		if(model.cost < bestModel.cost)
 			copyHypothesis(model, bestModel);
 	}
-	time_cat_verbose(common::TimeCatNone);
+	time_cat(common::TimeCatNone);
 	result.R = bestModel.R_map;
 	result.t = bestModel.t_map;
 	result.E = bestModel.E_map;		

@@ -49,7 +49,9 @@ std::string repeat_str(std::string s, int reps);
 void progress(int iter, int max_iters);
 
 enum TimeCategory { TimeCatNone = -1, TimeCatHypoGen, TimeCatHypoScoring, TIME_CATS_COUNT };
-enum TimeCategoryVerbose { TimeCatVerboseNone = -1, TimeCatVerboseHypoGen, TimeCatVerboseHypoScoring, TIME_CATS_VERBOSE_COUNT };
+enum TimeCategoryVerbose { TimeCatVerboseNone = -1, TimeCatVerboseSetup, TimeCatVerboseSVD, 
+	TimeCatVerbosePolyGetCoeffs1, TimeCatVerbosePolyGetCoeffs2, TimeCatVerbosePolyGetCoeffs3,
+	TimeCatVerboseSolvePoly, TimeCatVerboseConstructE, TIME_CATS_VERBOSE_COUNT };
 
 void cat_timer_reset();
 

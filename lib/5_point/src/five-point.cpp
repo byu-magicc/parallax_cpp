@@ -35,10 +35,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace cv;
 
-int cv_::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model, bool time)
+int cv_::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model)
 {
-	if(time)
-		tic();
+	time_cat_verbose(TimeCatVerboseSetup);
 	Mat q1 = _m1.getMat(), q2 = _m2.getMat();
 	Mat Q1 = q1.reshape(1, (int)q1.total());
 	Mat Q2 = q2.reshape(1, (int)q2.total());
@@ -54,28 +53,19 @@ int cv_::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model, b
 	Q.col(6) = Q1.col(0) * 1.0;
 	Q.col(7) = Q1.col(1) * 1.0;
 	Q.col(8) = 1.0;
-	if(time)
-		toc("setup", 1, 2, false);
-
+	
 	Mat U, W, Vt;
-	if(time)
-		tic();
+	time_cat_verbose(TimeCatVerboseSVD);
 	SVD::compute(Q, W, U, Vt, SVD::MODIFY_A | SVD::FULL_UV);
-	if(time)
-		toc("SVD", 1, 2, false);
 
-	if(time)
-		tic();
+	time_cat_verbose(TimeCatVerbosePolyGetCoeffs1);
 	Mat EE = Mat(Vt.t()).colRange(5, 9) * 1.0;
 	Mat A(10, 20, CV_64F);
 	EE = EE.t();
 	fivepoint_getCoeffMat(EE.ptr<double>(), A.ptr<double>());
 	EE = EE.t();
-	if(time)
-		toc("coeffs1", 1, 2, false);
+	time_cat_verbose(TimeCatVerbosePolyGetCoeffs2);
 
-	if(time)
-		tic();
 	A = A.colRange(0, 10).inv() * A.colRange(10, 20);
 
 	double b[3 * 13];
@@ -97,11 +87,8 @@ int cv_::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model, b
 
 		B.row(i) = row1 - row2;
 	}
-	if(time)
-		toc("coeffs2", 1, 2, false);
 
-	if(time)
-		tic();
+	time_cat_verbose(TimeCatVerbosePolyGetCoeffs3);
 	double c[11];
 	Mat coeffs(1, 11, CV_64F, c);
 	// JHW: Looks like these are the coofficients of the tenth-degree polynomial.
@@ -116,23 +103,17 @@ int cv_::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model, b
 	c[2] = (b[3] * b[18] * b[38] - b[3] * b[24] * b[32] + b[3] * b[19] * b[37] + b[3] * b[20] * b[36] - b[3] * b[25] * b[31] - b[3] * b[23] * b[33] - b[15] * b[6] * b[38] - b[15] * b[7] * b[37] + b[16] * b[32] * b[11] + b[16] * b[33] * b[10] - b[16] * b[5] * b[38] - b[16] * b[6] * b[37] - b[16] * b[7] * b[36] + b[16] * b[31] * b[12] + b[14] * b[33] * b[12] - b[14] * b[7] * b[38] + b[15] * b[32] * b[12] + b[15] * b[33] * b[11] + b[29] * b[5] * b[25] + b[29] * b[6] * b[24] - b[27] * b[20] * b[12] + b[27] * b[7] * b[25] - b[28] * b[19] * b[12] - b[28] * b[20] * b[11] + b[29] * b[7] * b[23] - b[29] * b[18] * b[12] - b[29] * b[19] * b[11] + b[28] * b[6] * b[25] + b[28] * b[7] * b[24] - b[29] * b[20] * b[10] + b[2] * b[19] * b[38] - b[1] * b[25] * b[33] + b[2] * b[20] * b[37] - b[2] * b[24] * b[33] - b[2] * b[25] * b[32] + b[1] * b[20] * b[38]);
 	c[1] = (b[29] * b[7] * b[24] - b[29] * b[20] * b[11] + b[2] * b[20] * b[38] - b[2] * b[25] * b[33] - b[28] * b[20] * b[12] + b[28] * b[7] * b[25] - b[29] * b[19] * b[12] - b[3] * b[24] * b[33] + b[15] * b[33] * b[12] + b[3] * b[19] * b[38] - b[16] * b[6] * b[38] + b[3] * b[20] * b[37] + b[16] * b[32] * b[12] + b[29] * b[6] * b[25] - b[16] * b[7] * b[37] - b[3] * b[25] * b[32] - b[15] * b[7] * b[38] + b[16] * b[33] * b[11]);
 	c[0] = -b[29] * b[20] * b[12] + b[29] * b[7] * b[25] + b[16] * b[33] * b[12] - b[16] * b[7] * b[38] + b[3] * b[20] * b[38] - b[3] * b[25] * b[33];
-	if(time)
-		toc("coeffs3", 1, 2, false);
 
 	std::vector<Complex<double> > roots;
-	if(time)
-		tic();
+	time_cat_verbose(TimeCatVerboseSolvePoly);
 	solvePoly(coeffs, roots);
-	if(time)
-		toc("solvePoly", 1, 2, false);
+	time_cat_verbose(TimeCatVerboseConstructE);
 
 	std::vector<double> xs, ys, zs;
 	int count = 0;
 
 	Mat ematrix(10 * 3, 3, CV_64F);
 	double* e = ematrix.ptr<double>();
-	if(time)
-		tic();
 	for (size_t i = 0; i < roots.size(); i++)
 	{
 		// JHW: It appears that there are no positive depth calculations with a 6th point to 
@@ -170,10 +151,9 @@ int cv_::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model, b
 		memcpy(e + count * 9, Evec.ptr(), 9 * sizeof(double));
 		count++;
 	}
-	if(time)
-		toc("constructE", 1, 2, false);
 
 	ematrix.rowRange(0, count * 3).copyTo(_model);
+	time_cat_verbose(TimeCatVerboseNone);
 	return count;
 }
 

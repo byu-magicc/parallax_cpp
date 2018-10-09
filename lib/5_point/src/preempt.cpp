@@ -178,13 +178,13 @@ float computeCost(vector<Point2d>& pts1, vector<Point2d>& pts2, Mat& E, int i1, 
 		return computeCost3(pts1, pts2, E, i1, i2, threshold);
 }
 
-int sixpoint(vector<Point2d>& subset1, vector<Point2d>& subset2, Mat& model, bool subtime)
+int sixpoint(vector<Point2d>& subset1, vector<Point2d>& subset2, Mat& model)
 {
 	// Use the first 5 points to generate multiple possible hypotheses
 	CV_Assert(subset1.size() == 6 && subset2.size() == 6);
 	vector<Point2d> subset1_(subset1.begin(), subset1.begin() + 5);
 	vector<Point2d> subset2_(subset2.begin(), subset2.begin() + 5);
-	int nmodels = cv_::fivepoint(subset1_, subset2_, model, subtime);
+	int nmodels = cv_::fivepoint(subset1_, subset2_, model);
 	if (nmodels <= 0)
 		return nmodels;
 
@@ -259,9 +259,9 @@ Mat findEssentialMatPreempt2(vector<Point2f> pts1_, vector<Point2f> pts2_, float
 		Mat model;
 		int nmodels;
 		if (sixthPoint)
-			nmodels = sixpoint(subset1, subset2, model, subtime);
+			nmodels = sixpoint(subset1, subset2, model);
 		else
-			nmodels = cv_::fivepoint(subset1, subset2, model, subtime);
+			nmodels = cv_::fivepoint(subset1, subset2, model);
 		if (nmodels <= 0)
 			continue;
 

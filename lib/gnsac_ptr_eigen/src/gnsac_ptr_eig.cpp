@@ -706,8 +706,8 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 	else //if optimizer == optimizer_GN
 	{
 		// dx = -J\r;
-		dx_map = -J_map.fullPivLu().solve(r_map);
-		//dx_map = -J_map.fullPivHouseholderQr().solve(r_map);
+		//dx_map = -J_map.fullPivLu().solve(r_map);
+		dx_map = -J_map.fullPivHouseholderQr().solve(r_map);
 
 		delta_norm = dx_map.norm();
 		
@@ -717,6 +717,16 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 		// t = unitvector_getV(TR);
 		// E = skew(t)*R;
 		RT_getE(R2, TR2, t2, E2);
+
+		// Compute residual
+		for(int i = 0; i < N; i++)
+		{
+			if (scoring_cost == cost_single)
+				r2[i] = residual(E2, pts1[i], pts2[i]);
+			else //if (scoring_cost == cost_algebraic)
+				r2[i] = residual_without_normalization(E2, pts1[i], pts2[i]);
+		}
+		r_norm = r2_map.norm();		
 	}
 	
 	if(log_optimizer && (last_iteration || log_optimizer_verbose))

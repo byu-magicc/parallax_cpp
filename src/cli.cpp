@@ -198,14 +198,15 @@ void compare_hypotheses(string video_yaml, string solver_yaml, string result_dir
 		// TODO: Should R errors be penalized more than t?
 		Vector2d vec_none;
 		vec_none << -1, -1;
-		scan_t dist_truth = scan_t(10, vec_none);
+		scan_t dist_truth = scan_t(11, vec_none);
 		scan_t dist_GN = scan_t(10, vec_none);
 		for(int i = 0; i < n_hypotheses_5P; i++)
 		{
 			dist_truth[i] = err_truth(hypotheses_5P[i], video_data.RT[frame]);
 			dist_GN[i] = dist_E(hypotheses_5P[i], hypotheses_GN[0].E);
 		}
-		comparison_tr_log_file.write((char*)&dist_truth[0], sizeof(double) * 10 * 2);
+		dist_truth[10] = err_truth(hypotheses_GN[0].E, video_data.RT[frame]);
+		comparison_tr_log_file.write((char*)&dist_truth[0], sizeof(double) * 11 * 2);
 		comparison_gn_log_file.write((char*)&dist_GN[0], sizeof(double) * 10 * 2);
 
 		// Update progress bar

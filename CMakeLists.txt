@@ -39,6 +39,7 @@ add_executable(cli
 	lib/gnsac_ptr_eigen/src/gnsac_ptr_eig.cpp
 	lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
 )
+target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
 
 add_executable(det_test_ocv
 	lib/gnsac_ptr_opencv/src/determinism_test.cpp
@@ -49,6 +50,7 @@ add_executable(det_test_ocv
 	lib/common/src/comm_math.cpp
 	lib/common/src/solvers.cpp
 )
+target_link_libraries(det_test_ocv ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
 
 add_executable(det_test_eig
 	lib/gnsac_ptr_eigen/src/determinism_test.cpp
@@ -59,7 +61,4 @@ add_executable(det_test_eig
 	lib/common/src/comm_math.cpp
 	lib/common/src/solvers.cpp
 )
-
-target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
-target_link_libraries(det_test_ocv ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
 target_link_libraries(det_test_eig ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)

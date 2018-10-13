@@ -4,6 +4,7 @@
 #include "common.h"
 #include "solvers.h"
 #include <eigen3/Eigen/Dense>
+#include <fstream>
 
 namespace gnsac_ptr_eigen
 {
@@ -77,9 +78,6 @@ double residual_diff(const double* R, const double* TR, const double* E, const d
 
 double residual(const double* E, const Eigen::Vector2d p1, const Eigen::Vector2d p2);
 
-void GN_step(const common::scan_t pts1, const common::scan_t pts2, const double* R, const double* TR,
-		  double* E2, double* R2, double* TR2, double* t2, int method, bool withNormalization = true, bool useLM = false);
-
 class GNHypothesis
 {
 public:
@@ -96,6 +94,9 @@ public:
 	double t[3*1];
 	double cost;
 };
+
+void getSubset(const common::scan_t& pts1, const common::scan_t& pts2, common::scan_t& subset1, common::scan_t& subset2, int modelPoints, 
+	std::uniform_int_distribution<>& dist, std::default_random_engine& rng);
 
 Eigen::Matrix3d findEssentialMatGN(common::scan_t pts1, common::scan_t pts2,
 		Eigen::Matrix3d& R0, Eigen::Vector3d& t0, Eigen::Matrix3d& R2, Eigen::Vector3d& t2,
@@ -124,9 +125,11 @@ public:
 
 	double score_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& hypothesis);
 
+	void init_optimizer_log(std::string filename, bool verbose);
 
 private:
-	double step(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2);
+	double step(const common::scan_t& pts1, const common::scan_t& pts2, 
+		const GNHypothesis& h1, GNHypothesis& h2, double& lambda, bool last_iteration, double residual_norm);
 
 	int optimize(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2);
 
@@ -138,6 +141,7 @@ private:
 
 	double score(const common::scan_t& pts1, const common::scan_t& pts2, GNHypothesis hypothesis, double best_cost);
 
+public:
 	optimizer_t optimizer;
 	cost_function_t optimizer_cost;
 	cost_function_t scoring_cost;
@@ -148,6 +152,11 @@ private:
 	double exit_tolerance;
 	double RANSAC_threshold;
 	double LM_lambda;
+
+private:
+	bool log_optimizer;
+	bool log_optimizer_verbose;
+	std::ofstream optimizer_log_file;
 };
 
 }

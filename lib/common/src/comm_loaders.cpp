@@ -198,6 +198,38 @@ void common::undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d camera_
 		pts_u[i] << (pts[i](0) - cx)*inv_fx, (pts[i](1) - cy)*inv_fy;
 }
 
+Vector2d common::sampson_err(const Matrix3d& E, const scan_t& pts1, const scan_t& pts2)
+{
+	int n_pts = pts1.size();
+	int medianIdx = (int)n_pts / 2;
+	vector<double> err = vector<double>(n_pts, 0);
+	double err_total = 0;
+	for(int i = 0; i < n_pts; i++)
+	{
+		Vector3d x1;
+		x1 << pts1[i](0), pts1[i](1), 1.;
+		Vector3d x2;
+		x2 << pts2[i](0), pts2[i](1), 1.;
+		Vector3d Ex1 = E * x1;
+		Vector3d Etx2 = E.transpose() * x2;
+		double x2tEx1 = x2.dot(Ex1);
+		
+		double a = Ex1[0] * Ex1[0];
+		double b = Ex1[1] * Ex1[1];
+		double c = Etx2[0] * Etx2[0];
+		double d = Etx2[1] * Etx2[1];
+		double err_i = x2tEx1 * x2tEx1 / (a + b + c + d);
+		err[i] = err_i;
+		err_total += err_i;
+	}
+	std::nth_element(err.begin(), err.begin() + medianIdx, err.end());
+	double med_err = err[medianIdx];
+	double mean_err = err_total / n_pts;
+	Vector2d err_result;
+	err_result << med_err, mean_err;
+	return err_result;
+}
+
 void common::loadRT(string filename, truth_t& data)
 {
 	if (! fileExists(filename))

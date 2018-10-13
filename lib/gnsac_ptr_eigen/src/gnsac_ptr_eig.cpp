@@ -578,18 +578,20 @@ void copyHypothesis(const GNHypothesis& h1, GNHypothesis& h2)
 	h2.cost = h1.cost;
 }
 
-GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node) : common::ESolver(yaml_filename, node)
+GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node) : common::ESolver(yaml_filename, node), 
+	log_optimizer(false), log_optimizer_verbose(false)
 {
 	string optimizer_str, optimizer_cost_str, scoring_cost_str, scoring_impl_str, consensus_alg_str;
 	common::get_yaml_node("optimizer", yaml_filename, node, optimizer_str);
 	common::get_yaml_node("optimizer_cost", yaml_filename, node, optimizer_cost_str);
-	common::get_yaml_node("n_subsets", yaml_filename, node, n_subsets);
 	common::get_yaml_node("scoring_cost", yaml_filename, node, scoring_cost_str);
 	common::get_yaml_node("scoring_impl", yaml_filename, node, scoring_impl_str);
 	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
+	common::get_yaml_node("n_subsets", yaml_filename, node, n_subsets);
 	common::get_yaml_node("max_iterations", yaml_filename, node, max_iterations);
 	common::get_yaml_node("exit_tolerance", yaml_filename, node, exit_tolerance);
 	common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
+	common::get_yaml_node("LM_lambda", yaml_filename, node, LM_lambda);
 	optimizer = (optimizer_t)common::get_enum_from_string(optimizer_t_str, optimizer_str);
 	optimizer_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, optimizer_cost_str);
 	scoring_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, scoring_cost_str);
@@ -597,27 +599,33 @@ GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node) : common::ESol
 	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
 }
 
-double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2)
+double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2, 
+	const GNHypothesis& h1, GNHypothesis& h2, double& lambda, bool last_iteration, double residual_norm)
 {
 	const double* R = h1.R;
-	const double* TR = h1.R;
+	const double* TR = h1.TR;
 	double* E2 = h2.E;
 	double* R2 = h2.R;
 	double* TR2 = h2.TR;
 	double* t2 = h2.t;
 
+	GNHypothesis h3;
+	double* E3 = h3.E;
+	double* R3 = h3.R;
+	double* TR3 = h3.TR;
+	double* t3 = h3.t;
+
 	// Gauss-Newton
 	// N = size(pts1, 2);
 	// r = zeros(N, 1);
 	// J = zeros(N, 5);
-	double lambda = 1e-4;
 	int N = (int)pts1.size();
 	assert(N < MAX_PTS);
 	static double r[MAX_PTS*1];
 	static double r2[MAX_PTS*1];
 	static double J[MAX_PTS*5];
 	static double dx[5*1];
-	double r_norm, r2_norm;
+	double r_norm, r2_norm, delta_norm;
 	Map<Matrix<double, -1, -1, RowMajor>> r_map = Map<Matrix<double, -1, -1, RowMajor>>(r, N, 1);
 	Map<Matrix<double, -1, -1, RowMajor>> r2_map = Map<Matrix<double, -1, -1, RowMajor>>(r2, N, 1);
 	Map<Matrix<double, -1, -1, RowMajor>> J_map = Map<Matrix<double, -1, -1, RowMajor>>(J, N, 5);
@@ -626,6 +634,7 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 	double E[3*3];
 	double deltaE[15*3];
 	getE_diff(R, TR, E, deltaE);
+	double LM_attempts = 0;
 	for(int i = 0; i < N; i++)
 	{
 		// [r(i), J(i, :)] = residual_diff(R, TR, pts1(:, i), pts2(:, i));
@@ -635,6 +644,11 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 			r[i] = residual_diff_without_normalization(R, TR, E, deltaE, pts1[i], pts2[i], &J[i*5]);
 	}
 	r_norm = r_map.norm();
+	if(r_norm != residual_norm && residual_norm != 9999)
+	{
+		cout << r_norm << " != " << residual_norm;
+		exit(EXIT_FAILURE);
+	}
 	
 	if(optimizer == optimizer_LM)
 	{
@@ -646,70 +660,95 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 		{		
 			// dx = -(JtJ + lambda*diag(diag(JtJ)))\J'*r;
 			Matrix<double, 5, 5> JtJ_diag_only = JtJ.diagonal().asDiagonal();
-			dx_map = -(JtJ + lambda*JtJ_diag_only).fullPivLu().solve(Jtr);
+			//dx_map = -(JtJ + lambda*JtJ_diag_only).fullPivLu().solve(Jtr);
+			dx_map = -(JtJ + lambda*JtJ_diag_only).fullPivHouseholderQr().solve(Jtr);
+			delta_norm = dx_map.norm();
 	
 			// [R2, TR2] = E_boxplus(R, TR, dx);
-			E_boxplus(R, TR, dx, R2, TR2);
+			E_boxplus(R, TR, dx, R3, TR3);
+
+			// t = unitvector_getV(TR);
+			// E = skew(t)*R;
+			RT_getE(R3, TR3, t3, E3);
 			
 			// r2 = residual_batch(R2, TR2, pts1, pts2);
 			for(int i = 0; i < N; i++)
 			{
 				if (scoring_cost == cost_single)
-					r2[i] = residual(E, pts1[i], pts2[i]);
+					r2[i] = residual(E3, pts1[i], pts2[i]);
 				else //if (scoring_cost == cost_algebraic)
-					r2[i] = residual_without_normalization(E, pts1[i], pts2[i]);
+					r2[i] = residual_without_normalization(E3, pts1[i], pts2[i]);
 			}
 			r2_norm = r2_map.norm();
 
 			
-			if(r2_norm <= r_norm)
+			if(r2_norm <= r_norm || lambda > 1e30)
 			{
 				// If the new error is lower, keep new values and move onto the next iteration.
 				// Decrease lambda, which makes the algorithm behave more like Gauss-Newton.
 				// Gauss-Newton gives very fast convergence when the function is well-behaved.
-				R = R2;
-				TR = TR2;
+				copyHypothesis(h3, h2);
 				lambda = lambda / 2;
 				r_norm = r2_norm;
 				break;
 			}
 			else
+			{
 				// If the new error is higher, discard new values and try again. 
 				// This time increase lambda, which makes the algorithm behave more
 				// like gradient descent and decreases the step size.
 				// Keep trying until we succeed at decreasing the error.
 				lambda = lambda * 2;
+				LM_attempts++;
+			}
 		}
 	}
 	else //if optimizer == optimizer_GN
 	{
 		// dx = -J\r;
 		dx_map = -J_map.fullPivLu().solve(r_map);
+		//dx_map = -J_map.fullPivHouseholderQr().solve(r_map);
+
+		delta_norm = dx_map.norm();
 		
 		// [R, TR] = E_boxplus(R, TR, dx);
 		E_boxplus(R, TR, dx, R2, TR2);
+
+		// t = unitvector_getV(TR);
+		// E = skew(t)*R;
+		RT_getE(R2, TR2, t2, E2);
 	}
 	
-	// t = unitvector_getV(TR);
-	unitvector_getV(TR2, t2);
-	
-	// E = skew(t)*R;
-	double tx[9];
-	skew(t2, tx);
-	mult33(tx, R2, E2);
+	if(log_optimizer && (last_iteration || log_optimizer_verbose))
+	{
+		optimizer_log_file.write((char*)&r_norm, sizeof(double));
+		optimizer_log_file.write((char*)&delta_norm, sizeof(double));
+		optimizer_log_file.write((char*)&lambda, sizeof(double));
+		optimizer_log_file.write((char*)&LM_attempts, sizeof(double));
+	}
 	return r_norm;
+}
+
+void GNSAC_Solver::init_optimizer_log(string filename, bool verbose)
+{
+	exit_tolerance = 0; // Data is all garbled if each run has a different number of iterations...
+	optimizer_log_file.open(filename);
+	log_optimizer = true;
+	log_optimizer_verbose = verbose;
 }
 
 int GNSAC_Solver::optimize(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2)
 {
 	int iters;
-	double residual_norm;
+	double residual_norm = 9999;
+	double lambda = LM_lambda;
 	for(iters = 0; iters < max_iterations; iters++)
 	{
+		bool last_iteration = (iters == max_iterations - 1);
 		if(iters == 0)
-			residual_norm = step(pts1, pts2, h1, h2);
+			residual_norm = step(pts1, pts2, h1, h2, lambda, last_iteration, residual_norm);
 		else
-			residual_norm = step(pts1, pts2, h2, h2);
+			residual_norm = step(pts1, pts2, h2, h2, lambda, last_iteration, residual_norm);
 		if (residual_norm < exit_tolerance)
 			break;
 	}

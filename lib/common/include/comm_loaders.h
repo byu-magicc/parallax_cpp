@@ -43,6 +43,8 @@ void loadPoints(std::string filename, sequence_t& pts1, sequence_t& pts2);
 
 void undistort_points(const scan_t& pts, scan_t& pts1_u, Eigen::Matrix3d camera_matrix);
 
+Eigen::Vector2d sampson_err(const Eigen::Matrix3d& E, const scan_t& pts1, const scan_t& pts2);
+
 void loadRT(std::string filename, truth_t& RT);
 
 // Loads scalar parameters from a .yaml file

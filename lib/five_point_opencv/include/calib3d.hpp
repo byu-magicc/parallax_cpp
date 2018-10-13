@@ -5,7 +5,7 @@
 #include "opencv2/features2d.hpp"
 #include "opencv2/core/affine.hpp"
 
-namespace cv_
+namespace five_point_opencv
 {
 
 	//! @addtogroup calib3d
@@ -73,7 +73,7 @@ namespace cv_
 		FM_RANSAC = 8  //!< RANSAC algorithm
 	};
 
-	int fivepoint(cv::InputArray _m1, cv::InputArray _m2, cv::OutputArray _model, bool time = false);
+	int fivepoint(cv::InputArray _m1, cv::InputArray _m2, cv::OutputArray _model);
 
 	void fivepoint_getCoeffMat(double *e, double *A);
 

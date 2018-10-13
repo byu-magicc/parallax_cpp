@@ -23,7 +23,7 @@ include_directories(
 	lib/common/include
 	lib/gnsac_ptr_eigen/include
 	lib/gnsac_ptr_opencv/include
-	# lib/common_cpp/include
+	lib/five_point_opencv/include
 	${EIGEN3_INCLUDE_DIRS}
 	${YAML_CPP_INCLUDE_DIR}
 	# ${OPENCV_INCLUDE_DIRS}
@@ -36,6 +36,10 @@ add_executable(cli
 	lib/common/src/comm_loaders.cpp
 	lib/common/src/comm_math.cpp
 	lib/common/src/solvers.cpp
+	lib/five_point_opencv/src/five-point.cpp
+	lib/five_point_opencv/src/levmarq.cpp
+	lib/five_point_opencv/src/preempt.cpp
+	lib/five_point_opencv/src/ptsetreg.cpp
 	lib/gnsac_ptr_eigen/src/gnsac_ptr_eig.cpp
 	lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
 )

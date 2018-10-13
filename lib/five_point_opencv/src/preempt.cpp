@@ -10,14 +10,12 @@
 #include "precomp.hpp"
 #include "calib3d.hpp"
 #include "preempt.hpp"
-#include "mex.h"
-#include "OpenCV2Matlab.h"
 
 // This implementation is designed to be (mostly) standalone, and utilizes the standard types
 
 using namespace std;
 using namespace cv;
-using namespace cv_;
+using namespace five_point_opencv;
 
 // Fisher-Yates shuffle algorithm, constant O(n)
 void shuffleElements(vector<Point2d>& pts1, vector<Point2d>& pts2, RNG& rng)
@@ -184,7 +182,7 @@ int sixpoint(vector<Point2d>& subset1, vector<Point2d>& subset2, Mat& model)
 	CV_Assert(subset1.size() == 6 && subset2.size() == 6);
 	vector<Point2d> subset1_(subset1.begin(), subset1.begin() + 5);
 	vector<Point2d> subset2_(subset2.begin(), subset2.begin() + 5);
-	int nmodels = cv_::fivepoint(subset1_, subset2_, model);
+	int nmodels = five_point_opencv::fivepoint(subset1_, subset2_, model);
 	if (nmodels <= 0)
 		return nmodels;
 
@@ -220,7 +218,6 @@ Mat findEssentialMatPreempt2(vector<Point2f> pts1_, vector<Point2f> pts2_, float
 	// Options
 	bool sixthPoint = (method.find("a6") != std::string::npos);
 	bool hypoGenOnly = (method.find("h") != std::string::npos);
-	bool subtime = (method.find("ss") != std::string::npos);
 	int costMethod = 1;
 	if(method.find("c1") != std::string::npos)
 		costMethod = 1;
@@ -244,8 +241,6 @@ Mat findEssentialMatPreempt2(vector<Point2f> pts1_, vector<Point2f> pts2_, float
 		shuffleElements(pts1, pts2, rng);
 
 	// Generate all hypotheses up front
-	if(subtime)
-		tic();
 	vector<Hypothesis> hypotheses;
 	for (int iters = 0; iters < niters; iters++)
 	{
@@ -261,7 +256,7 @@ Mat findEssentialMatPreempt2(vector<Point2f> pts1_, vector<Point2f> pts2_, float
 		if (sixthPoint)
 			nmodels = sixpoint(subset1, subset2, model);
 		else
-			nmodels = cv_::fivepoint(subset1, subset2, model);
+			nmodels = five_point_opencv::fivepoint(subset1, subset2, model);
 		if (nmodels <= 0)
 			continue;
 
@@ -274,20 +269,9 @@ Mat findEssentialMatPreempt2(vector<Point2f> pts1_, vector<Point2f> pts2_, float
 			hypotheses.push_back(Hypothesis(model_j));
 		}
 	}
-	if(subtime)
-	{
-		tic(); toc("setup", 0);
-		tic(); toc("SVD", 0);
-		tic(); toc("coeffs1", 0);
-		tic(); toc("coeffs2", 0);
-		tic(); toc("coeffs3", 0);
-		tic(); toc("solvePoly", 0);
-		tic(); toc("constructE", 0);
-		toc("TotalHypoGenTime");
-	}	
 	if(hypoGenOnly)
 	{
-		mexPrintf("%d hypotheses generated in %d iterations\n", hypotheses.size(), niters);
+		printf("%d hypotheses generated in %d iterations\n", (int)hypotheses.size(), niters);
 		return hypotheses[0].model;
 	}
 
@@ -307,36 +291,36 @@ Mat findEssentialMatPreempt2(vector<Point2f> pts1_, vector<Point2f> pts2_, float
 		// Keep the best half of the remaining hypotheses. Reorder them so that the best (lowest cost) are first.
 		int keep = max(hypothesesRemaining / 2, 1);
 		std::nth_element(hypotheses.begin(), hypotheses.begin() + keep, hypotheses.begin() + hypothesesRemaining, hypotheses[0]);
-		//mexPrintf("Block %d: ", b);
+		//printf("Block %d: ", b);
 		//for (int i = 0; i < hypotheses.size(); i++)
 		//{
 		//	if (i == 0)
-		//		mexPrintf("keep: ");
+		//		printf("keep: ");
 		//	if (i == keep)
-		//		mexPrintf("discard: ");
+		//		printf("discard: ");
 		//	if (i == hypothesesRemaining)
-		//		mexPrintf("moot: ");
-		//	mexPrintf("%.1f ", hypotheses[i].cost);
+		//		printf("moot: ");
+		//	printf("%.1f ", hypotheses[i].cost);
 		//}
-		//mexPrintf("\n");
+		//printf("\n");
 		hypothesesRemaining = keep;
 	}
 
 	// Find and return the best remaining model
 	int keep = 1;
 	std::nth_element(hypotheses.begin(), hypotheses.begin() + keep, hypotheses.begin() + hypothesesRemaining, hypotheses[0]);
-	//mexPrintf("End: ");
+	//printf("End: ");
 	//for (int i = 0; i < keep; i++)
 	//{
 	//	if (i == 0)
-	//		mexPrintf("keep: ");
+	//		printf("keep: ");
 	//	if (i == keep)
-	//		mexPrintf("discard: ");
+	//		printf("discard: ");
 	//	if (i == hypothesesRemaining)
-	//		mexPrintf("moot: ");
-	//	mexPrintf("%.1f ", hypotheses[i].cost);
+	//		printf("moot: ");
+	//	printf("%.1f ", hypotheses[i].cost);
 	//}
-	//mexPrintf("\n");
+	//printf("\n");
 	hypothesesRemaining = keep;
 	Mat E = hypotheses[0].model;
 	return E;

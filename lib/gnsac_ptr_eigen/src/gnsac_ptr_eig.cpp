@@ -755,7 +755,7 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 		int n_hypotheses_5P;
 		vector<Matrix3d> hypotheses_5P;
 		hypotheses_5P.resize(n_hypotheses_5P);
-		five_point_log_file.read((char*)n_hypotheses_5P, sizeof(int));
+		five_point_log_file.read((char*)&n_hypotheses_5P, sizeof(int));
 		if(n_hypotheses_5P > 10)
 		{
 			cout << "Too many hypotheses (" << n_hypotheses_5P << " > 10)"  << endl;
@@ -1000,14 +1000,22 @@ void GNSAC_Solver::refine_hypothesis(const common::scan_t& pts1, const common::s
 
 void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Matrix4d& RT_truth, common::EHypothesis& result)
 {
-	// If comparing to 5-point algorithm, read in one point as a checksum
+	// If comparing to 5-point algorithm, read in one point as a checksum and make sure number of subsets is the same
 	if(log_comparison)
 	{
-		Vector2d checksum;
-		five_point_log_file.read((char*)checksum.data(), sizeof(double) * 2);
-		if(memcmp((char*)pts1[0].data(), (char*)checksum.data(), sizeof(double) * 2) != 0)
+		Vector2d point_checksum;
+		five_point_log_file.read((char*)point_checksum.data(), sizeof(double) * 2);
+		if(memcmp((char*)pts1[0].data(), (char*)point_checksum.data(), sizeof(double) * 2) != 0)
 		{
-			cout << "Checksum failed. Checksum was " << endl << checksum << endl << "Pts1[0] was " << endl << pts1[0] << endl;
+			cout << "Point checksum failed. Checksum was " << endl << point_checksum << endl << "Pts1[0] was " << endl << pts1[0] << endl;
+			exit(EXIT_FAILURE);
+		}
+
+		int n_subsets_checksum;
+		five_point_log_file.read((char*)&n_subsets_checksum, sizeof(int));
+		if(n_subsets_checksum != n_subsets)
+		{
+			cout << "Wrong number of subsets. Checksum was " << endl << n_subsets_checksum << endl << " n_subsets was " << n_subsets << pts1[0] << endl;
 			exit(EXIT_FAILURE);
 		}
 	}

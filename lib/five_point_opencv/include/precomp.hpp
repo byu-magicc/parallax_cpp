@@ -56,7 +56,7 @@
 #endif
 
 
-namespace cv_
+namespace five_point_opencv
 {
 	class CV_EXPORTS LMSolver : public cv::Algorithm
 	{

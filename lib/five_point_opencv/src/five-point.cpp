@@ -31,13 +31,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "precomp.hpp"
 #include "calib3d.hpp"
-#include "OpenCV2Matlab.h"
+#include "common.h"
 
 using namespace cv;
 
-int cv_::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model)
+int five_point_opencv::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model)
 {
-	time_cat_verbose(TimeCatVerboseSetup);
+	time_cat_verbose(common::TimeCatVerboseSetup);
 	Mat q1 = _m1.getMat(), q2 = _m2.getMat();
 	Mat Q1 = q1.reshape(1, (int)q1.total());
 	Mat Q2 = q2.reshape(1, (int)q2.total());
@@ -55,16 +55,16 @@ int cv_::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model)
 	Q.col(8) = 1.0;
 	
 	Mat U, W, Vt;
-	time_cat_verbose(TimeCatVerboseSVD);
+	time_cat_verbose(common::TimeCatVerboseSVD);
 	SVD::compute(Q, W, U, Vt, SVD::MODIFY_A | SVD::FULL_UV);
 
-	time_cat_verbose(TimeCatVerbosePolyGetCoeffs1);
+	time_cat_verbose(common::TimeCatVerbosePolyGetCoeffs1);
 	Mat EE = Mat(Vt.t()).colRange(5, 9) * 1.0;
 	Mat A(10, 20, CV_64F);
 	EE = EE.t();
 	fivepoint_getCoeffMat(EE.ptr<double>(), A.ptr<double>());
 	EE = EE.t();
-	time_cat_verbose(TimeCatVerbosePolyGetCoeffs2);
+	time_cat_verbose(common::TimeCatVerbosePolyGetCoeffs2);
 
 	A = A.colRange(0, 10).inv() * A.colRange(10, 20);
 
@@ -88,7 +88,7 @@ int cv_::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model)
 		B.row(i) = row1 - row2;
 	}
 
-	time_cat_verbose(TimeCatVerbosePolyGetCoeffs3);
+	time_cat_verbose(common::TimeCatVerbosePolyGetCoeffs3);
 	double c[11];
 	Mat coeffs(1, 11, CV_64F, c);
 	// JHW: Looks like these are the coofficients of the tenth-degree polynomial.
@@ -105,9 +105,9 @@ int cv_::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model)
 	c[0] = -b[29] * b[20] * b[12] + b[29] * b[7] * b[25] + b[16] * b[33] * b[12] - b[16] * b[7] * b[38] + b[3] * b[20] * b[38] - b[3] * b[25] * b[33];
 
 	std::vector<Complex<double> > roots;
-	time_cat_verbose(TimeCatVerboseSolvePoly);
+	time_cat_verbose(common::TimeCatVerboseSolvePoly);
 	solvePoly(coeffs, roots);
-	time_cat_verbose(TimeCatVerboseConstructE);
+	time_cat_verbose(common::TimeCatVerboseConstructE);
 
 	std::vector<double> xs, ys, zs;
 	int count = 0;
@@ -153,16 +153,16 @@ int cv_::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model)
 	}
 
 	ematrix.rowRange(0, count * 3).copyTo(_model);
-	time_cat_verbose(TimeCatVerboseNone);
+	time_cat_verbose(common::TimeCatVerboseNone);
 	return count;
 }
 
-int cv_::EMEstimatorCallback::runKernel(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model) const
+int five_point_opencv::EMEstimatorCallback::runKernel(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model) const
 {
 	return fivepoint(_m1, _m2, _model);
 }
 
-void cv_::fivepoint_getCoeffMat(double *e, double *A)
+void five_point_opencv::fivepoint_getCoeffMat(double *e, double *A)
 {
 	double ep2[36], ep3[36];
 	for (int i = 0; i < 36; i++)
@@ -385,7 +385,7 @@ void cv_::fivepoint_getCoeffMat(double *e, double *A)
 	}
 }
 
-void cv_::EMEstimatorCallback::computeError(cv::InputArray _m1, cv::InputArray _m2, cv::InputArray _model, OutputArray _err) const
+void five_point_opencv::EMEstimatorCallback::computeError(cv::InputArray _m1, cv::InputArray _m2, cv::InputArray _model, OutputArray _err) const
 {
 	// JHW: All this matrix math is likely rather slow on Windows because of the large overhead in memory management.
 	// However, it should probably be sufficiently fast on Linux.
@@ -416,7 +416,7 @@ void cv_::EMEstimatorCallback::computeError(cv::InputArray _m1, cv::InputArray _
 	}
 }
 		
-float cv_::EMEstimatorCallback::computeCost(cv::InputArray _m1, cv::InputArray _m2, cv::InputArray _model, int i1, int i2, float threshold) const
+float five_point_opencv::EMEstimatorCallback::computeCost(cv::InputArray _m1, cv::InputArray _m2, cv::InputArray _model, int i1, int i2, float threshold) const
 {
 	Mat X1 = _m1.getMat(), X2 = _m2.getMat(), model = _model.getMat();
 	const Point2d* x1ptr = X1.ptr<Point2d>();
@@ -446,7 +446,7 @@ float cv_::EMEstimatorCallback::computeCost(cv::InputArray _m1, cv::InputArray _
 }
 
 // Input should be a vector of n 2D points or a Nx2 matrix
-cv::Mat cv_::findEssentialMat(InputArray _points1, InputArray _points2, InputArray _cameraMatrix,
+cv::Mat five_point_opencv::findEssentialMat(InputArray _points1, InputArray _points2, InputArray _cameraMatrix,
 	int method, double prob, double threshold, OutputArray _mask)
 {
 	Mat points1, points2, cameraMatrix;
@@ -496,7 +496,7 @@ cv::Mat cv_::findEssentialMat(InputArray _points1, InputArray _points2, InputArr
 }
 
 // Input should be a vector of n 2D points or a Nx2 matrix
-cv::Mat cv_::findEssentialMatPreempt(cv::InputArray _points1, cv::InputArray _points2, cv::InputArray _cameraMatrix,
+cv::Mat five_point_opencv::findEssentialMatPreempt(cv::InputArray _points1, cv::InputArray _points2, cv::InputArray _cameraMatrix,
 	float threshold, int n_iters, int blocksize, OutputArray _mask)
 {
 	Mat points1, points2, cameraMatrix;

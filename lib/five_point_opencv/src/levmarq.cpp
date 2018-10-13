@@ -76,7 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace cv;
 
-namespace cv_
+namespace five_point_opencv
 {
 
 	class LMSolverImpl : public LMSolver

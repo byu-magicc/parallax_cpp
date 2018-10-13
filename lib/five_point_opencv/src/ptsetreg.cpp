@@ -42,7 +42,6 @@
 //M*/
 
 #include "precomp.hpp"
-#include "mex.h"
 
 #include <algorithm>
 #include <iterator>
@@ -51,7 +50,7 @@
 using namespace cv;
 using namespace std;
 
-namespace cv_
+namespace five_point_opencv
 {
 	class Hypothesis
 	{
@@ -305,7 +304,7 @@ namespace cv_
 					}
 				}
 			}
-			//mexPrintf("Total models: %d\n", totalModels);
+			//printf("Total models: %d\n", totalModels);
 
 			if (maxGoodCount > 0)
 			{
@@ -554,7 +553,7 @@ namespace cv_
 
 		bool run(InputArray _m1, InputArray _m2, OutputArray _model, OutputArray _mask) const
 		{
-			//mexPrintf("Threshold: %f\n", threshold);
+			//printf("Threshold: %f\n", threshold);
 
 			bool result = false;
 			Mat m1 = _m1.getMat(), m2 = _m2.getMat();
@@ -644,36 +643,36 @@ namespace cv_
 				// Keep the best half of the remaining hypotheses. Reorder them so that the best (lowest cost) are first.
 				int keep = max(hypothesesRemaining / 2, 1);
 				std::nth_element(hypotheses.begin(), hypotheses.begin() + keep, hypotheses.begin() + hypothesesRemaining, hypotheses[0]);
-				//mexPrintf("Block %d: ", b);
+				//printf("Block %d: ", b);
 				//for (int i = 0; i < hypotheses.size(); i++)
 				//{
 				//	if (i == 0)
-				//		mexPrintf("keep: ");
+				//		printf("keep: ");
 				//	if (i == keep)
-				//		mexPrintf("discard: ");
+				//		printf("discard: ");
 				//	if (i == hypothesesRemaining)
-				//		mexPrintf("moot: ");
-				//	mexPrintf("%.1f ", hypotheses[i].cost);
+				//		printf("moot: ");
+				//	printf("%.1f ", hypotheses[i].cost);
 				//}
-				//mexPrintf("\n");
+				//printf("\n");
 				hypothesesRemaining = keep;
 			}
 
 			// Find the best remaining model
 			int keep = 1;
 			std::nth_element(hypotheses.begin(), hypotheses.begin() + keep, hypotheses.begin() + hypothesesRemaining, hypotheses[0]);
-			//mexPrintf("End: ");
+			//printf("End: ");
 			//for (int i = 0; i < keep; i++)
 			//{
 			//	if (i == 0)
-			//		mexPrintf("keep: ");
+			//		printf("keep: ");
 			//	if (i == keep)
-			//		mexPrintf("discard: ");
+			//		printf("discard: ");
 			//	if (i == hypothesesRemaining)
-			//		mexPrintf("moot: ");
-			//	mexPrintf("%.1f ", hypotheses[i].cost);
+			//		printf("moot: ");
+			//	printf("%.1f ", hypotheses[i].cost);
 			//}
-			//mexPrintf("\n");
+			//printf("\n");
 			hypothesesRemaining = keep;
 
 			// Create the mask array and copy to output

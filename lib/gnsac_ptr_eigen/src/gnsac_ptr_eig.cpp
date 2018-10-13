@@ -4,9 +4,11 @@
 #include <iostream>
 #include <random>
 #include <chrono>
+#include <experimental/filesystem>
 
 using namespace std;
 using namespace Eigen;
+namespace fs = std::experimental::filesystem;
 
 namespace gnsac_ptr_eigen
 {
@@ -579,24 +581,28 @@ void copyHypothesis(const GNHypothesis& h1, GNHypothesis& h2)
 }
 
 GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node) : common::ESolver(yaml_filename, node), 
-	log_optimizer(false), log_optimizer_verbose(false)
+	log_optimizer(false), log_optimizer_verbose(false), log_comparison(false)
 {
-	string optimizer_str, optimizer_cost_str, scoring_cost_str, scoring_impl_str, consensus_alg_str;
+	string optimizer_str, optimizer_cost_str, scoring_cost_str, scoring_impl_str, consensus_alg_str, initial_guess_method_str;
 	common::get_yaml_node("optimizer", yaml_filename, node, optimizer_str);
 	common::get_yaml_node("optimizer_cost", yaml_filename, node, optimizer_cost_str);
 	common::get_yaml_node("scoring_cost", yaml_filename, node, scoring_cost_str);
 	common::get_yaml_node("scoring_impl", yaml_filename, node, scoring_impl_str);
 	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
+	common::get_yaml_node("initial_guess", yaml_filename, node, initial_guess_method_str);
 	common::get_yaml_node("n_subsets", yaml_filename, node, n_subsets);
 	common::get_yaml_node("max_iterations", yaml_filename, node, max_iterations);
 	common::get_yaml_node("exit_tolerance", yaml_filename, node, exit_tolerance);
-	common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
-	common::get_yaml_node("LM_lambda", yaml_filename, node, LM_lambda);
 	optimizer = (optimizer_t)common::get_enum_from_string(optimizer_t_str, optimizer_str);
 	optimizer_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, optimizer_cost_str);
 	scoring_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, scoring_cost_str);
 	scoring_impl = (implementation_t)common::get_enum_from_string(implementation_t_str, scoring_impl_str);
 	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
+	initial_guess_method = (initial_guess_t)common::get_enum_from_string(initial_guess_t_str, initial_guess_method_str);
+	if(consensus_alg == consensus_RANSAC)
+		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
+	if(optimizer == optimizer_LM)
+		common::get_yaml_node("LM_lambda", yaml_filename, node, LM_lambda);
 }
 
 double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2, 
@@ -729,22 +735,66 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 		r_norm = r2_map.norm();		
 	}
 	
+	// Logging (optional)
 	if(log_optimizer && (last_iteration || log_optimizer_verbose))
 	{
+		time_cat(common::TimeCatNone);
 		optimizer_log_file.write((char*)&r_norm, sizeof(double));
 		optimizer_log_file.write((char*)&delta_norm, sizeof(double));
 		optimizer_log_file.write((char*)&lambda, sizeof(double));
 		optimizer_log_file.write((char*)&LM_attempts, sizeof(double));
+		time_cat(common::TimeCatHypoGen);
 	}
+	if(log_comparison && last_iteration && pts1.size() == 5)
+	{
+		time_cat(common::TimeCatNone);
+
+		// Compare to 5-point
+		vector<Matrix3d> hypotheses_5P;
+		common::five_point(pts1, pts2, hypotheses_5P);
+		int n_hypotheses_5P = hypotheses_5P.size();
+
+		// Score each hypothesis (up to 10, 11th is for GN)
+		// (error should be very small since they are minimum subsets)
+		vector<double> mean_err = vector<double>(11, -1);
+		for(int i = 0; i < n_hypotheses_5P; i++)
+			mean_err[i] = common::sampson_err(hypotheses_5P[i], pts1, pts2)[1];
+		mean_err[10] = common::sampson_err(h2.E_map, pts1, pts2)[1];
+		accuracy_log_file.write((char*)&mean_err[0], sizeof(double) * 11);
+
+		// Find out which 5-point E is closest to the truth and which is closest to GN.
+		Vector2d vec_none;
+		vec_none << -1, -1;
+		common::scan_t dist_truth = common::scan_t(11, vec_none);
+		common::scan_t dist_GN = common::scan_t(10, vec_none);
+		for(int i = 0; i < n_hypotheses_5P; i++)
+		{
+			dist_truth[i] = common::err_truth(hypotheses_5P[i], RT_truth);
+			dist_GN[i] = common::dist_E(hypotheses_5P[i], h2.E_map);
+		}
+		dist_truth[10] = common::err_truth(h2.E_map, RT_truth);
+		comparison_tr_log_file.write((char*)&dist_truth[0], sizeof(double) * 11 * 2);
+		comparison_gn_log_file.write((char*)&dist_GN[0], sizeof(double) * 10 * 2);
+		time_cat(common::TimeCatHypoGen);
+	}	
 	return r_norm;
 }
 
-void GNSAC_Solver::init_optimizer_log(string filename, bool verbose)
+void GNSAC_Solver::init_optimizer_log(string result_directory, bool verbose)
 {
 	exit_tolerance = 0; // Data is all garbled if each run has a different number of iterations...
-	optimizer_log_file.open(filename);
+	optimizer_log_file.open(fs::path(result_directory) / "optimizer.bin");
 	log_optimizer = true;
 	log_optimizer_verbose = verbose;
+}
+
+void GNSAC_Solver::init_comparison_log(string result_directory)
+{
+	exit_tolerance = 0;
+	accuracy_log_file.open(fs::path(result_directory) / "5-point_accuracy.bin");
+	comparison_tr_log_file.open(fs::path(result_directory) / "5-point_comparison_tr.bin");
+	comparison_gn_log_file.open(fs::path(result_directory) / "5-point_comparison_gn.bin");
+	log_comparison = true;
 }
 
 int GNSAC_Solver::optimize(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2)
@@ -937,29 +987,44 @@ void GNSAC_Solver::refine_hypothesis(const common::scan_t& pts1, const common::s
 	result = common::EHypothesis(model.E_map, model.R_map, model.t_map);
 }
 
-void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& initial_guess, common::EHypothesis& result)
+void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Matrix4d& RT_truth, common::EHypothesis& result)
 {
 	// Init
 	//unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine rng(0);
 	std::uniform_int_distribution<> dist(0, pts1.size() - 1);
-	GNHypothesis bestModel(initial_guess.R, initial_guess.t);
+	GNHypothesis bestModel;
+	if(initial_guess_method == init_previous)
+		copyHypothesis(previous_result, bestModel);
+	else if(initial_guess_method == init_random)
+	{
+		Matrix3d R0 = Matrix3d::Identity();
+		Vector3d t0;
+		std::normal_distribution<double> dist_normal(0.0, 1.0);
+		t0 << dist_normal(rng), dist_normal(rng), dist_normal(rng);
+		bestModel = GNHypothesis(R0, t0);
+	}
+	else if(initial_guess_method == init_truth)
+	{
+		Matrix3d R_truth = RT_truth.block<3, 3>(0, 0);
+		Vector3d t_truth = RT_truth.block<3, 1>(0, 3);
+		bestModel = GNHypothesis(R_truth, t_truth);
+	}	
 	
 	// Fully score initial hypothesis
 	time_cat(common::TimeCatHypoScoring);
 	bestModel.cost = score(pts1, pts2, bestModel, 1e10);
-
 	GNHypothesis model;
 	for(int i = 0; i < n_subsets; i++)
 	{
 		// Get subset
+		time_cat(common::TimeCatHypoGen);
 		common::scan_t subset1;
 		common::scan_t subset2;
 		getSubset(pts1, pts2, subset1, subset2, 5, dist, rng);
 
 		// Initialize GN algorithm with best model and then perform 10 GN iterations
 		copyHypothesis(bestModel, model);
-		time_cat(common::TimeCatHypoGen);
 		optimize(subset1, subset2, model, model);
 
 		// Partially score hypothesis (terminate early if cost exceeds lowest cost)
@@ -971,7 +1036,10 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 	time_cat(common::TimeCatNone);
 	result.R = bestModel.R_map;
 	result.t = bestModel.t_map;
-	result.E = bestModel.E_map;		
+	result.E = bestModel.E_map;
+	
+	// Save best hypothesis for next time
+	copyHypothesis(bestModel, previous_result);
 }
 
 }

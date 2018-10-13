@@ -36,7 +36,7 @@ public:
 
 	virtual void refine_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& best_hypothesis, EHypothesis& result);
 
-	virtual void find_best_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& initial_guess, EHypothesis& result);
+	virtual void find_best_hypothesis(const scan_t& pts1, const scan_t& pts2, const Eigen::Matrix4d& RT_truth, EHypothesis& result);
 
 	virtual double score_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& hypothesis);
 

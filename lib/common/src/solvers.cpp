@@ -49,7 +49,7 @@ void common::ESolver::refine_hypothesis(const scan_t& pts1, const scan_t& pts2, 
 
 }
 
-void common::ESolver::find_best_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& initial_guess, EHypothesis& result)
+void common::ESolver::find_best_hypothesis(const scan_t& pts1, const scan_t& pts2, const Matrix4d& RT_truth, EHypothesis& result)
 {
     cout <<"Error: Not Implemented!" << endl;
     exit(EXIT_FAILURE);

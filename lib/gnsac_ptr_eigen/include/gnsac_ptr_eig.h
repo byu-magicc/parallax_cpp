@@ -111,6 +111,8 @@ enum_str(implementation_t, implementation_t_str, impl_eig, impl_ptr)
 
 enum_str(consensus_t, consensus_t_str, consensus_RANSAC, consensus_LMEDS)
 
+enum_str(initial_guess_t, initial_guess_t_str, init_random, init_previous, init_truth)
+
 class GNSAC_Solver : common::ESolver
 {
 public:
@@ -121,11 +123,13 @@ public:
 
 	void refine_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& best_hypothesis, common::EHypothesis& result);
 
-	void find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& initial_guess, common::EHypothesis& result);
+	void find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Eigen::Matrix4d& RT_truth, common::EHypothesis& result);
 
 	double score_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& hypothesis);
 
-	void init_optimizer_log(std::string filename, bool verbose);
+	void init_optimizer_log(std::string result_directory, bool verbose);
+
+	void init_comparison_log(std::string result_directory);
 
 private:
 	double step(const common::scan_t& pts1, const common::scan_t& pts2, 
@@ -147,16 +151,23 @@ public:
 	cost_function_t scoring_cost;
 	implementation_t scoring_impl;
 	consensus_t consensus_alg;
+	initial_guess_t initial_guess_method;
 	int n_subsets;
 	int max_iterations;
 	double exit_tolerance;
 	double RANSAC_threshold;
 	double LM_lambda;
+	Eigen::Matrix4d RT_truth;
+	GNHypothesis previous_result;
 
 private:
 	bool log_optimizer;
 	bool log_optimizer_verbose;
+	bool log_comparison;
 	std::ofstream optimizer_log_file;
+	std::ofstream accuracy_log_file;
+	std::ofstream comparison_tr_log_file;
+	std::ofstream comparison_gn_log_file;
 };
 
 }

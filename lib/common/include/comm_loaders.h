@@ -45,6 +45,8 @@ void undistort_points(const scan_t& pts, scan_t& pts1_u, Eigen::Matrix3d camera_
 
 Eigen::Vector2d sampson_err(const Eigen::Matrix3d& E, const scan_t& pts1, const scan_t& pts2);
 
+void five_point(const scan_t& subset1, const scan_t& subset2, std::vector<Eigen::Matrix3d>& hypotheses);
+
 void loadRT(std::string filename, truth_t& RT);
 
 // Loads scalar parameters from a .yaml file

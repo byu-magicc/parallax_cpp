@@ -11,6 +11,12 @@
 using namespace std;
 using namespace Eigen;
 
+#include "opencv2/core/core.hpp"
+#include "opencv2/calib3d.hpp"
+#include "opencv2/imgproc/imgproc.hpp" 
+#include "opencv2/core/eigen.hpp"
+
+
 ///////////////
 // Tokenizer //
 ///////////////
@@ -228,6 +234,41 @@ Vector2d common::sampson_err(const Matrix3d& E, const scan_t& pts1, const scan_t
 	Vector2d err_result;
 	err_result << med_err, mean_err;
 	return err_result;
+}
+
+void common::five_point(const scan_t& subset1, const scan_t& subset2, vector<Matrix3d>& hypotheses)
+{
+	// Convert to Point2f
+	int n_pts = subset1.size();
+	if(n_pts != 5)
+	{
+		printf("The five-point algorithm doesn't accept %d points\n", n_pts);
+		exit(EXIT_FAILURE);
+	}	
+	vector<cv::Point2d> subset1_cv = vector<cv::Point2d>(n_pts);
+	vector<cv::Point2d> subset2_cv = vector<cv::Point2d>(n_pts);
+	for (int i = 0; i < n_pts; i++)
+	{
+		subset1_cv[i].x = subset1[i](0);
+		subset1_cv[i].y = subset1[i](1);
+		subset2_cv[i].x = subset2[i](0);
+		subset2_cv[i].y = subset2[i](1);
+	}
+
+	// Calc (multiple) hypotheses using 5-point algorithm
+	cv::Mat E_cv = findEssentialMat(subset1_cv, subset2_cv, cv::Mat::eye(3, 3, CV_64F));
+	if(E_cv.rows % 3 != 0 || (E_cv.rows > 0 && E_cv.cols != 3))
+	{
+		printf("Invalid essential matrix size: [%d x %d]\n", E_cv.rows, E_cv.cols);
+		exit(EXIT_FAILURE);
+	}
+	int n_hypotheses = E_cv.rows / 3;
+	hypotheses.resize(n_hypotheses);
+	for(int i = 0; i < n_hypotheses; i++)
+	{
+		Map<Matrix<double, 3, 3, RowMajor>> E_i = Map<Matrix<double, 3, 3, RowMajor>>(&E_cv.at<double>(i * 3, 0));
+		hypotheses[i] = E_i;
+	}
 }
 
 void common::loadRT(string filename, truth_t& data)

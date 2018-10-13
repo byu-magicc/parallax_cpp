@@ -49,6 +49,8 @@ void five_point(const scan_t& subset1, const scan_t& subset2, std::vector<Eigen:
 
 void loadRT(std::string filename, truth_t& RT);
 
+void load_E(std::string filename, std::vector<std::vector<scan_t>>& subsets, std::vector<std::vector<std::vector<Eigen::Matrix3d>>>& data, int frames, int n_hypotheses);
+
 // Loads scalar parameters from a .yaml file
 // Author: James Jackson
 // JHW: Note that it is easiest to just put the definition for the template function in the header, otherwise

@@ -5,20 +5,20 @@ function plot_comparison(title_str, methods, ylabels, name)
 	for i = 1:length(methods)
 		filename = ['../logs/' methods{i} '/' name];
 		file = fopen(filename, 'r');
-		number = fread(file, 'double');
+		val = fread(file, 'double');
 		fclose(file);
 		
 		% Hack to allow compatibility with three error rows
-		if length(ylabels) == 2 && mod(length(number), 2) ~= 0
-			number = reshape(number, 3, []);
-			number = number(2:3, :);
+		if length(ylabels) == 2 && mod(length(val), 2) ~= 0
+			val = reshape(val, 3, []);
+			val = val(2:3, :);
 		end
 		
 		% reshape
-		number = reshape(number, length(ylabels), []);
+		val = reshape(val, length(ylabels), []);
 		for j = 1:length(ylabels)
 			subplot(length(ylabels), 1, j)
-			plot(number(j, :))
+			plot(val(j, :))
 			ylabel(ylabels{j})
 			grid on;
 			if i == 1

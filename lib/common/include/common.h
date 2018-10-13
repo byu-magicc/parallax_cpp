@@ -49,7 +49,7 @@ std::string repeat_str(std::string s, int reps);
 void progress(int iter, int max_iters);
 
 enum TimeCategory { TimeCatNone = -1, TimeCatHypoGen, TimeCatHypoScoring, TIME_CATS_COUNT };
-enum TimeCategoryVerbose { TimeCatVerboseNone = -1, TimeCatVerboseSetup, TimeCatVerboseSVD, 
+enum TimeCategoryVerbose { TimeCatVerboseNone = -1, TimeCatVerboseSetup, TimeCatVerboseSVD,
 	TimeCatVerbosePolyGetCoeffs1, TimeCatVerbosePolyGetCoeffs2, TimeCatVerbosePolyGetCoeffs3,
 	TimeCatVerboseSolvePoly, TimeCatVerboseConstructE, TIME_CATS_VERBOSE_COUNT };
 
@@ -64,11 +64,14 @@ void cat_timer_print();
 
 double* get_cat_times();
 
-#ifdef TIME_VERBOSE
+double* get_cat_times_verbose();
+
 #define time_cat(cat) time_cat_fcn(cat)
+//#define time_cat(cat)
+
+#ifdef TIME_VERBOSE
 #define time_cat_verbose(cat) time_cat_verbose_fcn(cat)
 #else
-#define time_cat(cat)
 #define time_cat_verbose(cat)
 #endif
 

@@ -278,8 +278,8 @@ void common::progress(int iter, int max_iters)
 // Category Timer //
 ////////////////////
 
-double catTimes[common::TIME_CATS_COUNT] = {}; // Init to zero
-double catTimesVerbose[common::TIME_CATS_VERBOSE_COUNT] = {}; // Init to zero
+double catTimes_ms[common::TIME_CATS_COUNT] = {}; // Init to zero
+double catTimesVerbose_ms[common::TIME_CATS_VERBOSE_COUNT] = {}; // Init to zero
 double catTimerStartTime;
 double catTimerVerboseStartTime;
 common::TimeCategory currentTimeCat = common::TimeCatNone;
@@ -288,9 +288,9 @@ common::TimeCategoryVerbose currentTimeCatVerbose = common::TimeCatVerboseNone;
 void common::cat_timer_reset()
 {
 	for(int i = 0; i < common::TIME_CATS_COUNT; i++)
-		catTimes[i] = 0;
+		catTimes_ms[i] = 0;
 	for(int i = 0; i < common::TIME_CATS_VERBOSE_COUNT; i++)
-		catTimesVerbose[i] = 0;
+		catTimesVerbose_ms[i] = 0;
 	currentTimeCat = TimeCatNone;
 	currentTimeCatVerbose = TimeCatVerboseNone;
 }
@@ -304,7 +304,7 @@ void common::time_cat_fcn(common::TimeCategory timeCat)
 	
 	// Add timer value to 
 	if(currentTimeCat != TimeCatNone)
-		catTimes[(int)currentTimeCat] += elapsedTime;
+		catTimes_ms[(int)currentTimeCat] += elapsedTime * 1000;
 
 	// Start next timer
 	catTimerStartTime = currTime;
@@ -319,7 +319,7 @@ void common::time_cat_verbose_fcn(common::TimeCategoryVerbose timeCatVerbose)
 	
 	// Add timer value to 
 	if(currentTimeCatVerbose != TimeCatVerboseNone)
-		catTimesVerbose[(int)currentTimeCatVerbose] += elapsedTime;
+		catTimesVerbose_ms[(int)currentTimeCatVerbose] += elapsedTime * 1000;
 
 	// Start next timer
 	catTimerVerboseStartTime = currTime;
@@ -329,12 +329,17 @@ void common::time_cat_verbose_fcn(common::TimeCategoryVerbose timeCatVerbose)
 void common::cat_timer_print()
 {
 	for(int i = 0; i < TIME_CATS_COUNT; i++)
-		printf("Cat %d, time %f\n", i, catTimes[i]);
+		printf("Cat %d, time %f\n", i, catTimes_ms[i]);
 }
 
 double* common::get_cat_times()
 {
-	return catTimes;
+	return catTimes_ms;
+}
+
+double* common::get_cat_times_verbose()
+{
+	return catTimesVerbose_ms;
 }
 
 /////////////////

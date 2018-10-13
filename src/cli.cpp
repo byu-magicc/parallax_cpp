@@ -20,7 +20,7 @@ using namespace Eigen;
 using namespace common;
 namespace fs = std::experimental::filesystem;
 
-void run_test(string video_yaml, string solver_yaml, string result_directory)
+void run_test(string video_yaml, string solver_yaml, string five_point_directory, string result_directory)
 {
 	// Create folder for results
 	if(!fs::exists(result_directory))
@@ -57,7 +57,7 @@ void run_test(string video_yaml, string solver_yaml, string result_directory)
 	accuracy_log_file.open(fs::path(result_directory) / "accuracy.bin");
 	timing_log_file.open(fs::path(result_directory) / "timing.bin");
 	solver->init_optimizer_log(result_directory, false);
-	solver->init_comparison_log(result_directory);
+	solver->init_comparison_log(result_directory, five_point_directory);
 
 
 	// Loop for all points
@@ -92,7 +92,7 @@ void run_test(string video_yaml, string solver_yaml, string result_directory)
 	timing_log_file.close();
 }
 
-void compare_hypotheses(string video_yaml, string solver_yaml, string result_directory)
+void compare_hypotheses(string video_yaml, string solver_yaml, string five_point_directory, string result_directory)
 {
 	// Create folder for results
 	if(!fs::exists(result_directory))
@@ -125,7 +125,7 @@ void compare_hypotheses(string video_yaml, string solver_yaml, string result_dir
 
 	// Open log files
 	solver->init_optimizer_log(result_directory, true);
-	solver->init_comparison_log(result_directory);
+	solver->init_comparison_log(result_directory, five_point_directory);
 
 	// Loop for all points
 	int frames = video_data.pts1.size();
@@ -155,8 +155,8 @@ int main(int argc, char *argv[])
 	argc--; argv++;
 
 	// Make sure there are sufficient arguments
-	string usage_str = "Usage: ./cli [full, hypo] video_yaml solver_yaml results_folder";
-	if(argc < 3)
+	string usage_str = "Usage: ./cli [full, hypo] video_yaml solver_yaml five_point_directory results_folder";
+	if(argc < 5)
 	{
 		cout << usage_str << endl;
 		return 0;
@@ -164,11 +164,12 @@ int main(int argc, char *argv[])
 	string run_type = string(argv[0]);
 	string video_yaml = string(argv[1]);
 	string solver_yaml = string(argv[2]);
-	string results_folder = string(argv[3]);
+	string five_point_directory = string(argv[3]);
+	string results_folder = string(argv[4]);
 	if (run_type == "full")
-		run_test(video_yaml, solver_yaml, results_folder);
+		run_test(video_yaml, solver_yaml, five_point_directory, results_folder);
 	else if (run_type == "hypo")
-		compare_hypotheses(video_yaml, solver_yaml, results_folder);
+		compare_hypotheses(video_yaml, solver_yaml, five_point_directory, results_folder);
 	else
 		cout << usage_str << endl;
 }

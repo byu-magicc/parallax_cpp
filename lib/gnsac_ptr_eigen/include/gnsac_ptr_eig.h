@@ -129,7 +129,7 @@ public:
 
 	void init_optimizer_log(std::string result_directory, bool verbose);
 
-	void init_comparison_log(std::string result_directory);
+	void init_comparison_log(std::string result_directory, std::string five_point_directory);
 
 private:
 	double step(const common::scan_t& pts1, const common::scan_t& pts2, 
@@ -168,6 +168,7 @@ private:
 	std::ofstream accuracy_log_file;
 	std::ofstream comparison_tr_log_file;
 	std::ofstream comparison_gn_log_file;
+	std::ifstream five_point_log_file;
 };
 
 }

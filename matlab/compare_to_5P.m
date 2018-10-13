@@ -1,10 +1,8 @@
 function [result_GN, result_5P] = compare_to_5P(method)
 	%% Load data
 	A  = read_binary(['../logs/' method '/5-point_accuracy.bin'],  11);
-	%T  = read_binary(['../logs/' method '/5-point_timing.bin'], [3, 2]);
 	C_TR = read_binary(['../logs/' method '/5-point_comparison_tr.bin'], [2, 11]);
 	C_GN = read_binary(['../logs/' method '/5-point_comparison_gn.bin'], [2, 10]);
-	%O = read_binary(['../logs/' method '/optimizer.bin'], [4, 1000]);
 	C_TR(C_TR == -1) = nan;
 	C_GN(C_GN == -1) = nan;
 	A(A == -1) = nan;
@@ -14,7 +12,7 @@ function [result_GN, result_5P] = compare_to_5P(method)
 	%% Categorize all hypotheses
 	% How many total GN/LM and 5P hypotheses?
 	total_GN = size(A, 2);
-	num_5P = sum(~isnan(TR(1:10, :)), 1);
+	num_5P = sum(~isnan(A(1:10, :)), 1);
 	total_5P = sum(num_5P);
 
 	% How many GN/LM and 5P hypotheses converged to a valid solution?

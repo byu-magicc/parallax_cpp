@@ -750,9 +750,19 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 		time_cat(common::TimeCatNone);
 
 		// Compare to 5-point
+		//common::five_point(pts1, pts2, hypotheses_5P);
+		//int n_hypotheses_5P = hypotheses_5P.size();
+		int n_hypotheses_5P;
 		vector<Matrix3d> hypotheses_5P;
-		common::five_point(pts1, pts2, hypotheses_5P);
-		int n_hypotheses_5P = hypotheses_5P.size();
+		hypotheses_5P.resize(n_hypotheses_5P);
+		five_point_log_file.read((char*)n_hypotheses_5P, sizeof(int));
+		if(n_hypotheses_5P > 10)
+		{
+			cout << "Too many hypotheses (" << n_hypotheses_5P << " > 10)"  << endl;
+			exit(EXIT_FAILURE);
+		}
+		for(int i = 0; i < n_hypotheses_5P; i++)
+			five_point_log_file.read((char*)hypotheses_5P[i].data(), sizeof(double) * 3 * 3);
 
 		// Score each hypothesis (up to 10, 11th is for GN)
 		// (error should be very small since they are minimum subsets)
@@ -788,12 +798,13 @@ void GNSAC_Solver::init_optimizer_log(string result_directory, bool verbose)
 	log_optimizer_verbose = verbose;
 }
 
-void GNSAC_Solver::init_comparison_log(string result_directory)
+void GNSAC_Solver::init_comparison_log(string result_directory, string five_point_directory)
 {
 	exit_tolerance = 0;
 	accuracy_log_file.open(fs::path(result_directory) / "5-point_accuracy.bin");
 	comparison_tr_log_file.open(fs::path(result_directory) / "5-point_comparison_tr.bin");
 	comparison_gn_log_file.open(fs::path(result_directory) / "5-point_comparison_gn.bin");
+	five_point_log_file.open(fs::path(five_point_directory) / "5-point_results.bin");
 	log_comparison = true;
 }
 
@@ -989,6 +1000,18 @@ void GNSAC_Solver::refine_hypothesis(const common::scan_t& pts1, const common::s
 
 void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Matrix4d& RT_truth, common::EHypothesis& result)
 {
+	// If comparing to 5-point algorithm, read in one point as a checksum
+	if(log_comparison)
+	{
+		Vector2d checksum;
+		five_point_log_file.read((char*)checksum.data(), sizeof(double) * 2);
+		if(memcmp((char*)pts1[0].data(), (char*)checksum.data(), sizeof(double) * 2) != 0)
+		{
+			cout << "Checksum failed. Checksum was " << endl << checksum << endl << "Pts1[0] was " << endl << pts1[0] << endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+
 	// Init
 	//unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine rng(0);
@@ -1022,6 +1045,16 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 		common::scan_t subset1;
 		common::scan_t subset2;
 		getSubset(pts1, pts2, subset1, subset2, 5, dist, rng);
+
+		// If comparing to 5-point algorithm, read in the points to make sure we use the exact same ones
+		if(log_comparison)
+		{
+			// Subset (points from which hypothesis was generated)
+			for(int j = 0; j < 5; j++)
+				five_point_log_file.read((char*)subset1[i].data(), sizeof(double) * 2);
+			for(int j = 0; j < 5; j++)
+				five_point_log_file.read((char*)subset2[i].data(), sizeof(double) * 2);
+		}
 
 		// Initialize GN algorithm with best model and then perform 10 GN iterations
 		copyHypothesis(bestModel, model);

@@ -42,6 +42,7 @@
 //M*/
 
 #include "precomp.hpp"
+#include "common.h"
 
 #include <algorithm>
 #include <iterator>
@@ -113,8 +114,8 @@ namespace five_point_opencv
 	{
 	public:
 		RANSACPointSetRegistrator(const Ptr<PointSetRegistrator::Callback>& _cb = Ptr<PointSetRegistrator::Callback>(),
-			int _modelPoints = 0, double _threshold = 0, double _confidence = 0.99, int _maxIters = 1000)
-			: cb(_cb), modelPoints(_modelPoints), threshold(_threshold), confidence(_confidence), maxIters(_maxIters)
+			int _modelPoints = 0, double _threshold = 0, double _confidence = 0.99, int _niters = 100)
+			: cb(_cb), modelPoints(_modelPoints), threshold(_threshold), confidence(_confidence), niters(_niters)
 		{
 			checkPartialSubsets = false;
 		}
@@ -203,11 +204,12 @@ namespace five_point_opencv
 
 		bool run(InputArray _m1, InputArray _m2, OutputArray _model, OutputArray _mask) const
 		{
+			time_cat(common::TimeCatHypoGen);
 			bool result = false;
 			Mat m1 = _m1.getMat(), m2 = _m2.getMat();
 			Mat err, mask, model, bestModel, ms1, ms2;
 
-			int iter, niters = MAX(maxIters, 1);
+			int iter; //, niters = MAX(maxIters, 1);
 			int d1 = m1.channels() > 1 ? m1.channels() : m1.cols;
 			int d2 = m2.channels() > 1 ? m2.channels() : m2.cols;
 			int count = m1.checkVector(d1), count2 = m2.checkVector(d2), maxGoodCount = 0;
@@ -247,14 +249,15 @@ namespace five_point_opencv
 				return true;
 			}
 			
-			// JHW: Updating number of iterations only once to more accurately compare timing results with LMEDS.
-			const double outlierRatio = 0.45;
-			niters = RANSACUpdateNumIters(confidence, outlierRatio, modelPoints, maxIters);
-			niters = MAX(niters, 3);
+			// JHW: niters is now constant
+			// const double outlierRatio = 0.45;
+			// niters = RANSACUpdateNumIters(confidence, outlierRatio, modelPoints, maxIters);
+			// niters = MAX(niters, 3);
 			int totalModels = 0;			
 
 			for (iter = 0; iter < niters; iter++)
 			{
+				time_cat(common::TimeCatHypoGen);
 				int i, goodCount, nmodels;
 				if (count > modelPoints)
 				{
@@ -278,8 +281,9 @@ namespace five_point_opencv
 				Size modelSize(model.cols, model.rows / nmodels);
 				totalModels += nmodels;
 
+				time_cat(common::TimeCatHypoScoring);
 				for (i = 0; i < nmodels; i++)
-				{
+				{					
 					Mat model_i = model.rowRange(i*modelSize.height, (i + 1)*modelSize.height);
 					goodCount = findInliers(m1, m2, model_i, err, mask, threshold);
 
@@ -331,15 +335,15 @@ namespace five_point_opencv
 		bool checkPartialSubsets;
 		double threshold;
 		double confidence;
-		int maxIters;
+		int niters;
 	};
 
 	class LMeDSPointSetRegistrator : public RANSACPointSetRegistrator
 	{
 	public:
 		LMeDSPointSetRegistrator(const Ptr<PointSetRegistrator::Callback>& _cb = Ptr<PointSetRegistrator::Callback>(),
-			int _modelPoints = 0, double _confidence = 0.99, int _maxIters = 1000)
-			: RANSACPointSetRegistrator(_cb, _modelPoints, 0, _confidence, _maxIters) {}
+			int _modelPoints = 0, double _confidence = 0.99, int _niters = 100)
+			: RANSACPointSetRegistrator(_cb, _modelPoints, 0, _confidence, _niters) {}
 
 		bool run(InputArray _m1, InputArray _m2, OutputArray _model, OutputArray _mask) const
 		{
@@ -378,10 +382,11 @@ namespace five_point_opencv
 				return true;
 			}
 
+			// JHW:  niters is now constant
 			// JHW: Interesting. So we assume that the outlier ratio is always 45 for LMEDS. The ratio is only
 			// updated once.
-			int iter, niters = RANSACUpdateNumIters(confidence, outlierRatio, modelPoints, maxIters);
-			niters = MAX(niters, 3);
+			int iter; //, niters = RANSACUpdateNumIters(confidence, outlierRatio, modelPoints, maxIters);
+			//niters = MAX(niters, 3);
 			int totalModels = 0;
 
 			for (iter = 0; iter < niters; iter++)
@@ -691,18 +696,18 @@ namespace five_point_opencv
 
 	Ptr<PointSetRegistrator> createRANSACPointSetRegistrator(const Ptr<PointSetRegistrator::Callback>& _cb,
 		int _modelPoints, double _threshold,
-		double _confidence, int _maxIters)
+		double _confidence, int _niters)
 	{
 		return Ptr<PointSetRegistrator>(
-			new RANSACPointSetRegistrator(_cb, _modelPoints, _threshold, _confidence, _maxIters));
+			new RANSACPointSetRegistrator(_cb, _modelPoints, _threshold, _confidence, _niters));
 	}
 
 
 	Ptr<PointSetRegistrator> createLMeDSPointSetRegistrator(const Ptr<PointSetRegistrator::Callback>& _cb,
-		int _modelPoints, double _confidence, int _maxIters)
+		int _modelPoints, double _confidence, int _niters)
 	{
 		return Ptr<PointSetRegistrator>(
-			new LMeDSPointSetRegistrator(_cb, _modelPoints, _confidence, _maxIters));
+			new LMeDSPointSetRegistrator(_cb, _modelPoints, _confidence, _niters));
 	}
 
 

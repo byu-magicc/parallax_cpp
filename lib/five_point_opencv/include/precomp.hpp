@@ -39,9 +39,10 @@
 // the use of this software, even if advised of the possibility of such damage.
 //
 //M*/
-#ifndef __OPENCV_PRECOMP__H__
-#define __OPENCV_PRECOMP__H__
+#ifndef __CUSTOM_PRECOMP__H__
+#define __CUSTOM_PRECOMP__H__
 
+#include "precomp.hpp"
 #include "opencv2/calib3d.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/features2d.hpp"

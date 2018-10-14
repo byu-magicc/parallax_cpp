@@ -59,7 +59,6 @@ void run_test(string video_yaml, string solver_yaml, string five_point_directory
 	solver->init_optimizer_log(result_directory, false);
 	solver->init_comparison_log(result_directory, five_point_directory);
 
-
 	// Loop for all points
 	int frames = video_data.pts1.size();
 	common::progress(0, frames);
@@ -69,7 +68,6 @@ void run_test(string video_yaml, string solver_yaml, string five_point_directory
 		scan_t pts1, pts2;
 		undistort_points(video_data.pts1[frame], pts1, video_data.camera_matrix);
 		undistort_points(video_data.pts2[frame], pts2, video_data.camera_matrix);
-		solver->RT_truth = video_data.RT[frame];
 
 		// Calculate essential matrix
 		Matrix3d R0 = Matrix3d::Identity();

@@ -32,8 +32,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "precomp.hpp"
 #include "calib3d.hpp"
 #include "common.h"
+#include <iostream>
 
 using namespace cv;
+using namespace std;
+using namespace Eigen;
 
 int five_point_opencv::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model)
 {
@@ -447,8 +450,9 @@ float five_point_opencv::EMEstimatorCallback::computeCost(cv::InputArray _m1, cv
 
 // Input should be a vector of n 2D points or a Nx2 matrix
 cv::Mat five_point_opencv::findEssentialMat(InputArray _points1, InputArray _points2, InputArray _cameraMatrix,
-	int method, double prob, double threshold, OutputArray _mask)
+	int method, double prob, double threshold, int niters, OutputArray _mask)
 {
+	time_cat(common::TimeCatHypoGen);
 	Mat points1, points2, cameraMatrix;
 	_points1.getMat().convertTo(points1, CV_64F);
 	_points2.getMat().convertTo(points2, CV_64F);
@@ -485,12 +489,12 @@ cv::Mat five_point_opencv::findEssentialMat(InputArray _points1, InputArray _poi
 	Mat E;
 	// JHW - It appears that RANSAC/LMEDS is the only choice for the EssentialMat
 	if (method == RANSAC)
-		createRANSACPointSetRegistrator(makePtr<EMEstimatorCallback>(), 5, threshold, prob)->run(points1, points2, E, _mask);
+		createRANSACPointSetRegistrator(makePtr<EMEstimatorCallback>(), 5, threshold, prob, niters)->run(points1, points2, E, _mask);
 	else
 		// JHW: As you can see, the threshold is completely ignored for the LMeDS algorithm. However, it does calculate it's own threshold
 		// based on the median error to fill in the mask array. Of course, this isn't very useful for motion detection because we have
 		// no control over it.
-		createLMeDSPointSetRegistrator(makePtr<EMEstimatorCallback>(), 5, prob)->run(points1, points2, E, _mask);
+		createLMeDSPointSetRegistrator(makePtr<EMEstimatorCallback>(), 5, prob, niters)->run(points1, points2, E, _mask);
 
 	return E;
 }
@@ -535,4 +539,80 @@ cv::Mat five_point_opencv::findEssentialMatPreempt(cv::InputArray _points1, cv::
 	Mat E;
 	createPreemtiveRANSACPointSetRegistrator(makePtr<EMEstimatorCallback>(), 5, threshold, n_iters, blocksize)->run(points1, points2, E, _mask);
 	return E;
+}
+
+
+five_point_opencv::FivePointSolver::FivePointSolver(string yaml_filename, YAML::Node node) : common::ESolver(yaml_filename, node), 
+	log_comparison(false)
+{
+	string consensus_alg_str;
+	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
+	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
+	if(consensus_alg == consensus_RANSAC)
+		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
+}
+
+void five_point_opencv::FivePointSolver::generate_hypotheses(const common::scan_t& subset1, const common::scan_t& subset2, const common::EHypothesis& initial_guess, vector<common::EHypothesis>& hypotheses)
+{
+	// Convert to Point2f
+	int n_pts = subset1.size();
+	if(n_pts != 5)
+	{
+		printf("The five-point algorithm doesn't accept %d points\n", n_pts);
+		exit(EXIT_FAILURE);
+	}	
+	vector<cv::Point2f> subset1_cv = vector<cv::Point2f>(n_pts);
+	vector<cv::Point2f> subset2_cv = vector<cv::Point2f>(n_pts);
+	for (int i = 0; i < n_pts; i++)
+	{
+		subset1_cv[i].x = subset1[i](0);
+		subset1_cv[i].y = subset1[i](1);
+		subset2_cv[i].x = subset2[i](0);
+		subset2_cv[i].y = subset2[i](1);
+	}
+
+	// Calc (multiple) hypotheses using 5-point algorithm
+	cv::Mat E_cv;
+	fivepoint(subset1_cv, subset2_cv, E_cv);
+	if(E_cv.rows % 3 != 0 || (E_cv.rows > 0 && E_cv.cols != 3))
+	{
+		printf("Invalid essential matrix size: [%d x %d]\n", E_cv.rows, E_cv.cols);
+		exit(EXIT_FAILURE);
+	}
+	int n_hypotheses = E_cv.rows / 3;
+	hypotheses.resize(n_hypotheses);
+	for(int i = 0; i < n_hypotheses; i++)
+	{
+		Map<Matrix<double, 3, 3, RowMajor>> E_i = Map<Matrix<double, 3, 3, RowMajor>>(&E_cv.at<double>(i * 3, 0));
+		hypotheses[i] = common::EHypothesis(E_i);
+	}
+}
+
+void five_point_opencv::FivePointSolver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Matrix4d& RT_truth, common::EHypothesis& result)
+{
+	// Convert to Point2f
+	int n_pts = pts1.size();
+	vector<cv::Point2f> pts1_cv = vector<cv::Point2f>(n_pts);
+	vector<cv::Point2f> pts2_cv = vector<cv::Point2f>(n_pts);
+	for (int i = 0; i < n_pts; i++)
+	{
+		pts1_cv[i].x = pts1[i](0);
+		pts1_cv[i].y = pts1[i](1);
+		pts2_cv[i].x = pts2[i](0);
+		pts2_cv[i].y = pts2[i](1);
+	}
+	int method = 0;
+	if (consensus_alg == consensus_LMEDS)
+		method = CV_LMEDS;
+	else if (consensus_alg == consensus_RANSAC)
+		method = CV_RANSAC;
+	double confidence = .999;
+	vector<uchar> mask;
+	cv::Mat E_cv = five_point_opencv::findEssentialMat(pts1_cv, pts2_cv, cv::Mat::eye(3, 3, CV_64F), method, confidence, RANSAC_threshold, n_subsets, mask);
+	Map<Matrix<double, 3, 3, RowMajor>> E = Map<Matrix<double, 3, 3, RowMajor>>(E_cv.ptr<double>());
+	result = common::EHypothesis(E);
+	if(E_cv.rows != 3)
+	{
+		cout << "Warning: " << E_cv.rows / 3 << " essential matrices generated " << endl;
+	}
 }

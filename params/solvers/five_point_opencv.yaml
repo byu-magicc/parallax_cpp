@@ -1,0 +1,4 @@
+# opencv five_point algorithm
+library: five_point_opencv
+n_subsets: 100
+consensus_alg: LMEDS

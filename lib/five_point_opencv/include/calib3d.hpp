@@ -1,9 +1,12 @@
-#ifndef __OPENCV_CALIB3D__HPP__
-#define __OPENCV_CALIB3D__HPP__
+#ifndef __CUSTOM_CALIB3D__HPP__
+#define __CUSTOM_CALIB3D__HPP__
 
+#include "precomp.hpp"
 #include "opencv2/core.hpp"
 #include "opencv2/features2d.hpp"
 #include "opencv2/core/affine.hpp"
+#include "common.h"
+#include "solvers.h"
 
 namespace five_point_opencv
 {
@@ -91,10 +94,41 @@ namespace five_point_opencv
 	CV_EXPORTS_W cv::Mat findEssentialMat(cv::InputArray points1, cv::InputArray points2,
 		cv::InputArray cameraMatrix, int method = RANSAC,
 		double prob = 0.999, double threshold = 1.0,
-		cv::OutputArray mask = cv::noArray());
+		int niters = 100, cv::OutputArray mask = cv::noArray());
 
 	CV_EXPORTS_W cv::Mat findEssentialMatPreempt(cv::InputArray points1, cv::InputArray points2, cv::InputArray cameraMatrix,
 		float threshold = 1.0, int n_iters = 200, int blocksize = 30, cv::OutputArray mask = cv::noArray());
+
+	enum_str(consensus_t, consensus_t_str, consensus_RANSAC, consensus_LMEDS)
+
+	class FivePointSolver : common::ESolver
+	{
+	public:
+		FivePointSolver(std::string yaml_filename, YAML::Node node);
+
+	public:
+		void generate_hypotheses(const common::scan_t& subset1, const common::scan_t& subset2, const common::EHypothesis& initial_guess, std::vector<common::EHypothesis>& hypotheses);
+
+		void find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Eigen::Matrix4d& RT_truth, common::EHypothesis& result);
+
+		void init_comparison_log(std::string result_directory);
+
+		static FivePointSolver* getInstance();
+
+	public:
+		consensus_t consensus_alg;
+		int n_subsets;
+		double RANSAC_threshold;
+		Eigen::Matrix4d RT_truth;
+
+	private:
+		bool log_comparison;
+		std::ofstream five_point_log_file;
+		static FivePointSolver* instance;
+	};
+
+
+	
 } // cv
 
 #ifndef DISABLE_OPENCV_24_COMPATIBILITY

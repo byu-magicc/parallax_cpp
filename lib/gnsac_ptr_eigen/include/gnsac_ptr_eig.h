@@ -157,7 +157,6 @@ public:
 	double exit_tolerance;
 	double RANSAC_threshold;
 	double LM_lambda;
-	Eigen::Matrix4d RT_truth;
 	GNHypothesis previous_result;
 
 private:
@@ -169,6 +168,7 @@ private:
 	std::ofstream comparison_tr_log_file;
 	std::ofstream comparison_gn_log_file;
 	std::ifstream five_point_log_file;
+	Eigen::Matrix4d RT_truth;
 };
 
 }

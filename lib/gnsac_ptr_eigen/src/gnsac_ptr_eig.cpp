@@ -998,9 +998,10 @@ void GNSAC_Solver::refine_hypothesis(const common::scan_t& pts1, const common::s
 	result = common::EHypothesis(model.E_map, model.R_map, model.t_map);
 }
 
-void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Matrix4d& RT_truth, common::EHypothesis& result)
+void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Matrix4d& RT_truth_, common::EHypothesis& result)
 {
 	// If comparing to 5-point algorithm, read in one point as a checksum and make sure number of subsets is the same
+	RT_truth = RT_truth_;
 	if(log_comparison)
 	{
 		Vector2d point_checksum;

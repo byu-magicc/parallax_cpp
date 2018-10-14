@@ -21,6 +21,7 @@ public:
 	Eigen::Matrix3d R;
 	Eigen::Vector3d t;
 	double cost;
+	bool has_RT;
 };
 
 // Note that the "vitual" keyword is important, otherwise the parent class method 

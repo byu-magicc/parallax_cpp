@@ -183,8 +183,6 @@ namespace five_point_opencv
 
 		void find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Eigen::Matrix4d& RT_truth, common::EHypothesis& result);
 
-		void init_comparison_log(std::string result_directory);
-
 		static FivePointSolver* getInstance();
 
 	public:
@@ -192,8 +190,6 @@ namespace five_point_opencv
 		int n_subsets;
 		double RANSAC_threshold;
 		Eigen::Matrix4d RT_truth;
-		bool log_comparison;
-		std::ofstream five_point_log_file;
 
 	private:
 		static FivePointSolver* instance;

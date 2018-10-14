@@ -802,7 +802,6 @@ void GNSAC_Solver::init_comparison_log(string result_directory, string five_poin
 	accuracy_log_file.open(fs::path(result_directory) / "5-point_accuracy.bin");
 	comparison_tr_log_file.open(fs::path(result_directory) / "5-point_comparison_tr.bin");
 	comparison_gn_log_file.open(fs::path(result_directory) / "5-point_comparison_gn.bin");
-	five_point_log_file.open(fs::path(five_point_directory) / "5-point_results.bin");
 }
 
 int GNSAC_Solver::optimize(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2)
@@ -1048,6 +1047,7 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 	result.R = bestModel.R_map;
 	result.t = bestModel.t_map;
 	result.E = bestModel.E_map;
+	result.has_RT = true;
 	
 	// Save best hypothesis for next time
 	copyHypothesis(bestModel, previous_result);

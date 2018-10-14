@@ -14,17 +14,17 @@
 using namespace std;
 using namespace Eigen;
 
-common::EHypothesis::EHypothesis() : cost(0), E(Matrix3d::Zero()), R(Matrix3d::Zero()), t(Vector3d::Zero())
+common::EHypothesis::EHypothesis() : cost(0), E(Matrix3d::Zero()), R(Matrix3d::Zero()), t(Vector3d::Zero()), has_RT(false)
 {
 	
 }
 
-common::EHypothesis::EHypothesis(Matrix3d E_) : cost(0), E(E_), R(Matrix3d::Zero()), t(Vector3d::Zero())
+common::EHypothesis::EHypothesis(Matrix3d E_) : cost(0), E(E_), R(Matrix3d::Zero()), t(Vector3d::Zero()), has_RT(false)
 {
 	
 }
 
-common::EHypothesis::EHypothesis(Matrix3d E_, Matrix3d R_, Vector3d t_) : cost(0), E(E_), R(R_), t(t_)
+common::EHypothesis::EHypothesis(Matrix3d E_, Matrix3d R_, Vector3d t_) : cost(0), E(E_), R(R_), t(t_), has_RT(true)
 {
 	
 }

@@ -167,7 +167,6 @@ private:
 	std::ofstream accuracy_log_file;
 	std::ofstream comparison_tr_log_file;
 	std::ofstream comparison_gn_log_file;
-	std::ifstream five_point_log_file;
 	Eigen::Matrix4d RT_truth;
 };
 

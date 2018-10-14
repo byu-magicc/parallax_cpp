@@ -548,8 +548,7 @@ cv::Mat five_point_opencv::findEssentialMatPreempt(cv::InputArray _points1, cv::
 
 five_point_opencv::FivePointSolver* five_point_opencv::FivePointSolver::instance = NULL;
 
-five_point_opencv::FivePointSolver::FivePointSolver(string yaml_filename, YAML::Node node, string result_directory) : common::ESolver(yaml_filename, node, result_directory), 
-	log_comparison(false)
+five_point_opencv::FivePointSolver::FivePointSolver(string yaml_filename, YAML::Node node, string result_directory) : common::ESolver(yaml_filename, node, result_directory)
 {
 	string consensus_alg_str;
 	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
@@ -557,11 +556,6 @@ five_point_opencv::FivePointSolver::FivePointSolver(string yaml_filename, YAML::
 	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
 	if(consensus_alg == consensus_RANSAC)
 		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
-
-	common::get_yaml_node("log_comparison", yaml_filename, node, log_comparison);
-	cout << "log_comparison " << log_comparison << endl;
-	if(log_comparison)
-		init_comparison_log(result_directory);
 	instance = this;
 }
 
@@ -628,11 +622,6 @@ void five_point_opencv::FivePointSolver::find_best_hypothesis(const common::scan
 	{
 		cout << "Warning: " << E_cv.rows / 3 << " essential matrices generated " << endl;
 	}
-}
-
-void five_point_opencv::FivePointSolver::init_comparison_log(string result_directory)
-{
-	five_point_log_file.open(fs::path(result_directory) / "5-point_results.bin");
 }
 
 five_point_opencv::FivePointSolver* five_point_opencv::FivePointSolver::getInstance()

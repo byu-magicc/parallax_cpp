@@ -41,12 +41,13 @@
 //
 //M*/
 
-#include "precomp.hpp"
+#include "calib3d.hpp"
 #include "common.h"
 
 #include <algorithm>
 #include <iterator>
 #include <limits>
+#include <iostream>
 
 using namespace cv;
 using namespace std;
@@ -113,9 +114,12 @@ namespace five_point_opencv
 	class RANSACPointSetRegistrator : public PointSetRegistrator
 	{
 	public:
+		FivePointSolver* solver;
+
 		RANSACPointSetRegistrator(const Ptr<PointSetRegistrator::Callback>& _cb = Ptr<PointSetRegistrator::Callback>(),
+			FivePointSolver* _solver = NULL,
 			int _modelPoints = 0, double _threshold = 0, double _confidence = 0.99, int _niters = 100)
-			: cb(_cb), modelPoints(_modelPoints), threshold(_threshold), confidence(_confidence), niters(_niters)
+			: cb(_cb), modelPoints(_modelPoints), threshold(_threshold), confidence(_confidence), niters(_niters), solver(_solver)
 		{
 			checkPartialSubsets = false;
 		}
@@ -214,6 +218,14 @@ namespace five_point_opencv
 			int d2 = m2.channels() > 1 ? m2.channels() : m2.cols;
 			int count = m1.checkVector(d1), count2 = m2.checkVector(d2), maxGoodCount = 0;
 
+			// write checksum
+			if(solver->log_comparison)
+			{
+				CV_Assert(m1.type() == CV_64FC2);
+				solver->five_point_log_file.write((char*)m1.ptr<double>(), sizeof(double) * 2);
+				solver->five_point_log_file.write((char*)&niters, sizeof(int));
+			}
+
 			// JHW: It looks like they are always initializing the random number generator with the same seed, for repeatability.
 			// This means multiple runs with the same data points will give the exact same answer. The only way to get a different
 			// answer is to randomize the input points.
@@ -269,12 +281,19 @@ namespace five_point_opencv
 						break;
 					}
 				}
+				if(solver->log_comparison)
+				{
+					solver->five_point_log_file.write((char*)ms1.ptr<double>(), sizeof(double) * 5 * 2);
+					solver->five_point_log_file.write((char*)ms2.ptr<double>(), sizeof(double) * 5 * 2);
+				}
 
 				// JHW: It appears that some subsets generate more than one hypothesis. The 5-point algorithm
 				// falls in this category. When this occurs, every model that is generated will be
 				// individually scored.
 				// Futhermore, there is no preemptive RANSAC scoring.
 				nmodels = cb->runKernel(ms1, ms2, model);
+				if(solver->log_comparison)
+					solver->five_point_log_file.write((char*)&nmodels, sizeof(int));
 				if (nmodels <= 0)
 					continue;
 				CV_Assert(model.rows % nmodels == 0);
@@ -285,6 +304,8 @@ namespace five_point_opencv
 				for (i = 0; i < nmodels; i++)
 				{					
 					Mat model_i = model.rowRange(i*modelSize.height, (i + 1)*modelSize.height);
+					if(solver->log_comparison)
+						solver->five_point_log_file.write((char*)model_i.ptr<double>(), sizeof(double) * 3 * 3);
 					goodCount = findInliers(m1, m2, model_i, err, mask, threshold);
 
 					// JHW - If for some odd reason one or more of the minimum subset points from which the model was
@@ -341,9 +362,12 @@ namespace five_point_opencv
 	class LMeDSPointSetRegistrator : public RANSACPointSetRegistrator
 	{
 	public:
+		FivePointSolver* solver;
+
 		LMeDSPointSetRegistrator(const Ptr<PointSetRegistrator::Callback>& _cb = Ptr<PointSetRegistrator::Callback>(),
+			FivePointSolver* _solver = NULL,
 			int _modelPoints = 0, double _confidence = 0.99, int _niters = 100)
-			: RANSACPointSetRegistrator(_cb, _modelPoints, 0, _confidence, _niters) {}
+			: RANSACPointSetRegistrator(_cb, _solver, _modelPoints, 0, _confidence, _niters), solver(_solver) {}
 
 		bool run(InputArray _m1, InputArray _m2, OutputArray _model, OutputArray _mask) const
 		{
@@ -356,6 +380,14 @@ namespace five_point_opencv
 			int d2 = m2.channels() > 1 ? m2.channels() : m2.cols;
 			int count = m1.checkVector(d1), count2 = m2.checkVector(d2);
 			double minMedian = DBL_MAX, sigma;
+
+			// write checksum
+			if(solver->log_comparison)
+			{
+				CV_Assert(m1.type() == CV_64FC2);
+				solver->five_point_log_file.write((char*)m1.ptr<double>(), sizeof(double) * 2);
+				solver->five_point_log_file.write((char*)&niters, sizeof(int));
+			}			
 
 			RNG rng((uint64)-1);
 
@@ -403,8 +435,15 @@ namespace five_point_opencv
 						break;
 					}
 				}
+				if(solver->log_comparison)
+				{
+					solver->five_point_log_file.write((char*)ms1.ptr<double>(), sizeof(double) * 5 * 2);
+					solver->five_point_log_file.write((char*)ms2.ptr<double>(), sizeof(double) * 5 * 2);
+				}				
 
 				nmodels = cb->runKernel(ms1, ms2, model);
+				if(solver->log_comparison)
+					solver->five_point_log_file.write((char*)&nmodels, sizeof(int));
 				if (nmodels <= 0)
 					continue;
 
@@ -414,6 +453,8 @@ namespace five_point_opencv
 				for (i = 0; i < nmodels; i++)
 				{
 					Mat model_i = model.rowRange(i*modelSize.height, (i + 1)*modelSize.height);
+					if(solver->log_comparison)
+						solver->five_point_log_file.write((char*)model_i.ptr<double>(), sizeof(double) * 3 * 3);
 					cb->computeError(m1, m2, model_i, err);
 					if (err.depth() != CV_32F)
 						err.convertTo(errf, CV_32F);
@@ -468,10 +509,12 @@ namespace five_point_opencv
 		bool checkPartialSubsets;
 		double threshold;
 		int blocksize;
+		FivePointSolver* solver;
 
 		PreemtiveRANSACPointSetRegistrator(const Ptr<PointSetRegistrator::Callback>& _cb = Ptr<PointSetRegistrator::Callback>(),
+			FivePointSolver* _solver = NULL,
 			int _modelPoints = 0, double _threshold = 0, int _niters = 100, int _blocksize = 30)
-			: cb(_cb), modelPoints(_modelPoints), threshold(_threshold), niters(_niters), blocksize(_blocksize)
+			: cb(_cb), modelPoints(_modelPoints), threshold(_threshold), niters(_niters), blocksize(_blocksize), solver(_solver)
 		{
 			checkPartialSubsets = false;
 		}
@@ -695,27 +738,30 @@ namespace five_point_opencv
 	};
 
 	Ptr<PointSetRegistrator> createRANSACPointSetRegistrator(const Ptr<PointSetRegistrator::Callback>& _cb,
+		FivePointSolver* solver,
 		int _modelPoints, double _threshold,
 		double _confidence, int _niters)
 	{
 		return Ptr<PointSetRegistrator>(
-			new RANSACPointSetRegistrator(_cb, _modelPoints, _threshold, _confidence, _niters));
+			new RANSACPointSetRegistrator(_cb, solver, _modelPoints, _threshold, _confidence, _niters));
 	}
 
 
 	Ptr<PointSetRegistrator> createLMeDSPointSetRegistrator(const Ptr<PointSetRegistrator::Callback>& _cb,
+		FivePointSolver* solver,
 		int _modelPoints, double _confidence, int _niters)
 	{
 		return Ptr<PointSetRegistrator>(
-			new LMeDSPointSetRegistrator(_cb, _modelPoints, _confidence, _niters));
+			new LMeDSPointSetRegistrator(_cb, solver, _modelPoints, _confidence, _niters));
 	}
 
 
 	Ptr<PointSetRegistrator> createPreemtiveRANSACPointSetRegistrator(const Ptr<PointSetRegistrator::Callback>& _cb,
+		FivePointSolver* solver,
 		int _modelPoints, double _threshold, int _niters, int _blocksize)
 	{
 		return Ptr<PointSetRegistrator>(
-			new PreemtiveRANSACPointSetRegistrator(_cb, _modelPoints, _threshold, _niters, _blocksize));
+			new PreemtiveRANSACPointSetRegistrator(_cb, solver, _modelPoints, _threshold, _niters, _blocksize));
 	}
 
 	void swapElements(Mat& m1, Mat& m2, int i, int j)

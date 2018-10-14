@@ -40,7 +40,7 @@
 //
 //M*/
 
-#include "precomp.hpp"
+#include "calib3d.hpp"
 #include <stdio.h>
 
 /*

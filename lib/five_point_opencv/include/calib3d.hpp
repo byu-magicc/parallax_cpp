@@ -1,15 +1,87 @@
 #ifndef __CUSTOM_CALIB3D__HPP__
 #define __CUSTOM_CALIB3D__HPP__
 
-#include "precomp.hpp"
 #include "opencv2/core.hpp"
 #include "opencv2/features2d.hpp"
 #include "opencv2/core/affine.hpp"
+#include "opencv2/calib3d.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/features2d.hpp"
+#include "opencv2/core/utility.hpp"
+#include "opencv2/core/ocl.hpp"
 #include "common.h"
 #include "solvers.h"
 
 namespace five_point_opencv
 {
+	class CV_EXPORTS LMSolver : public cv::Algorithm
+	{
+	public:
+		class CV_EXPORTS Callback
+		{
+		public:
+			virtual ~Callback() {}
+			virtual bool compute(cv::InputArray param, cv::OutputArray err, cv::OutputArray J) const = 0;
+		};
+
+		virtual void setCallback(const cv::Ptr<LMSolver::Callback>& cb) = 0;
+		virtual int run(cv::InputOutputArray _param0) const = 0;
+	};
+
+	CV_EXPORTS cv::Ptr<LMSolver> createLMSolver(const cv::Ptr<LMSolver::Callback>& cb, int maxIters);
+
+	class CV_EXPORTS PointSetRegistrator : public cv::Algorithm
+	{
+	public:
+		class CV_EXPORTS Callback
+		{
+		public:
+			virtual ~Callback() {}
+			virtual int runKernel(cv::InputArray m1, cv::InputArray m2, cv::OutputArray model) const = 0;
+			virtual void computeError(cv::InputArray m1, cv::InputArray m2, cv::InputArray model, cv::OutputArray err) const = 0;
+			virtual float computeCost(cv::InputArray m1, cv::InputArray m2, cv::InputArray model, int i1, int i2, float threshold) const = 0;			
+			virtual bool checkSubset(cv::InputArray, cv::InputArray, int) const { return true; }
+		};
+
+		virtual void setCallback(const cv::Ptr<PointSetRegistrator::Callback>& cb) = 0;
+		virtual bool run(cv::InputArray m1, cv::InputArray m2, cv::OutputArray model, cv::OutputArray mask) const = 0;
+	};
+
+	class FivePointSolver;
+
+	CV_EXPORTS cv::Ptr<PointSetRegistrator> createRANSACPointSetRegistrator(const cv::Ptr<PointSetRegistrator::Callback>& cb,
+		FivePointSolver* solver,
+		int modelPoints, double threshold,
+		double confidence = 0.99, int maxIters = 1000);
+
+	CV_EXPORTS cv::Ptr<PointSetRegistrator> createLMeDSPointSetRegistrator(const cv::Ptr<PointSetRegistrator::Callback>& cb,
+		FivePointSolver* solver,
+		int modelPoints, double confidence = 0.99, int maxIters = 1000);
+
+	CV_EXPORTS cv::Ptr<PointSetRegistrator> createPreemtiveRANSACPointSetRegistrator(const cv::Ptr<PointSetRegistrator::Callback>& cb,
+		FivePointSolver* solver,
+		int modelPoints, double threshold, int niters, int blocksize);
+
+	template<typename T> inline int compressElems(T* ptr, const uchar* mask, int mstep, int count)
+	{
+		int i, j;
+		for (i = j = 0; i < count; i++)
+			if (mask[i*mstep])
+			{
+				// JHW: Replace element (unless they have the same index, in which case nothing would happen)
+				if (i > j)
+					ptr[j] = ptr[i];
+				j++;
+			}
+		return j;
+	}
+
+	void swapElements(cv::Mat& m1, cv::Mat& m2, int i, int j);
+
+	// Randomly permute the ordering of pairs of points using the Fisher-Yates shuffle algorithm
+	// This algorithm is O(n) and for a certain number of elements always takes the same time to execute.
+	void shuffleElements(cv::Mat& m1, cv::Mat& m2, cv::RNG& rng);
+
 
 	//! @addtogroup calib3d
 	//! @{
@@ -104,7 +176,7 @@ namespace five_point_opencv
 	class FivePointSolver : common::ESolver
 	{
 	public:
-		FivePointSolver(std::string yaml_filename, YAML::Node node);
+		FivePointSolver(std::string yaml_filename, YAML::Node node, std::string result_directory);
 
 	public:
 		void generate_hypotheses(const common::scan_t& subset1, const common::scan_t& subset2, const common::EHypothesis& initial_guess, std::vector<common::EHypothesis>& hypotheses);
@@ -120,10 +192,10 @@ namespace five_point_opencv
 		int n_subsets;
 		double RANSAC_threshold;
 		Eigen::Matrix4d RT_truth;
-
-	private:
 		bool log_comparison;
 		std::ofstream five_point_log_file;
+
+	private:
 		static FivePointSolver* instance;
 	};
 

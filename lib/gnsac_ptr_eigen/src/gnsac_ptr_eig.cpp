@@ -580,8 +580,7 @@ void copyHypothesis(const GNHypothesis& h1, GNHypothesis& h2)
 	h2.cost = h1.cost;
 }
 
-GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node) : common::ESolver(yaml_filename, node), 
-	log_optimizer(false), log_optimizer_verbose(false), log_comparison(false)
+GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node, string result_directory) : common::ESolver(yaml_filename, node, result_directory)
 {
 	string optimizer_str, optimizer_cost_str, scoring_cost_str, scoring_impl_str, consensus_alg_str, initial_guess_method_str;
 	common::get_yaml_node("optimizer", yaml_filename, node, optimizer_str);
@@ -593,6 +592,11 @@ GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node) : common::ESol
 	common::get_yaml_node("n_subsets", yaml_filename, node, n_subsets);
 	common::get_yaml_node("max_iterations", yaml_filename, node, max_iterations);
 	common::get_yaml_node("exit_tolerance", yaml_filename, node, exit_tolerance);
+	common::get_yaml_node("log_optimizer", yaml_filename, node, log_optimizer);
+	common::get_yaml_node("log_comparison", yaml_filename, node, log_comparison);
+	cout << "log_optimizer " << log_optimizer << endl;
+	cout << "log_comparison " << log_comparison << endl;
+
 	optimizer = (optimizer_t)common::get_enum_from_string(optimizer_t_str, optimizer_str);
 	optimizer_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, optimizer_cost_str);
 	scoring_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, scoring_cost_str);
@@ -603,6 +607,20 @@ GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node) : common::ESol
 		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
 	if(optimizer == optimizer_LM)
 		common::get_yaml_node("LM_lambda", yaml_filename, node, LM_lambda);
+	if(log_optimizer)
+	{
+		common::get_yaml_node("log_optimizer_verbose", yaml_filename, node, log_optimizer_verbose);
+		cout << "log_optimizer_verbose " << log_optimizer_verbose << endl;
+		init_optimizer_log(result_directory);
+	}
+	if(log_comparison)
+	{
+		string comparison_folder;
+		common::get_yaml_node("comparison_folder", yaml_filename, node, comparison_folder);
+		string comp_folder = fs::path(result_directory) / ".." / comparison_folder;
+		cout << "comparison_folder " << comparison_folder << endl << " -> " << comp_folder << endl;
+		init_comparison_log(result_directory, comp_folder);
+	}
 }
 
 double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2, 
@@ -790,12 +808,10 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 	return r_norm;
 }
 
-void GNSAC_Solver::init_optimizer_log(string result_directory, bool verbose)
+void GNSAC_Solver::init_optimizer_log(string result_directory)
 {
 	exit_tolerance = 0; // Data is all garbled if each run has a different number of iterations...
 	optimizer_log_file.open(fs::path(result_directory) / "optimizer.bin");
-	log_optimizer = true;
-	log_optimizer_verbose = verbose;
 }
 
 void GNSAC_Solver::init_comparison_log(string result_directory, string five_point_directory)
@@ -805,7 +821,6 @@ void GNSAC_Solver::init_comparison_log(string result_directory, string five_poin
 	comparison_tr_log_file.open(fs::path(result_directory) / "5-point_comparison_tr.bin");
 	comparison_gn_log_file.open(fs::path(result_directory) / "5-point_comparison_gn.bin");
 	five_point_log_file.open(fs::path(five_point_directory) / "5-point_results.bin");
-	log_comparison = true;
 }
 
 int GNSAC_Solver::optimize(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2)
@@ -1041,7 +1056,7 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 		Matrix3d R_truth = RT_truth.block<3, 3>(0, 0);
 		Vector3d t_truth = RT_truth.block<3, 1>(0, 3);
 		bestModel = GNHypothesis(R_truth, t_truth);
-	}	
+	}
 	
 	// Fully score initial hypothesis
 	time_cat(common::TimeCatHypoScoring);
@@ -1060,9 +1075,9 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 		{
 			// Subset (points from which hypothesis was generated)
 			for(int j = 0; j < 5; j++)
-				five_point_log_file.read((char*)subset1[i].data(), sizeof(double) * 2);
+				five_point_log_file.read((char*)subset1[j].data(), sizeof(double) * 2);
 			for(int j = 0; j < 5; j++)
-				five_point_log_file.read((char*)subset2[i].data(), sizeof(double) * 2);
+				five_point_log_file.read((char*)subset2[j].data(), sizeof(double) * 2);
 		}
 
 		// Initialize GN algorithm with best model and then perform 10 GN iterations

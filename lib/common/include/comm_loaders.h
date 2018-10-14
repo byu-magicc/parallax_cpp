@@ -57,7 +57,7 @@ void load_E(std::string filename, std::vector<std::vector<scan_t>>& subsets, std
 // you usually have to manually specify each template you want to use.
 // See https://stackoverflow.com/questions/115703/storing-c-template-function-definitions-in-a-cpp-file/115735#115735
 template <typename T>
-bool get_yaml_node(const std::string key, const std::string filename, T& val, bool print_error = true)
+bool get_yaml_node1(const std::string key, const std::string filename, T& val, bool print_error = true)
 {
 	YAML::Node node = YAML::LoadFile(filename);
 	if (node[key])

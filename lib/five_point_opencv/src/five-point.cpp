@@ -33,10 +33,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "calib3d.hpp"
 #include "common.h"
 #include <iostream>
+#include <experimental/filesystem>
 
 using namespace cv;
 using namespace std;
 using namespace Eigen;
+namespace fs = std::experimental::filesystem;
 
 int five_point_opencv::fivepoint(cv::InputArray _m1, cv::InputArray _m2, OutputArray _model)
 {
@@ -486,15 +488,17 @@ cv::Mat five_point_opencv::findEssentialMat(InputArray _points1, InputArray _poi
 
 	threshold /= (fx + fy) / 2;
 
+
+	FivePointSolver* instance = FivePointSolver::getInstance();
 	Mat E;
 	// JHW - It appears that RANSAC/LMEDS is the only choice for the EssentialMat
 	if (method == RANSAC)
-		createRANSACPointSetRegistrator(makePtr<EMEstimatorCallback>(), 5, threshold, prob, niters)->run(points1, points2, E, _mask);
+		createRANSACPointSetRegistrator(makePtr<EMEstimatorCallback>(), instance, 5, threshold, prob, niters)->run(points1, points2, E, _mask);
 	else
 		// JHW: As you can see, the threshold is completely ignored for the LMeDS algorithm. However, it does calculate it's own threshold
 		// based on the median error to fill in the mask array. Of course, this isn't very useful for motion detection because we have
 		// no control over it.
-		createLMeDSPointSetRegistrator(makePtr<EMEstimatorCallback>(), 5, prob, niters)->run(points1, points2, E, _mask);
+		createLMeDSPointSetRegistrator(makePtr<EMEstimatorCallback>(), instance, 5, prob, niters)->run(points1, points2, E, _mask);
 
 	return E;
 }
@@ -537,32 +541,41 @@ cv::Mat five_point_opencv::findEssentialMatPreempt(cv::InputArray _points1, cv::
 	threshold /= (fx + fy) / 2;
 
 	Mat E;
-	createPreemtiveRANSACPointSetRegistrator(makePtr<EMEstimatorCallback>(), 5, threshold, n_iters, blocksize)->run(points1, points2, E, _mask);
+	FivePointSolver* instance = FivePointSolver::getInstance();
+	createPreemtiveRANSACPointSetRegistrator(makePtr<EMEstimatorCallback>(), instance, 5, threshold, n_iters, blocksize)->run(points1, points2, E, _mask);
 	return E;
 }
 
+five_point_opencv::FivePointSolver* five_point_opencv::FivePointSolver::instance = NULL;
 
-five_point_opencv::FivePointSolver::FivePointSolver(string yaml_filename, YAML::Node node) : common::ESolver(yaml_filename, node), 
+five_point_opencv::FivePointSolver::FivePointSolver(string yaml_filename, YAML::Node node, string result_directory) : common::ESolver(yaml_filename, node, result_directory), 
 	log_comparison(false)
 {
 	string consensus_alg_str;
 	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
+	common::get_yaml_node("n_subsets", yaml_filename, node, n_subsets);
 	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
 	if(consensus_alg == consensus_RANSAC)
 		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
+
+	common::get_yaml_node("log_comparison", yaml_filename, node, log_comparison);
+	cout << "log_comparison " << log_comparison << endl;
+	if(log_comparison)
+		init_comparison_log(result_directory);
+	instance = this;
 }
 
 void five_point_opencv::FivePointSolver::generate_hypotheses(const common::scan_t& subset1, const common::scan_t& subset2, const common::EHypothesis& initial_guess, vector<common::EHypothesis>& hypotheses)
 {
-	// Convert to Point2f
+	// Convert to Point2d
 	int n_pts = subset1.size();
 	if(n_pts != 5)
 	{
 		printf("The five-point algorithm doesn't accept %d points\n", n_pts);
 		exit(EXIT_FAILURE);
 	}	
-	vector<cv::Point2f> subset1_cv = vector<cv::Point2f>(n_pts);
-	vector<cv::Point2f> subset2_cv = vector<cv::Point2f>(n_pts);
+	vector<cv::Point2d> subset1_cv = vector<cv::Point2d>(n_pts);
+	vector<cv::Point2d> subset2_cv = vector<cv::Point2d>(n_pts);
 	for (int i = 0; i < n_pts; i++)
 	{
 		subset1_cv[i].x = subset1[i](0);
@@ -590,10 +603,10 @@ void five_point_opencv::FivePointSolver::generate_hypotheses(const common::scan_
 
 void five_point_opencv::FivePointSolver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Matrix4d& RT_truth, common::EHypothesis& result)
 {
-	// Convert to Point2f
+	// Convert to Point2d
 	int n_pts = pts1.size();
-	vector<cv::Point2f> pts1_cv = vector<cv::Point2f>(n_pts);
-	vector<cv::Point2f> pts2_cv = vector<cv::Point2f>(n_pts);
+	vector<cv::Point2d> pts1_cv = vector<cv::Point2d>(n_pts);
+	vector<cv::Point2d> pts2_cv = vector<cv::Point2d>(n_pts);
 	for (int i = 0; i < n_pts; i++)
 	{
 		pts1_cv[i].x = pts1[i](0);
@@ -615,4 +628,14 @@ void five_point_opencv::FivePointSolver::find_best_hypothesis(const common::scan
 	{
 		cout << "Warning: " << E_cv.rows / 3 << " essential matrices generated " << endl;
 	}
+}
+
+void five_point_opencv::FivePointSolver::init_comparison_log(string result_directory)
+{
+	five_point_log_file.open(fs::path(result_directory) / "5-point_results.bin");
+}
+
+five_point_opencv::FivePointSolver* five_point_opencv::FivePointSolver::getInstance()
+{
+	return instance;
 }

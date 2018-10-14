@@ -116,7 +116,7 @@ enum_str(initial_guess_t, initial_guess_t_str, init_random, init_previous, init_
 class GNSAC_Solver : common::ESolver
 {
 public:
-	GNSAC_Solver(std::string yaml_filename, YAML::Node node);
+	GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::string result_directory);
 
 public:
 	void generate_hypotheses(const common::scan_t& subset1, const common::scan_t& subset2, const common::EHypothesis& initial_guess, std::vector<common::EHypothesis>& hypotheses);
@@ -126,10 +126,6 @@ public:
 	void find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Eigen::Matrix4d& RT_truth, common::EHypothesis& result);
 
 	double score_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& hypothesis);
-
-	void init_optimizer_log(std::string result_directory, bool verbose);
-
-	void init_comparison_log(std::string result_directory, std::string five_point_directory);
 
 private:
 	double step(const common::scan_t& pts1, const common::scan_t& pts2, 
@@ -144,6 +140,10 @@ private:
 	double score_sampson_ptr(const Eigen::Vector2d& pt1, const Eigen::Vector2d& pt2, const GNHypothesis& hypothesis);
 
 	double score(const common::scan_t& pts1, const common::scan_t& pts2, GNHypothesis hypothesis, double best_cost);
+
+	void init_optimizer_log(std::string result_directory);
+
+	void init_comparison_log(std::string result_directory, std::string five_point_directory);
 
 public:
 	optimizer_t optimizer;

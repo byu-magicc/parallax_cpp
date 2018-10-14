@@ -7,7 +7,6 @@
 #include <time.h>
 #include <map>
 
-#include "precomp.hpp"
 #include "calib3d.hpp"
 #include "preempt.hpp"
 

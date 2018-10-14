@@ -1,12 +1,14 @@
 # GNSAC, pointer eigen version
 library: gnsac_ptr_eigen
 n_subsets: 100
-optimizer: LM
+optimizer: GN
 optimizer_cost: algebraic
 scoring_cost: sampson
 scoring_impl: ptr
 consensus_alg: LMEDS
 max_iterations: 10
 exit_tolerance: 0.000001
-LM_lambda: 0.0001
 initial_guess: previous
+log_optimizer: false
+log_comparison: true
+comparison_folder: "five-point"

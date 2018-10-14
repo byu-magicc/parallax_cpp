@@ -454,6 +454,7 @@ float five_point_opencv::EMEstimatorCallback::computeCost(cv::InputArray _m1, cv
 cv::Mat five_point_opencv::findEssentialMat(InputArray _points1, InputArray _points2, InputArray _cameraMatrix,
 	int method, double prob, double threshold, int niters, OutputArray _mask)
 {
+	time_cat_verbose(common::TimeCatVerboseNone);
 	time_cat(common::TimeCatHypoGen);
 	Mat points1, points2, cameraMatrix;
 	_points1.getMat().convertTo(points1, CV_64F);
@@ -598,6 +599,7 @@ void five_point_opencv::FivePointSolver::generate_hypotheses(const common::scan_
 void five_point_opencv::FivePointSolver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Matrix4d& RT_truth, common::EHypothesis& result)
 {
 	// Convert to Point2d
+	time_cat_verbose(common::TimeCatVerboseNone);
 	int n_pts = pts1.size();
 	vector<cv::Point2d> pts1_cv = vector<cv::Point2d>(n_pts);
 	vector<cv::Point2d> pts2_cv = vector<cv::Point2d>(n_pts);
@@ -622,6 +624,7 @@ void five_point_opencv::FivePointSolver::find_best_hypothesis(const common::scan
 	{
 		cout << "Warning: " << E_cv.rows / 3 << " essential matrices generated " << endl;
 	}
+	time_cat_verbose(common::TimeCatVerboseNone);
 }
 
 five_point_opencv::FivePointSolver* five_point_opencv::FivePointSolver::getInstance()

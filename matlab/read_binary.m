@@ -1,4 +1,7 @@
 function val = read_binary(filename, shape_minor)
+	if exist(filename, 'file') ~= 2
+		error(['file ' filename ' not found']);
+	end
 	file = fopen(filename, 'r');
 	val = fread(file, 'double');
 	n = prod(shape_minor);

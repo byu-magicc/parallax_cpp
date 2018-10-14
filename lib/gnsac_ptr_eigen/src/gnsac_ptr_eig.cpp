@@ -613,6 +613,8 @@ GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node, string result_
 		cout << "log_optimizer_verbose " << log_optimizer_verbose << endl;
 		init_optimizer_log(result_directory);
 	}
+	if(log_comparison)
+		init_comparison_log(result_directory);
 }
 
 double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2, 
@@ -651,6 +653,7 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 	double deltaE[15*3];
 	getE_diff(R, TR, E, deltaE);
 	double LM_attempts = 0;
+	time_cat_verbose(common::TimeCatVerboseMakeJ);
 	for(int i = 0; i < N; i++)
 	{
 		// [r(i), J(i, :)] = residual_diff(R, TR, pts1(:, i), pts2(:, i));
@@ -670,17 +673,20 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 	{
 		// JtJ = J'*J;
 		// Jtr = J'*r;
+		time_cat_verbose(common::TimeCatVerboseSolveMatrix);
 		Matrix<double, 5, 5> JtJ = J_map.transpose()*J_map;
 		Matrix<double, 5, 1> Jtr = J_map.transpose()*r_map;
 		while(true)
 		{		
 			// dx = -(JtJ + lambda*diag(diag(JtJ)))\J'*r;
+			time_cat_verbose(common::TimeCatVerboseSolveMatrix);
 			Matrix<double, 5, 5> JtJ_diag_only = JtJ.diagonal().asDiagonal();
-			//dx_map = -(JtJ + lambda*JtJ_diag_only).fullPivLu().solve(Jtr);
-			dx_map = -(JtJ + lambda*JtJ_diag_only).fullPivHouseholderQr().solve(Jtr);
+			dx_map = -(JtJ + lambda*JtJ_diag_only).fullPivLu().solve(Jtr);
+			//dx_map = -(JtJ + lambda*JtJ_diag_only).fullPivHouseholderQr().solve(Jtr);
 			delta_norm = dx_map.norm();
 	
 			// [R2, TR2] = E_boxplus(R, TR, dx);
+			time_cat_verbose(common::TimeCatVerboseManifoldUpdate);
 			E_boxplus(R, TR, dx, R3, TR3);
 
 			// t = unitvector_getV(TR);
@@ -688,6 +694,7 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 			RT_getE(R3, TR3, t3, E3);
 			
 			// r2 = residual_batch(R2, TR2, pts1, pts2);
+			time_cat_verbose(common::TimeCatVerboseCalcResidual);
 			for(int i = 0; i < N; i++)
 			{
 				if (scoring_cost == cost_single)
@@ -722,12 +729,14 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 	else //if optimizer == optimizer_GN
 	{
 		// dx = -J\r;
-		//dx_map = -J_map.fullPivLu().solve(r_map);
-		dx_map = -J_map.fullPivHouseholderQr().solve(r_map);
+		time_cat_verbose(common::TimeCatVerboseSolveMatrix);
+		dx_map = -J_map.fullPivLu().solve(r_map);
+		//dx_map = -J_map.fullPivHouseholderQr().solve(r_map);
 
 		delta_norm = dx_map.norm();
 		
 		// [R, TR] = E_boxplus(R, TR, dx);
+		time_cat_verbose(common::TimeCatVerboseManifoldUpdate);
 		E_boxplus(R, TR, dx, R2, TR2);
 
 		// t = unitvector_getV(TR);
@@ -735,6 +744,7 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 		RT_getE(R2, TR2, t2, E2);
 
 		// Compute residual
+		time_cat_verbose(common::TimeCatVerboseCalcResidual);
 		for(int i = 0; i < N; i++)
 		{
 			if (scoring_cost == cost_single)
@@ -744,6 +754,7 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 		}
 		r_norm = r2_map.norm();		
 	}
+	time_cat_verbose(common::TimeCatVerboseNone);
 	
 	// Logging (optional)
 	if(log_optimizer && (last_iteration || log_optimizer_verbose))
@@ -796,7 +807,7 @@ void GNSAC_Solver::init_optimizer_log(string result_directory)
 	optimizer_log_file.open(fs::path(result_directory) / "optimizer.bin");
 }
 
-void GNSAC_Solver::init_comparison_log(string result_directory, string five_point_directory)
+void GNSAC_Solver::init_comparison_log(string result_directory)
 {
 	exit_tolerance = 0;
 	accuracy_log_file.open(fs::path(result_directory) / "5-point_accuracy.bin");
@@ -806,6 +817,7 @@ void GNSAC_Solver::init_comparison_log(string result_directory, string five_poin
 
 int GNSAC_Solver::optimize(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2)
 {
+	time_cat_verbose(common::TimeCatVerboseSetup);
 	int iters;
 	double residual_norm = 9999;
 	double lambda = LM_lambda;
@@ -997,6 +1009,7 @@ void GNSAC_Solver::refine_hypothesis(const common::scan_t& pts1, const common::s
 void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Matrix4d& RT_truth_, common::EHypothesis& result)
 {
 	// If comparing to 5-point algorithm, read in one point as a checksum and make sure number of subsets is the same
+	time_cat_verbose(common::TimeCatVerboseNone);
 	RT_truth = RT_truth_;
 
 	// Init
@@ -1036,6 +1049,7 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 		// Initialize GN algorithm with best model and then perform 10 GN iterations
 		copyHypothesis(bestModel, model);
 		optimize(subset1, subset2, model, model);
+		time_cat_verbose(common::TimeCatVerboseNone);
 
 		// Partially score hypothesis (terminate early if cost exceeds lowest cost)
 		time_cat(common::TimeCatHypoScoring);

@@ -250,6 +250,7 @@ namespace five_point_opencv
 			{
 				if (cb->runKernel(m1, m2, bestModel) <= 0)
 					return false;
+				time_cat_verbose(common::TimeCatVerboseNone);
 				bestModel.copyTo(_model);
 				bestMask.setTo(Scalar::all(1));
 				return true;
@@ -281,6 +282,7 @@ namespace five_point_opencv
 				// individually scored.
 				// Futhermore, there is no preemptive RANSAC scoring.
 				nmodels = cb->runKernel(ms1, ms2, model);
+				time_cat_verbose(common::TimeCatVerboseNone);
 				if (nmodels <= 0)
 					continue;
 				CV_Assert(model.rows % nmodels == 0);
@@ -388,6 +390,7 @@ namespace five_point_opencv
 			{
 				if (cb->runKernel(m1, m2, bestModel) <= 0)
 					return false;
+				time_cat_verbose(common::TimeCatVerboseNone);
 				bestModel.copyTo(_model);
 				mask.setTo(Scalar::all(1));
 				return true;
@@ -417,6 +420,7 @@ namespace five_point_opencv
 				}
 
 				nmodels = cb->runKernel(ms1, ms2, model);
+				time_cat_verbose(common::TimeCatVerboseNone);
 				if (nmodels <= 0)
 					continue;
 
@@ -612,6 +616,7 @@ namespace five_point_opencv
 			{
 				if (cb->runKernel(m1, m2, bestModel) <= 0)
 					return false;
+				time_cat_verbose(common::TimeCatVerboseNone);
 				bestModel.copyTo(_model);
 				bestMask.setTo(Scalar::all(1));
 				return true;
@@ -636,6 +641,7 @@ namespace five_point_opencv
 				// will choose between the different hypotheses using a sixth point.
 				// However, we still allow more than one hypothesis to be returned.
 				int nmodels = cb->runKernel(ms1, ms2, model);
+				time_cat_verbose(common::TimeCatVerboseNone);
 				if (nmodels <= 0)
 					continue;
 				

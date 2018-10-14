@@ -1,8 +1,8 @@
-function [result_GN, result_5P] = compare_to_5P(method)
+function [result_GN, result_5P] = compare_to_5P(video, method)
 	%% Load data
-	A  = read_binary(['../logs/' method '/5-point_accuracy.bin'],  11);
-	C_TR = read_binary(['../logs/' method '/5-point_comparison_tr.bin'], [2, 11]);
-	C_GN = read_binary(['../logs/' method '/5-point_comparison_gn.bin'], [2, 10]);
+	A  = read_binary(['../logs/' video '/' method '/5-point_accuracy.bin'],  11);
+	C_TR = read_binary(['../logs/' video '/' method '/5-point_comparison_tr.bin'], [2, 11]);
+	C_GN = read_binary(['../logs/' video '/' method '/5-point_comparison_gn.bin'], [2, 10]);
 	C_TR(C_TR == -1) = nan;
 	C_GN(C_GN == -1) = nan;
 	A(A == -1) = nan;

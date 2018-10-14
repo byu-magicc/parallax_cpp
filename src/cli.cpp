@@ -20,7 +20,7 @@ using namespace Eigen;
 using namespace common;
 namespace fs = std::experimental::filesystem;
 
-void run_test(string video_str, string solver_str)
+void run_test(string video_str, string solver_str, int frames)
 {
 	// Create folder for results
 	string result_directory = fs::path("../logs") / video_str / solver_str;
@@ -56,13 +56,14 @@ void run_test(string video_str, string solver_str)
 	std::normal_distribution<double> dist(0.0, 1.0);
 
 	// Open log files
-	std::ofstream accuracy_log_file;
-	std::ofstream timing_log_file;
+	std::ofstream accuracy_log_file, timing_log_file, timing_verbose_log_file;
 	accuracy_log_file.open(fs::path(result_directory) / "accuracy.bin");
 	timing_log_file.open(fs::path(result_directory) / "timing.bin");
+	timing_verbose_log_file.open(fs::path(result_directory) / "timing_verbose.bin");
 
 	// Loop for all points
-	int frames = video_data.pts1.size();
+	if (frames == -1)
+		frames = video_data.pts1.size();
 	common::progress(0, frames);
 	for (int frame = 0; frame < frames; frame++)
 	{
@@ -82,6 +83,8 @@ void run_test(string video_str, string solver_str)
 		timeMeasurement time_E = toc("FindE", 1, 2, false);
 		timing_log_file.write((char*)get_cat_times(), sizeof(double) * TIME_CATS_COUNT);
 		timing_log_file.write((char*)&time_E.actualTime, sizeof(double));
+		timing_verbose_log_file.write((char*)get_cat_times_verbose(), sizeof(double) * TIME_CATS_VERBOSE_COUNT);
+		timing_verbose_log_file.write((char*)&time_E.actualTime, sizeof(double));
 
 		// Calculate error to truth essential matrix.
 		Vector2d err;
@@ -110,5 +113,6 @@ int main(int argc, char *argv[])
 	}
 	string video = string(argv[0]);
 	string solver = string(argv[1]);
-	run_test(video, solver);
+	int frames = (argc >= 3) ? atoi(argv[2]) : -1;
+	run_test(video, solver, frames);
 }

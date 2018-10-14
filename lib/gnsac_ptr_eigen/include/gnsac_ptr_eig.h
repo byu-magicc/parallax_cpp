@@ -113,7 +113,7 @@ enum_str(consensus_t, consensus_t_str, consensus_RANSAC, consensus_LMEDS)
 
 enum_str(initial_guess_t, initial_guess_t_str, init_random, init_previous, init_truth)
 
-class GNSAC_Solver : common::ESolver
+class GNSAC_Solver : public common::ESolver
 {
 public:
 	GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::string result_directory);
@@ -143,7 +143,7 @@ private:
 
 	void init_optimizer_log(std::string result_directory);
 
-	void init_comparison_log(std::string result_directory, std::string five_point_directory);
+	void init_comparison_log(std::string result_directory);
 
 public:
 	optimizer_t optimizer;

@@ -11,4 +11,3 @@ exit_tolerance: 0.000001
 initial_guess: previous
 log_optimizer: false
 log_comparison: true
-comparison_folder: "five-point"

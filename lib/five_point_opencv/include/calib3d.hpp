@@ -173,7 +173,7 @@ namespace five_point_opencv
 
 	enum_str(consensus_t, consensus_t_str, consensus_RANSAC, consensus_LMEDS)
 
-	class FivePointSolver : common::ESolver
+	class FivePointSolver : public common::ESolver
 	{
 	public:
 		FivePointSolver(std::string yaml_filename, YAML::Node node, std::string result_directory);

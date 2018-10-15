@@ -146,7 +146,7 @@ Matrix3d common::decomposeEssentialMat(const Matrix3d& E, Matrix3d& R1, Matrix3d
 	cv::cv2eigen(t_cv, t);
 }
 
-Vector2d common::err_truth(const Matrix3d& R1, const Matrix3d& R2, const Vector3d& t, const Matrix4d& RT)
+Vector4d common::err_truth(const Matrix3d& R1, const Matrix3d& R2, const Vector3d& t, const Matrix4d& RT)
 {
 	// Extract R and T from the 4x4 homogenous transformation
 	Matrix3d R_truth = RT.block<3, 3>(0, 0);
@@ -162,19 +162,23 @@ Vector2d common::err_truth(const Matrix3d& R1, const Matrix3d& R2, const Vector3
 	double err_t_min = min(err_t1, err_t2);
 	double err_R_min = min(err_R1, err_R2);
 
+	// See if the first rotation and translation are the correct one
+	bool correct_R1 = err_R1 < err_R2;
+	bool correct_t1 = err_t1 < err_t2;
+
 	// Output result
-	Vector2d err;
-	err << err_R_min, err_t_min;
+	Vector4d err;
+	err << err_R_min, err_t_min, (int)correct_R1, (int)correct_t1;
 	return err;
 }
 
-Vector2d common::err_truth(const Matrix3d& R1, const Vector3d& t, const Matrix4d& RT)
+Vector4d common::err_truth(const Matrix3d& R1, const Vector3d& t, const Matrix4d& RT)
 {
 	Matrix3d R2 = R1toR2(R1, t);
 	return err_truth(R1, R2, t, RT);
 }
 
-Vector2d common::err_truth(const Matrix3d& E, const Matrix4d& RT)
+Vector4d common::err_truth(const Matrix3d& E, const Matrix4d& RT)
 {
 	Matrix3d R1, R2;
 	Vector3d t;
@@ -199,4 +203,142 @@ Vector2d common::dist_E(const Matrix3d& E1, const Matrix3d& E2)
 	Vector2d err;
 	err << err_R_min, err_t_min;
 	return err;
+}
+
+void common::undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d camera_matrix)
+{
+	// Note: We aren't inverting actually the actual camera matrix. We assume 
+	// the camera matrix is formatted as expected:
+	// [fx 0  cx
+	//  0  fy cy
+	//  0  0  1]
+	double inv_fx = 1./camera_matrix(0, 0);
+	double inv_fy = 1./camera_matrix(1, 1);
+	double cx = camera_matrix(0, 2);
+	double cy = camera_matrix(1, 2);
+	pts_u = scan_t(pts.size());
+	for(int i = 0; i < pts.size(); i++)
+		pts_u[i] << (pts[i](0) - cx)*inv_fx, (pts[i](1) - cy)*inv_fy;
+}
+
+Vector2d common::sampson_err(const Matrix3d& E, const scan_t& pts1, const scan_t& pts2)
+{
+	int n_pts = pts1.size();
+	int medianIdx = (int)n_pts / 2;
+	vector<double> err = vector<double>(n_pts, 0);
+	double err_total = 0;
+	for(int i = 0; i < n_pts; i++)
+	{
+		Vector3d x1;
+		x1 << pts1[i](0), pts1[i](1), 1.;
+		Vector3d x2;
+		x2 << pts2[i](0), pts2[i](1), 1.;
+		Vector3d Ex1 = E * x1;
+		Vector3d Etx2 = E.transpose() * x2;
+		double x2tEx1 = x2.dot(Ex1);
+		
+		double a = Ex1[0] * Ex1[0];
+		double b = Ex1[1] * Ex1[1];
+		double c = Etx2[0] * Etx2[0];
+		double d = Etx2[1] * Etx2[1];
+		double err_i = x2tEx1 * x2tEx1 / (a + b + c + d);
+		err[i] = err_i;
+		err_total += err_i;
+	}
+	std::nth_element(err.begin(), err.begin() + medianIdx, err.end());
+	double med_err = err[medianIdx];
+	double mean_err = err_total / n_pts;
+	Vector2d err_result;
+	err_result << med_err, mean_err;
+	return err_result;
+}
+
+void common::five_point(const scan_t& subset1, const scan_t& subset2, vector<Matrix3d>& hypotheses)
+{
+	// Convert to Point2f
+	int n_pts = subset1.size();
+	if(n_pts != 5)
+	{
+		printf("The five-point algorithm doesn't accept %d points\n", n_pts);
+		exit(EXIT_FAILURE);
+	}	
+	vector<cv::Point2d> subset1_cv = vector<cv::Point2d>(n_pts);
+	vector<cv::Point2d> subset2_cv = vector<cv::Point2d>(n_pts);
+	for (int i = 0; i < n_pts; i++)
+	{
+		subset1_cv[i].x = subset1[i](0);
+		subset1_cv[i].y = subset1[i](1);
+		subset2_cv[i].x = subset2[i](0);
+		subset2_cv[i].y = subset2[i](1);
+	}
+
+	// Calc (multiple) hypotheses using 5-point algorithm
+	cv::Mat E_cv = findEssentialMat(subset1_cv, subset2_cv, cv::Mat::eye(3, 3, CV_64F));
+	if(E_cv.rows % 3 != 0 || (E_cv.rows > 0 && E_cv.cols != 3))
+	{
+		printf("Invalid essential matrix size: [%d x %d]\n", E_cv.rows, E_cv.cols);
+		exit(EXIT_FAILURE);
+	}
+	int n_hypotheses = E_cv.rows / 3;
+	hypotheses.resize(n_hypotheses);
+	for(int i = 0; i < n_hypotheses; i++)
+	{
+		Map<Matrix<double, 3, 3, RowMajor>> E_i = Map<Matrix<double, 3, 3, RowMajor>>(&E_cv.at<double>(i * 3, 0));
+		hypotheses[i] = E_i;
+	}
+}
+
+void common::perspectiveTransform(const scan_t& pts1, scan_t& pts2, const Matrix3d& H)
+{
+	int n_pts = pts1.size();
+	pts2.resize(pts1.size());
+	vector<cv::Point2d> pts1_cv = vector<cv::Point2d>(n_pts);
+	vector<cv::Point2d> pts2_cv = vector<cv::Point2d>(n_pts);
+	for (int i = 0; i < n_pts; i++)
+	{
+		pts1_cv[i].x = pts1[i](0);
+		pts1_cv[i].y = pts1[i](1);
+	}
+	cv::Mat H_cv;
+	cv::eigen2cv(H, H_cv);
+	cv::perspectiveTransform(pts1_cv, pts2_cv, H_cv);
+	for(int i = 0; i < n_pts; i++)
+		pts2[i] << pts2_cv[i].x, pts2_cv[i].y;
+}
+
+void common::getParallaxField(const Matrix3d& E, const Vector2d& loc, Vector2d& perpendicular, Vector2d& parallel)
+{
+	Vector3d pt;
+	pt << loc(0), loc(1), 1;
+	Vector3d line = E * pt;
+	perpendicular << line(0), line(1);
+	perpendicular = unit(perpendicular);
+	parallel << perpendicular(1), -perpendicular(0);
+}
+
+int common::chierality(const scan_t& pts1, const scan_t& pts2, const Matrix3d& R, const Vector3d& t)
+{
+	// Derotate points
+	// Use rotation as a euclidian homography matrix to transform points to 2nd frame
+	// H_e = R + T_x*n
+	const Matrix3d& H_e = R;
+	scan_t pts1_warped;
+	perspectiveTransform(pts1, pts1_warped, H_e);
+
+	// Calculate the point velocities (velocity = parallax + actual velocity)
+	scan_t pointVelocities = scan_t(pts1.size());
+	for (int i = 0; i < pts1.size(); i++)
+		pointVelocities[i] = (pts2[i] - pts1_warped[i]);
+
+	// Use the translation as a skew symmetric matrix to calculate the field normal and parallel vectors
+	scan_t fieldPerpendicular = scan_t(pts1.size());
+	scan_t fieldParallel = scan_t(pts1.size());
+	for (int i = 0; i < pts1.size(); i++)
+		getParallaxField(skew(t), pts1_warped[i], fieldPerpendicular[i], fieldParallel[i]);
+
+	// Count how many points have a positive parallax component
+	int numPosDotProduct = 0;
+	for (int i = 0; i < pts1.size(); i++)
+		if (pointVelocities[i].dot(fieldParallel[i]) > 0)
+			numPosDotProduct++;
 }

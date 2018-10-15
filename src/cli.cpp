@@ -87,12 +87,12 @@ void run_test(string video_str, string solver_str, int frames)
 		timing_verbose_log_file.write((char*)&time_E.actualTime, sizeof(double));
 
 		// Calculate error to truth essential matrix.
-		Vector2d err;
+		Vector4d err;
 		if(result.has_RT)
 			err = common::err_truth(result.R, result.t, video_data.RT[frame]);
 		else
 			err = common::err_truth(result.E, video_data.RT[frame]);
-		accuracy_log_file.write((char*)err.data(), sizeof(double) * 2);
+		accuracy_log_file.write((char*)err.data(), sizeof(double) * 4);
 		common::progress(frame + 1, frames);
 	}
 	accuracy_log_file.close();

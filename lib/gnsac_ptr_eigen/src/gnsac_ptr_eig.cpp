@@ -784,9 +784,11 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 		accuracy_log_file.write((char*)&mean_err[0], sizeof(double) * 11);
 
 		// Find out which 5-point E is closest to the truth and which is closest to GN.
+		Vector4d vec4_none;
+		vec4_none << -1, -1;
 		Vector2d vec_none;
 		vec_none << -1, -1;
-		common::scan_t dist_truth = common::scan_t(11, vec_none);
+		common::scan4_t dist_truth = common::scan4_t(11, vec4_none);
 		common::scan_t dist_GN = common::scan_t(10, vec_none);
 		for(int i = 0; i < n_hypotheses_5P; i++)
 		{
@@ -794,7 +796,7 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 			dist_GN[i] = common::dist_E(hypotheses_5P[i], h2.E_map);
 		}
 		dist_truth[10] = common::err_truth(h2.E_map, RT_truth);
-		comparison_tr_log_file.write((char*)&dist_truth[0], sizeof(double) * 11 * 2);
+		comparison_tr_log_file.write((char*)&dist_truth[0], sizeof(double) * 11 * 4);
 		comparison_gn_log_file.write((char*)&dist_GN[0], sizeof(double) * 10 * 2);
 		time_cat(common::TimeCatHypoGen);
 	}	

@@ -1,4 +1,4 @@
-function [result_GN, result_5P] = compare_to_5P(video, method)
+function [result_GN, result_5P, frames] = compare_to_5P(video, method)
 	%% Load data
 	A  = read_binary(['../logs/' video '/' method '/5-point_accuracy.bin'],  11);
 	C_TR = read_binary(['../logs/' video '/' method '/5-point_comparison_tr.bin'], [2, 11]);
@@ -8,6 +8,7 @@ function [result_GN, result_5P] = compare_to_5P(video, method)
 	A(A == -1) = nan;
 	TR = reshape(sum(C_TR .^ 2, 1), 11, []);
 	GN = reshape(sum(C_GN .^ 2, 1), 10, []);
+	frames = size(A, 2) / 100;
 
 	%% Categorize all hypotheses
 	% How many total GN/LM and 5P hypotheses?

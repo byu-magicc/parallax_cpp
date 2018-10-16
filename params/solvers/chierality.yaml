@@ -11,4 +11,4 @@ exit_tolerance: 0.000001
 initial_guess: previous
 log_optimizer: false
 log_comparison: false
-pose_disambig: trace
+pose_disambig: chierality

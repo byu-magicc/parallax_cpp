@@ -113,6 +113,8 @@ enum_str(consensus_t, consensus_t_str, consensus_RANSAC, consensus_LMEDS)
 
 enum_str(initial_guess_t, initial_guess_t_str, init_random, init_previous, init_truth)
 
+enum_str(pose_disambig_t, pose_disambig_t_str, disambig_none, disambig_chierality, disambig_trace)
+
 class GNSAC_Solver : public common::ESolver
 {
 public:
@@ -152,6 +154,7 @@ public:
 	implementation_t scoring_impl;
 	consensus_t consensus_alg;
 	initial_guess_t initial_guess_method;
+	pose_disambig_t pose_disambig_method;
 	int n_subsets;
 	int max_iterations;
 	double exit_tolerance;

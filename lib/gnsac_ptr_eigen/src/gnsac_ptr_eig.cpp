@@ -582,7 +582,8 @@ void copyHypothesis(const GNHypothesis& h1, GNHypothesis& h2)
 
 GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node, string result_directory) : common::ESolver(yaml_filename, node, result_directory)
 {
-	string optimizer_str, optimizer_cost_str, scoring_cost_str, scoring_impl_str, consensus_alg_str, initial_guess_method_str;
+	string optimizer_str, optimizer_cost_str, scoring_cost_str, scoring_impl_str, 
+		consensus_alg_str, initial_guess_method_str, pose_disambig_str;
 	common::get_yaml_node("optimizer", yaml_filename, node, optimizer_str);
 	common::get_yaml_node("optimizer_cost", yaml_filename, node, optimizer_cost_str);
 	common::get_yaml_node("scoring_cost", yaml_filename, node, scoring_cost_str);
@@ -594,6 +595,7 @@ GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node, string result_
 	common::get_yaml_node("exit_tolerance", yaml_filename, node, exit_tolerance);
 	common::get_yaml_node("log_optimizer", yaml_filename, node, log_optimizer);
 	common::get_yaml_node("log_comparison", yaml_filename, node, log_comparison);
+	common::get_yaml_node("pose_disambig", yaml_filename, node, pose_disambig_str);
 	cout << "log_optimizer " << log_optimizer << endl;
 	cout << "log_comparison " << log_comparison << endl;
 
@@ -603,6 +605,8 @@ GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node, string result_
 	scoring_impl = (implementation_t)common::get_enum_from_string(implementation_t_str, scoring_impl_str);
 	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
 	initial_guess_method = (initial_guess_t)common::get_enum_from_string(initial_guess_t_str, initial_guess_method_str);
+	pose_disambig_method = (pose_disambig_t)common::get_enum_from_string(pose_disambig_t_str, pose_disambig_str);
+	
 	if(consensus_alg == consensus_RANSAC)
 		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
 	if(optimizer == optimizer_LM)
@@ -1058,6 +1062,31 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 		model.cost = score(pts1, pts2, model, bestModel.cost);
 		if(model.cost < bestModel.cost)
 			copyHypothesis(model, bestModel);
+	}
+
+	// Disambiguate rotation and translation
+	auto& t = bestModel.t_map;
+	auto& R = bestModel.R_map;
+	const auto& R1 = R;
+	Matrix3d R2 = common::R1toR2(R1, t);	
+	if(pose_disambig_method == disambig_trace)
+	{
+		if(R2.trace() > R1.trace())
+			R = R2;
+		if(common::chierality(pts1, pts2, R, -t) > 
+		   common::chierality(pts1, pts2, R, t))
+		   t = -t;
+	}
+	else if(pose_disambig_method == disambig_chierality)
+	{
+		int num_pos_depth[4];
+		Matrix3d R12[4] = {R1, R1, R2, R2};
+		Vector3d t12[4] = {t,  -t,  t, -t};
+		for(int i = 0; i < 4; i++)
+			num_pos_depth[i] = common::chierality(pts1, pts2, R12[i], t12[i]);
+		int max_idx = max_element(num_pos_depth, num_pos_depth + 4) - num_pos_depth;
+		R = R12[max_idx];
+		t = t12[max_idx];
 	}
 	time_cat(common::TimeCatNone);
 	result.R = bestModel.R_map;

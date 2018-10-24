@@ -11,12 +11,6 @@ namespace common
 typedef std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d> > scan_t;
 typedef std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> > scan4_t;
 
-// template <typename T>
-// Eigen::MatrixBase<T> unit(Eigen::MatrixBase<T>& val)
-// {
-//     return val / val.norm();
-// }
-
 Eigen::Matrix3d skew(Eigen::Vector3d v);
 
 Eigen::Vector3d vex(Eigen::Matrix3d Tx);

@@ -25,7 +25,7 @@ public:
 };
 
 // Note that the "vitual" keyword is important, otherwise the parent class method 
-// gets called if calling it from a parent-class pointer!
+// gets called if calling it from a parent class pointer!
 // See https://stackoverflow.com/questions/2391679/why-do-we-need-virtual-functions-in-c
 class ESolver
 {

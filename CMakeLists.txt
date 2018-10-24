@@ -9,8 +9,9 @@ endif()
 set(CMAKE_CXX_FLAGS "-std=c++14 -mavx -openmp") #-O2 -mfma
 
 # Option to categorize times in detail
+option(TIME_VERBOSE "Option to categorize times in detail" OFF)
 if(TIME_VERBOSE)
-	add_definitions(-DTIME_VERBOSE=1)
+	add_definitions(-DTIME_VERBOSE)
 endif()
 
 find_package(Eigen3 REQUIRED)

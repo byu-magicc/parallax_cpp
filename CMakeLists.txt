@@ -25,6 +25,7 @@ include_directories(
 	lib/gnsac_ptr_eigen/include
 	lib/gnsac_ptr_opencv/include
 	lib/five_point_opencv/include
+	lib/gnsac_eigen/include
 	${EIGEN3_INCLUDE_DIRS}
 	${YAML_CPP_INCLUDE_DIR}
 	# ${OPENCV_INCLUDE_DIRS}
@@ -43,6 +44,7 @@ add_executable(cli
 	lib/five_point_opencv/src/ptsetreg.cpp
 	lib/gnsac_ptr_eigen/src/gnsac_ptr_eig.cpp
 	lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
+	lib/gnsac_eigen/src/gnsac_eigen.cpp
 )
 target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
 
@@ -54,6 +56,7 @@ target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
 # 	lib/common/src/comm_loaders.cpp
 # 	lib/common/src/comm_math.cpp
 # 	lib/common/src/solvers.cpp
+# 	lib/gnsac_eigen/src/gnsac_eigen.cpp
 # )
 # target_link_libraries(det_test_ocv ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
 
@@ -65,5 +68,6 @@ target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
 # 	lib/common/src/comm_loaders.cpp
 # 	lib/common/src/comm_math.cpp
 # 	lib/common/src/solvers.cpp
+# 	lib/gnsac_eigen/src/gnsac_eigen.cpp
 # )
 # target_link_libraries(det_test_eig ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)

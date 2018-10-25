@@ -15,12 +15,42 @@ class SO3
 {
 public:
 	SO3();
-	SO3(Eigen::Matrix3d& R);
+	SO3(const Eigen::Matrix3d& R);
 	Eigen::Matrix3d R;
-	void boxplus(const Eigen::Vector3d& v, SO3& R2);
-}
+	void boxplus(const Eigen::Vector3d& delta, SO3& result);
+};
 
+class SO2
+{
+public:
+	SO2();
+	SO2(const Eigen::Matrix3d& R);
+	SO2(const Eigen::Vector3d& v);
+	Eigen::Matrix3d R;
 
+	// To get the vector, we use v = R'*[0; 0; 1]. This is the 3rd row of the matrix,
+	// Hence to initialize the map we need to use v(R.data() + 2).
+	// Changing it directly isn't allowed, because it would alter R.
+	const Eigen::Map<Eigen::Matrix<double, 3, 1>, Eigen::Unaligned, Eigen::Stride<1, 3> > v;
+	void boxplus(const Eigen::Vector2d& delta, SO2& result);
+};
+
+class EManifold
+{
+public:
+	EManifold();
+	EManifold(const Eigen::Matrix3d& R, const Eigen::Matrix3d& TR);
+	EManifold(const Eigen::Matrix3d& R, const Eigen::Vector3d& t);
+	Eigen::Matrix3d E;
+	const Eigen::Map<Eigen::Matrix3d> R;
+	const Eigen::Map<Eigen::Matrix3d> TR;
+	const Eigen::Map<Eigen::Matrix<double, 3, 1>, Eigen::Unaligned, Eigen::Stride<1, 3> > t;
+	void boxplus(const Eigen::Matrix<double, 5, 1>& delta, EManifold& result);
+private:
+	SO3 rot;
+	SO2 vec;
+	void updateE();
+};
 
 enum_str(optimizer_t, optimizer_t_str, optimizer_GN, optimizer_LM)
 

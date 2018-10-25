@@ -29,14 +29,14 @@ double sinc(double x)
         return sin(x) / x;
 }
 
-void skew(Vector3d& v, Matrix3d& Tx)
+void skew(const Vector3d& v, Matrix3d& Tx)
 {
 	Tx << 0,    -v(2),   v(1),
 		  v(2),  0,     -v(0),
 		 -v(1),  v(0),   0;
 }
 
-void axisAngleGetR(Vector3d& w, Matrix3d& dR)
+void axisAngleGetR(const Vector3d& w, Matrix3d& dR)
 {
 	double theta = w.norm();
 	Matrix3d wx;
@@ -52,20 +52,76 @@ SO3::SO3() : R(Matrix3d::Identity())
 
 }
 
-SO3::SO3(Matrix3d& _R) : R(_R)
+SO3::SO3(const Matrix3d& _R) : R(_R)
 {
 
 }
 
-void SO3::boxplus(const Eigen::Vector3d& v, SO3& R2)
+void SO3::boxplus(const Eigen::Vector3d& delta, SO3& result)
 {
 	Matrix3d dR;
-	axisAngleGetR(v, dR);
-	R2 = dR * R;
+	axisAngleGetR(delta, dR);
+	result.R = dR * R;
 }
 
+SO2::SO2() : R(Matrix3d::Identity()), v(R.data() + 2)
+{
+	
+}
 
+SO2::SO2(const Matrix3d& _R) : R(_R), v(R.data() + 2)
+{
 
+}
+
+SO2::SO2(const Vector3d& _v) : v(R.data() + 2)
+{
+	Vector3d t_unit = unit(_v);
+	double theta = acos(t_unit(2));
+	double snc = sinc(theta);
+	Vector3d w;
+	w << t_unit(1)/snc, -t_unit(0)/snc, 0;
+	axisAngleGetR(w, R);
+}
+
+void SO2::boxplus(const Eigen::Vector2d& delta_, SO2& result)
+{
+	Matrix3d dR;
+	Vector3d delta;
+	delta << delta_(0), delta_(1), 0;
+	axisAngleGetR(delta, dR);
+	result.R = dR * R;
+}
+
+EManifold::EManifold() : rot(), vec(), R(rot.R.data()), TR(vec.R.data()), t(vec.v)
+{
+	updateE();
+}
+
+EManifold::EManifold(const Eigen::Matrix3d& _R, const Eigen::Matrix3d& _TR) : rot(_R), vec(_TR), R(rot.R.data()), TR(vec.R.data()), t(vec.v)
+{
+	updateE();
+}
+
+EManifold::EManifold(const Eigen::Matrix3d& _R, const Eigen::Vector3d& _t) : rot(_R), vec(_t), R(rot.R.data()), TR(vec.R.data()), t(vec.v)
+{
+	updateE();
+}
+
+void EManifold::boxplus(const Matrix<double, 5, 1>& delta, EManifold& result)
+{
+	rot.boxplus(delta.head(3), result.rot);
+	vec.boxplus(delta.tail(2), result.vec);
+	result.updateE();
+}
+
+void EManifold::updateE()
+{
+	//E = Tx*R;
+	Matrix3d Tx;
+	skew(t, Tx);
+	E = Tx*R;
+}
 
 GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::string result_directory)
 {
@@ -139,12 +195,64 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 
 double GNSAC_Solver::score_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& hypothesis)
 {
+	return 0;
 
 }
 
 void run_tests()
 {
+	std::default_random_engine rng(0);
+	std::normal_distribution<double> dist(0.0, 1.0);
+	//std::uniform_int_distribution<> dist(0, pts1.size() - 1);
 
+	for(int i = 0; i < 100; i++)
+	{
+		// Test axisAngleGetR
+		double theta = dist(rng);
+		Matrix3d R;
+		R << cos(theta), -sin(theta), 0,
+		     sin(theta), cos(theta),  0,
+		     0,          0,           1;
+		Vector3d w;
+		w << 0, 0, theta;
+		Matrix3d R_;
+		axisAngleGetR(w, R_);
+		common::checkMatrices("R_cos&sin", "R_axisAngle", R, R_);
+
+		// Boxplus
+		// Negation
+		common::fill_rnd(w, dist, rng);
+		axisAngleGetR(w, R);
+		SO3 rot(R), rot2;
+		rot.boxplus(-w, rot2);
+		common::checkMatrices("R.boxplus(-w)", "Identity", rot2.R, Matrix3d::Identity());
+
+		// Boxplus order
+		Vector3d w1, w2;
+		common::fill_rnd(w1, dist, rng);
+		common::fill_rnd(w2, dist, rng);
+		Matrix3d R1, R2;
+		axisAngleGetR(w1, R1);
+		axisAngleGetR(w2, R2);
+		rot = SO3(R1);
+		rot.boxplus(w2, rot);
+		Matrix3d R12 = R2*R1;
+		common::checkMatrices("R1.boxplus(w2)", "R2*R1", rot.R, R12);
+
+		// Unit vector
+		Vector3d v;
+		common::fill_rnd(v, dist, rng);
+		v = unit(v);
+		SO2 vec(v);
+		common::checkMatrices("SO2(v).v", "v", vec.v, v);
+
+		// Ensure no rotation for unit vector in z direction
+		rot = SO3(vec.R);
+		w << 0, 0, 1;
+		rot.boxplus(w, rot);
+		SO2 vec2(rot.R);
+		common::checkMatrices("v", "v.boxplus([0; 0; 1])", v, vec2.v);
+	}
 }
 
 }

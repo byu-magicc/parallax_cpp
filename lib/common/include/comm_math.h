@@ -11,6 +11,18 @@ namespace common
 typedef std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d> > scan_t;
 typedef std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> > scan4_t;
 
+template <typename T, typename T2>
+void fill_rnd(Eigen::MatrixBase<T>& A, T2 dist, std::default_random_engine& rng)
+{
+	for(int i = 0; i < A.rows(); i++)
+		for(int j = 0; j < A.cols(); j++)
+			A(i, j) = dist(rng);
+}
+
+void printMatricesComp(const char* s, const Eigen::MatrixXd A1, const Eigen::MatrixXd A2, float eps = 1e-6, int sfAfter = 4, int sfBefore = 5);
+
+void checkMatrices(const char* s1, const char* s2, const Eigen::MatrixXd A1, const Eigen::MatrixXd A2, float eps = 1e-6, int sfAfter = 4, int sfBefore = 5, bool block = true);
+
 Eigen::Matrix3d skew(Eigen::Vector3d v);
 
 Eigen::Vector3d vex(Eigen::Matrix3d Tx);

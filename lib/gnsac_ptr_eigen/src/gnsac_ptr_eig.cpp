@@ -215,7 +215,6 @@ void checkArrays(const char* s1, const char* s2, const double* p1, const double*
 	printf("\n");
 }
 
-
 void printPoints(const char* s, common::scan_t pts)
 {
 	printf("%s: (2x%d)\n", s, (int)pts.size());

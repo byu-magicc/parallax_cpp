@@ -1,0 +1,14 @@
+# GNSAC, eigen version
+library: gnsac_eigen
+n_subsets: 100
+optimizer: GN
+optimizer_cost: algebraic
+scoring_cost: sampson
+consensus_alg: LMEDS
+consensus_seed_best: true
+max_iterations: 10
+exit_tolerance: 0.000001
+initial_guess: previous
+log_optimizer: false
+log_comparison: false
+pose_disambig: trace

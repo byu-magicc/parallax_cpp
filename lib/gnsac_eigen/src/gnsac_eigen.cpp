@@ -227,7 +227,7 @@ DifferentiableResidual::DifferentiableResidual()
 	
 }
 
-shared_ptr<DifferentiableResidual> from_enum(cost_function_t cost_fcn)
+std::shared_ptr<DifferentiableResidual> DifferentiableResidual::from_enum(cost_function_t cost_fcn)
 {
 	if (cost_fcn == cost_algebraic)
 	{

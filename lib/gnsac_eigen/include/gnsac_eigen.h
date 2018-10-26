@@ -87,11 +87,11 @@ private:
 class DifferentiableResidual
 {
 public:
-	virtual void residual(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& eManifold, Eigen::Map<Eigen::VectorXd>& err);
+	virtual void residual(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& eManifold, Eigen::Map<Eigen::VectorXd>& err) = 0;
 
-	virtual void residual_sqr(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& eManifold, Eigen::Map<Eigen::VectorXd>& err);
+	virtual void residual_sqr(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& eManifold, Eigen::Map<Eigen::VectorXd>& err) = 0;
 
-	virtual void residual_diff(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& eManifold, Eigen::Map<Eigen::VectorXd>& err, Eigen::Map<Eigen::MatrixXd>& jacobian);
+	virtual void residual_diff(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& eManifold, Eigen::Map<Eigen::VectorXd>& err, Eigen::Map<Eigen::MatrixXd>& jacobian) = 0;
 
 	static std::shared_ptr<DifferentiableResidual> from_enum(cost_function_t cost_fcn);
 

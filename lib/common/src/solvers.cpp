@@ -3,6 +3,7 @@
 #include "comm_loaders.h"
 #include "gnsac_ptr_eig.h"
 #include "gnsac_ptr_ocv.h"
+#include "gnsac_eigen.h"
 #include <yaml-cpp/yaml.h>
 #include <eigen3/Eigen/Eigen>
 #include <vector>
@@ -67,6 +68,11 @@ shared_ptr<common::ESolver> common::ESolver::from_yaml(string yaml_filename, str
 	if (library_name == "gnsac_ptr_eigen")
 	{
 		shared_ptr<gnsac_ptr_eigen::GNSAC_Solver> ptr1 = make_shared<gnsac_ptr_eigen::GNSAC_Solver>(yaml_filename, node, result_directory);
+		return dynamic_pointer_cast<ESolver>(ptr1);
+	}
+	if (library_name == "gnsac_eigen")
+	{
+		shared_ptr<gnsac_eigen::GNSAC_Solver> ptr1 = make_shared<gnsac_eigen::GNSAC_Solver>(yaml_filename, node, result_directory);
 		return dynamic_pointer_cast<ESolver>(ptr1);
 	}
 	else if (library_name == "five_point_opencv")

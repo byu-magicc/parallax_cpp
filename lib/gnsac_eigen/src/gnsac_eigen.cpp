@@ -5,6 +5,7 @@
 #include <random>
 #include <chrono>
 #include <experimental/filesystem>
+#include "common.h"
 
 using namespace std;
 using namespace Eigen;
@@ -1003,6 +1004,161 @@ void run_tests()
 			common::checkMatrices(name + "_err^2", name + "err_sqr", err.array().square().matrix(), err_sqr);
 			common::checkMatrices(name + "_J", name + "_J_Num", J, J_num, -1, 1e-5);
 		}
+
+		////////// Test each optimizer with each cost function ////////////
+		// Randomly generate some three-dimensional points on the surface of a unit sphere
+		const int n_pts = 50;
+		vector<Vector3d> Pts1;
+		vector<Vector3d> Pts2;
+		std::uniform_real_distribution<double> dist_uniform(0, 1);
+		for(int i = 0; i < n_pts; i++)
+		{
+			Vector3d pt1, pt2;
+			common::fill_rnd(pt1, dist, rng);
+			common::fill_rnd(pt2, dist, rng);
+			Pts1.push_back(unit(pt1));
+			Pts2.push_back(unit(pt2));
+		}
+
+		// Place the camera 2 units away from the center of the sphere, so that the maximum
+		// FOV angle is approx 45 degrees.
+		// We'll use a little trick to do this. We'll do this using the SO2 unit vector object
+		// to get the position (just multiply by 2), and the SO2 derivatives to get the unit vectors
+		// in the other directions.
+		//common::fill_rnd(w, dist, rng);
+		//axisAngleGetR(w, R);
+		R = Matrix3d::Identity();
+		vec = SO2(R);
+		Vector3d pos_0_1 = -vec.v * 2;
+
+		// These vectors are the basis vectors of the camera in frame 0 (global frame)
+		// They should really be written as x_sup0_sub1 or sup0_x_sub1.
+		Vector3d d1, d2;
+		vec.derivative(0, d1);
+		vec.derivative(1, d2);
+		Vector3d x_0_1 = -unit(d2);
+		Vector3d y_0_1 = unit(d1);
+		Vector3d z_0_1 = unit(vec.v);
+
+		// This is the rotation from 1 to 0, which should be written as R_sup0_sub1 or sup0_R_sub1.
+		// We'll have to invert it later to get the actual rotation we want.
+		Matrix3d R_0_1;
+		R_0_1 << x_0_1, y_0_1, z_0_1;
+		cout << R_0_1 << endl;
+		cout << R_0_1.determinant() << endl;
+
+		// Make sure that the basis vectors are orthogonal and that it is a right-hand coordinate frame.
+		release_assert(fabs(R_0_1.determinant() - 1) < 1e-8);
+		release_assert((R_0_1*R_0_1.inverse() - Matrix3d::Identity()).norm() < 1e-8);
+
+		// Let's also create the position and rotation of the second camera, 
+		// by moving the position and rotation.
+		double move_rot_deg = 2;
+		double move_pos = 0.1;
+		common::fill_rnd(w, dist, rng);	
+		w = unit(w) * move_rot_deg * M_PI/180;
+		Matrix3d dR;
+		axisAngleGetR(w, dR);
+		Vector3d d_pos;
+		common::fill_rnd(d_pos, dist, rng);		
+		d_pos = unit(d_pos) * move_pos;
+		Matrix3d R_0_2 = R_0_1*dR;
+		Vector3d pos_0_2 = pos_0_1 + d_pos;
+
+		// Now construct the complete RT matrices and invert.
+		Matrix4d RT_0_1 = common::RT_combine(R_0_1, pos_0_1);
+		Matrix4d RT_0_2 = common::RT_combine(R_0_2, pos_0_2);
+		Matrix4d RT_1_0 = RT_0_1.inverse();
+		Matrix4d RT_2_0 = RT_0_2.inverse();
+		Matrix4d RT_2_1 = RT_2_0 * RT_0_1;
+		Matrix4d RT_true = RT_2_1;
+		Matrix3d R_true;
+		Vector3d t_true;
+		common::RT_split(RT_true, R_true, t_true);
+		t_true = unit(t_true);
+		EManifold eManifoldTruth = EManifold(R_true, t_true);
+
+		// Now perterb the position and rotation by a small ratio of the original
+		// movement. This will be used as an initial guess for the optimizer.
+		double perterb_rot_deg = move_rot_deg*0.1;
+		double perterb_pos = move_pos*0.01;
+		Vector3d T_initialGuess;
+		common::fill_rnd(w, dist, rng);
+		w = unit(w) * perterb_rot_deg * M_PI/180;
+		axisAngleGetR(w, dR);
+		common::fill_rnd(d_pos, dist, rng);
+		d_pos = unit(d_pos) * perterb_pos;
+		Matrix3d R_initialGuess = R_true*dR;
+		Vector3d t_initialGuess = unit(pos_0_1 + d_pos);
+		EManifold initialGuess = EManifold(R_initialGuess, t_initialGuess);
+
+		// Project world points into the camera frame (normalized image plane)
+		vector<float> dist1;
+		vector<float> dist2;
+		common::project_points(Pts1, pts1, dist1, RT_1_0);
+		common::project_points(Pts2, pts2, dist2, RT_2_0);
+		for(int i = 0; i < n_pts; i++)
+		{
+			release_assert(dist1[i] > 0);
+			release_assert(dist2[i] > 0);
+			release_assert(fabs(pts1[i](0)) < 1);
+			release_assert(fabs(pts1[i](1)) < 1);
+			release_assert(fabs(pts2[i](0)) < 1);
+			release_assert(fabs(pts2[i](1)) < 1);
+		}		
+
+		// Run optimizers!
+		double maxIterations = 20;
+		double exitTolerance = 1e-10;			
+		double lambda0 = 1e-4;
+		vector<optimizer_t> optimizers = {optimizer_GN, optimizer_LM};
+		vector<string> optimizer_names = {"GaussNewton", "LevenbergMarquardt"};
+		for(int i = 0; i < optimizers.size(); i++)
+		{
+			for(int j = 0; j < cost_functions.size(); j++)
+			{
+				// Create optimizer
+				cout << "Optimizer: " << optimizer_names[i] << endl << "Cost Function: " << cost_function_names[j] << endl;
+				optimizer_t optim = optimizers[i];
+				shared_ptr<DifferentiableResidual> cost_function = DifferentiableResidual::from_enum(cost_functions[j]);
+				shared_ptr<Optimizer> optimizer;
+				if(optim == optimizer_GN)
+					optimizer = make_shared<GaussNewton>(cost_function, maxIterations, exitTolerance);
+				else if(optim == optimizer_LM)
+					optimizer = make_shared<LevenbergMarquardt>(cost_function, maxIterations, exitTolerance, lambda0);
+
+				// Setup
+				eManifold = initialGuess;
+				double cost;
+				Vector4d err_truth;
+				VectorXd err_vec = VectorXd(n_pts);
+				Map<VectorXd> err_map = Map<VectorXd>(err_vec.data(), n_pts);
+
+				// Err before
+				cost_function->residual(pts1, pts2, eManifold, err_map);
+				cost = err_vec.norm();
+				err_truth = common::err_truth(eManifold.R, eManifold.t, RT_true);
+				printf("             %-8s %-8s %-8s %-8s %-8s\n", "Cost", "R", "t", "ch_R", "ch_t");
+				printf("Initial err: %-8.3f %-8.3f %-8.3f %-8.3f %-8.3f\n", cost, err_truth(0), err_truth(1), err_truth(2), err_truth(3));
+
+				optimizer->optimize(pts1, pts2, initialGuess, eManifold);
+
+				// Err after
+				cost_function->residual(pts1, pts2, eManifold, err_map);
+				cost = err_vec.norm();
+				err_truth = common::err_truth(eManifold.R, eManifold.t, RT_true);
+				printf("Final err:   %-8.3f %-8.3f %-8.3f %-8.3f %-8.3f\n", cost, err_truth(0), err_truth(1), err_truth(2), err_truth(3));
+				printf("\n");
+
+				// Err truth (should be zero)
+				cost_function->residual(pts1, pts2, eManifoldTruth, err_map);
+				cost = err_vec.norm();
+				err_truth = common::err_truth(eManifold.R, eManifold.t, RT_true);
+				printf("Truth err:   %-8.3f %-8.3f %-8.3f %-8.3f %-8.3f\n", cost, err_truth(0), err_truth(1), err_truth(2), err_truth(3));
+				printf("\n");				
+			}
+		}
+		exit(EXIT_FAILURE);
 	}
 }
 

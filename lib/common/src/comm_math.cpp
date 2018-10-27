@@ -204,6 +204,21 @@ Matrix3d common::decomposeEssentialMat(const Matrix3d& E, Matrix3d& R1, Matrix3d
 	cv::cv2eigen(t_cv, t);
 }
 
+void common::RT_split(const Matrix4d& RT, Matrix3d& R, Vector3d& t)
+{
+	R = RT.block<3, 3>(0, 0);
+	t = RT.block<3, 1>(0, 3);
+}
+
+Matrix4d common::RT_combine(const Matrix3d& R, const Vector3d& t)
+{
+	Matrix4d RT = Matrix4d::Zero();
+	RT.block<3, 3>(0, 0) = R;
+	RT.block<3, 1>(0, 3) = t;
+	RT(3, 3) = 1;
+	return RT;
+}
+
 Vector4d common::err_truth(const Matrix3d& R1, const Matrix3d& R2, const Vector3d& t, const Matrix4d& RT)
 {
 	// Extract R and T from the 4x4 homogenous transformation
@@ -279,6 +294,28 @@ void common::undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d camera_
 		pts_u[i] << (pts[i](0) - cx)*inv_fx, (pts[i](1) - cy)*inv_fy;
 }
 
+void common::project_points(const vector<Vector3d> Pts, scan_t& pts, vector<float>& dist, const Matrix3d& R, const Vector3d& t, const Matrix3d camera_matrix)
+{
+	pts.resize(Pts.size());
+	dist.resize(Pts.size());
+	for(int i = 0; i < Pts.size(); i++)
+	{
+		Vector3d Pt_cam = R * Pts[i] + t;
+		dist[i] = Pt_cam(2);
+		Vector3d pt_h = camera_matrix * Pt_cam;
+		pts[i] << pt_h(0) / pt_h(2), pt_h(1) / pt_h(2);
+	}
+}
+
+void common::project_points(const vector<Vector3d> Pts, scan_t& pts, vector<float>& dist, const Matrix4d& RT, const Matrix3d camera_matrix)
+{
+	Matrix3d R;
+	Vector3d t;
+	RT_split(RT, R, t);
+	project_points(Pts, pts, dist, R, t, camera_matrix);
+}
+
+
 Vector2d common::sampson_err(const Matrix3d& E, const scan_t& pts1, const scan_t& pts2)
 {
 	int n_pts = pts1.size();
@@ -319,7 +356,7 @@ void common::five_point(const scan_t& subset1, const scan_t& subset2, vector<Mat
 	{
 		printf("The five-point algorithm doesn't accept %d points\n", n_pts);
 		exit(EXIT_FAILURE);
-	}	
+	}
 	vector<cv::Point2d> subset1_cv = vector<cv::Point2d>(n_pts);
 	vector<cv::Point2d> subset2_cv = vector<cv::Point2d>(n_pts);
 	for (int i = 0; i < n_pts; i++)

@@ -382,9 +382,15 @@ int common::get_enum_from_string(string comma_separated_enums, string str)
 	exit(EXIT_FAILURE);
 }
 
-/////////////////////////
-// Determinism Checker //
-/////////////////////////
+////////////////////////////////////////////
+// Release Assert and Determinism Checker //
+////////////////////////////////////////////
+
+void common::release_error(const std::string expr, const char* file, int line, const char* func)
+{
+	cout << "Assertion failed: " << expr << ", file " << file << ", line " << line << endl;
+	exit(EXIT_FAILURE);
+}
 
 common::DeterminismChecker::DeterminismChecker(string name, int trial) : check(false)
 {

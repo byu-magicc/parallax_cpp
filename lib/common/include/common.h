@@ -107,6 +107,10 @@ int get_enum_from_string(std::string comma_separated_enums, std::string str);
 
 #define enum_str(name, str_name, ...) enum name {__VA_ARGS__}; const std::string str_name = #__VA_ARGS__;
 
+// Assert
+#define release_assert(expr) { if (!(expr)) common::release_error(#expr, __FILE__, __LINE__, __func__); }
+
+void release_error(const std::string expr, const char* file, int line, const char* func);
 
 // Macro to call a determinism checker object with the file, line, and function information
 #define STR_HELPER(x) #x

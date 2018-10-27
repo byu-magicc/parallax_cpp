@@ -39,6 +39,10 @@ double R_norm(Eigen::Matrix3d R);
 
 Eigen::Matrix3d decomposeEssentialMat(const Eigen::Matrix3d& E, Eigen::Matrix3d& R1, Eigen::Matrix3d& R2, Eigen::Vector3d& t);
 
+void RT_split(const Eigen::Matrix4d& RT, Eigen::Matrix3d& R, Eigen::Vector3d& t);
+
+Eigen::Matrix4d RT_combine(const Eigen::Matrix3d& R, const Eigen::Vector3d& t);
+
 Eigen::Vector4d err_truth(const Eigen::Matrix3d& R1_est, const Eigen::Matrix3d& R2_est, const Eigen::Vector3d& t_est, const Eigen::Matrix4d& RT_truth);
 
 Eigen::Vector4d err_truth(const Eigen::Matrix3d& R_est, const Eigen::Vector3d& t_est, const Eigen::Matrix4d& RT_truth);
@@ -48,6 +52,10 @@ Eigen::Vector4d err_truth(const Eigen::Matrix3d& E, const Eigen::Matrix4d& RT_tr
 Eigen::Vector2d dist_E(const Eigen::Matrix3d& E1, const Eigen::Matrix3d& E2);
 
 void undistort_points(const scan_t& pts, scan_t& pts1_u, Eigen::Matrix3d camera_matrix);
+
+void project_points(const std::vector<Eigen::Vector3d> Pts, scan_t& pts, std::vector<float>& dist, const Eigen::Matrix3d& R, const Eigen::Vector3d& t, const Eigen::Matrix3d camera_matrix = Eigen::Matrix3d::Identity());
+
+void project_points(const std::vector<Eigen::Vector3d> Pts, scan_t& pts, std::vector<float>& dist, const Eigen::Matrix4d& RT, const Eigen::Matrix3d camera_matrix = Eigen::Matrix3d::Identity());
 
 Eigen::Vector2d sampson_err(const Eigen::Matrix3d& E, const scan_t& pts1, const scan_t& pts2);
 

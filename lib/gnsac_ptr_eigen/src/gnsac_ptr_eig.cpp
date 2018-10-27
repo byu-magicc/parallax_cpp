@@ -158,11 +158,6 @@ void printArray(const char* s, const double* p, int n, int m, int sfAfter, int s
 	printf("]\n");
 }
 
-//#define RED_TEXT "\033[31m[49m"
-#define RED_TEXT "\033[101m"
-#define GREEN_TEXT "\033[32m"
-#define BLACK_TEXT "\033[0m\033[49m"
-
 void printArrayComp(const char* s, const double* p, const double* p2, int n, int m, float eps = 1e-6, int sfAfter = 4, int sfBefore = 5)
 {
 	printf("%s: (%dx%d)\n", s, n, m);

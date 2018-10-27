@@ -297,6 +297,10 @@ private:
 
 void run_tests();
 
+void run_jacobian_tests();
+
+void run_optimizer_tests();
+
 }
 
 #endif //GNSAC_EIGEN_H

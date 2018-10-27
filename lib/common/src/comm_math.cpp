@@ -13,11 +13,6 @@ using namespace Eigen;
 #include "opencv2/imgproc/imgproc.hpp" 
 #include "opencv2/core/eigen.hpp"
 
-//#define RED_TEXT "\033[31m[49m"
-#define RED_TEXT "\033[101m"
-#define GREEN_TEXT "\033[32m"
-#define BLACK_TEXT "\033[0m\033[49m"
-
 void common::printMatricesComp(string s, const MatrixXd A1, const MatrixXd A2, float eps, int sfAfter, int sfBefore)
 {
 	if(A1.rows() != A2.rows() || A1.cols() != A2.cols())

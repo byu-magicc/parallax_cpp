@@ -19,6 +19,11 @@ void fill_rnd(Eigen::MatrixBase<T>& A, T2 dist, std::default_random_engine& rng)
 			A(i, j) = dist(rng);
 }
 
+//#define RED_TEXT "\033[31m[49m"
+#define RED_TEXT "\033[101m"
+#define GREEN_TEXT "\033[32m"
+#define BLACK_TEXT "\033[0m\033[49m"
+
 void printMatricesComp(std::string s, const Eigen::MatrixXd A1, const Eigen::MatrixXd A2, float eps = 1e-6, int sfAfter = 4, int sfBefore = 5);
 
 void checkMatrices(std::string s1, std::string s2, const Eigen::MatrixXd A1, const Eigen::MatrixXd A2, int dir = -1, float eps = 1e-6, int sfAfter = 4, int sfBefore = 5, bool block = true);

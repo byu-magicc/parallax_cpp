@@ -644,7 +644,6 @@ RANSAC_Algorithm::RANSAC_Algorithm(std::shared_ptr<Optimizer> _optimizer, int _n
 double RANSAC_Algorithm::score(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, double best_cost)
 {
 	int n_pts = pts1.size();
-	double* err_buf;
 	Map<VectorXd> err(err_buf, n_pts, 1);
 	double RANSAC_threshold_sqr = threshold * threshold;
 	residual_fcn->residual_sqr(pts1, pts2, hypothesis, err);
@@ -664,7 +663,6 @@ LMEDS_Algorithm::LMEDS_Algorithm(std::shared_ptr<Optimizer> _optimizer, int _n_s
 double LMEDS_Algorithm::score(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, double best_cost)
 {
 	int n_pts = pts1.size();
-	double* err_buf;
 	Map<VectorXd> err(err_buf, n_pts, 1);
 	residual_fcn->residual_sqr(pts1, pts2, hypothesis, err);
 	int medianIdx = (int)n_pts / 2;
@@ -694,9 +692,9 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::stri
 	common::get_yaml_node("max_iterations", yaml_filename, node, maxIterations);
 	common::get_yaml_node("exit_tolerance", yaml_filename, node, exitTolerance);
 	optimizer_t optim = (optimizer_t)common::get_enum_from_string(optimizer_t_str, optimizer_str);
-	if(optim = optimizer_GN)
+	if(optim == optimizer_GN)
 		optimizer = make_shared<GaussNewton>(optimizerCost, maxIterations, exitTolerance);
-	else if(optim = optimizer_LM)
+	else if(optim == optimizer_LM)
 	{
 		double lambda0;
 		common::get_yaml_node("LM_lambda", yaml_filename, node, lambda0);	
@@ -722,13 +720,13 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::stri
 	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
 	common::get_yaml_node("consensus_seed_best", yaml_filename, node, consensus_seed_best);
 	consensus_t consen_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
-	if(consen_alg = consensus_RANSAC)
+	if(consen_alg == consensus_RANSAC)
 	{
 		double RANSAC_threshold;
 		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
 		consensusAlg = make_shared<RANSAC_Algorithm>(optimizer, n_subsets, consensus_seed_best, scoringCost, RANSAC_threshold);
 	}
-	else if(consen_alg = consensus_LMEDS)
+	else if(consen_alg == consensus_LMEDS)
 		consensusAlg = make_shared<LMEDS_Algorithm>(optimizer, n_subsets, consensus_seed_best, scoringCost);
 	else
 	{
@@ -851,8 +849,6 @@ void run_tests()
 	std::normal_distribution<double> dist(0.0, 1.0);
 	for(int ii = 0; ii < 100; ii++)
 	{
-		cout << "ii = " << ii << endl;
-
 		// Test axisAngleGetR
 		double theta = dist(rng);
 		Matrix3d R;

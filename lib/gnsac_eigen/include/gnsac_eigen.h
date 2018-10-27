@@ -24,7 +24,7 @@ enum_str(initial_guess_t, initial_guess_t_str, init_random, init_previous, init_
 
 enum_str(pose_disambig_t, pose_disambig_t_str, disambig_none, disambig_chierality, disambig_trace)
 
-#define MAX_PTS 1000
+const int MAX_PTS = 2000;
 
 ///////////////////////
 // Manifold Elements //
@@ -238,6 +238,7 @@ public:
 private:
 	std::shared_ptr<DifferentiableResidual> residual_fcn;
 	double threshold;
+	double err_buf[MAX_PTS*1];
 };
 
 class LMEDS_Algorithm : public ConsensusAlgorithm
@@ -249,6 +250,7 @@ public:
 
 private:
 	std::shared_ptr<DifferentiableResidual> residual_fcn;
+	double err_buf[MAX_PTS*1];
 };
 
 ////////////////////////////

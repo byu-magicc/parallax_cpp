@@ -37,7 +37,7 @@ public:
 	SO3(const Eigen::Matrix3d& R);
 	Eigen::Matrix3d R;
 	SO3& operator= (const SO3& other);
-	void boxplus(const Eigen::Vector3d& delta, SO3& result);
+	void boxplus(const Eigen::Vector3d& delta, SO3& result) const;
 	void derivative(int i, Eigen::Matrix3d& result) const;
 };
 
@@ -54,7 +54,7 @@ public:
 	// Hence to initialize the map we need to use v(R.data() + 2).
 	// Changing it directly isn't allowed, because it would alter R.
 	const Eigen::Map<Eigen::Matrix<double, 3, 1>, Eigen::Unaligned, Eigen::Stride<1, 3> > v;
-	void boxplus(const Eigen::Vector2d& delta, SO2& result);
+	void boxplus(const Eigen::Vector2d& delta, SO2& result) const;
 	void derivative(int i, Eigen::Vector3d& result) const;
 };
 
@@ -72,7 +72,7 @@ public:
 	void setR(Eigen::Matrix3d R);
 	void setT(Eigen::Vector3d t);
 	void setTR(Eigen::Matrix3d TR);
-	void boxplus(const Eigen::Matrix<double, 5, 1>& delta, EManifold& result);
+	void boxplus(const Eigen::Matrix<double, 5, 1>& delta, EManifold& result) const;
 	void derivative(int i, Eigen::Matrix3d& result) const;
 private:
 	SO3 rot;
@@ -134,6 +134,58 @@ public:
 
 	void residual_diff(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& eManifold, Eigen::Map<Eigen::VectorXd>& residual, Eigen::Map<Eigen::MatrixXd>& jacobian);
 };
+
+template <typename _Function, typename _Boxplus, typename _X, int _Rows, int _Cols>
+void numericalDerivative(_Function fcn, _Boxplus boxplus, _X x, Eigen::Matrix<double, _Rows, _Cols>& J)
+{
+	double h = 1e-6;
+	Eigen::Matrix<double, _Rows, 1> fcn0 = fcn(x);
+	for(int i = 0; i < _Cols; i++)
+	{
+		Eigen::Matrix<double, _Cols, 1> dx = Eigen::Matrix<double, _Cols, 1>::Zero();
+		dx(i) = h;
+		_X x2;
+		boxplus(x, dx, x2);
+		J.col(i) = (fcn(x2) - fcn0) / h;
+	}
+}
+
+template <typename _Function, typename _X, int _Rows, int _Cols>
+void numericalDerivative(_Function fcn, _X x, Eigen::Matrix<double, _Rows, _Cols>& J)
+{
+	double h = 1e-6;
+	Eigen::Matrix<double, _Rows, 1> fcn0 = fcn(x);
+	for(int i = 0; i < _Cols; i++)
+	{
+		Eigen::Matrix<double, _Cols, 1> dx = Eigen::Matrix<double, _Cols, 1>::Zero();
+		dx(i) = h;
+		_X x2;
+		x.boxplus(dx, x2);
+		J.col(i) = (fcn(x2) - fcn0) / h;
+	}
+}
+
+template <int _InputRows, typename _Function, typename _Boxplus, typename _X, int _Rows, int _Cols>
+void numericalDerivative_i(_Function fcn, _Boxplus boxplus, _X x, Eigen::Matrix<double, _Rows, _Cols>& J, int i)
+{
+	double h = 1e-6;
+	Eigen::Matrix<double, _InputRows, 1> dx = Eigen::Matrix<double, _InputRows, 1>::Zero();
+	dx(i) = h;
+	_X x2;
+	boxplus(x, dx, x2);
+	J = (fcn(x2) - fcn(x)) / h;
+}
+
+template <int _InputRows, typename _Function, typename _X, int _Rows, int _Cols>
+void numericalDerivative_i(_Function fcn, _X x, Eigen::Matrix<double, _Rows, _Cols>& J, int i)
+{
+	double h = 1e-6;
+	Eigen::Matrix<double, _InputRows, 1> dx = Eigen::Matrix<double, _InputRows, 1>::Zero();
+	dx(i) = h;
+	_X x2;
+	x.boxplus(dx, x2);
+	J = (fcn(x2) - fcn(x)) / h;
+}
 
 ////////////////
 // Optimizers //
@@ -265,6 +317,8 @@ private:
 	Eigen::Matrix4d RT_truth;
 	EManifold prevResult;
 };
+
+void run_tests();
 
 }
 

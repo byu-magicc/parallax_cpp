@@ -18,14 +18,14 @@ using namespace Eigen;
 #define GREEN_TEXT "\033[32m"
 #define BLACK_TEXT "\033[0m\033[49m"
 
-void common::printMatricesComp(const char* s, const MatrixXd A1, const MatrixXd A2, float eps, int sfAfter, int sfBefore)
+void common::printMatricesComp(string s, const MatrixXd A1, const MatrixXd A2, float eps, int sfAfter, int sfBefore)
 {
 	if(A1.rows() != A2.rows() || A1.cols() != A2.cols())
 	{
 		printf("Error: Cannot compare arrays of different sizes (%dx%d and %dx%d)\n", (int)A1.rows(), (int)A1.cols(), (int)A2.rows(), (int)A2.cols());
 		exit(EXIT_FAILURE);
 	}
-	printf("%s: (%dx%d)\n", s, (int)A1.rows(), (int)A1.cols());
+	printf("%s: (%dx%d)\n", s.c_str(), (int)A1.rows(), (int)A1.cols());
 	char format[40];
 	sprintf(format, "%%%d.%df", sfBefore + sfAfter, sfAfter);
 	for (int r = 0; r < A1.rows(); r++)
@@ -49,14 +49,19 @@ void common::printMatricesComp(const char* s, const MatrixXd A1, const MatrixXd 
 	printf("]\n");
 }
 
-void common::checkMatrices(const char* s1, const char* s2, const MatrixXd A1, const MatrixXd A2, float eps, int sfAfter, int sfBefore, bool block)
+void common::checkMatrices(string s1, string s2, const MatrixXd A1, const MatrixXd A2, int dir, float eps, int sfAfter, int sfBefore, bool block)
 {
 	// First, find out if the arrays are equal
 	MatrixXd err = (A1 - A2).cwiseAbs();
 	if(err.maxCoeff() < eps)
 		return;
 	if(block)
-		printf(RED_TEXT "Error: Matrix comparison failed.\n" BLACK_TEXT);
+	{
+		if(dir != -1)
+			printf(RED_TEXT "Error: Matrix comparison failed in direction %d.\n" BLACK_TEXT, dir);
+		else
+			printf(RED_TEXT "Error: Matrix comparison failed.\n" BLACK_TEXT);
+	}
 
 	// If the arrays are not equal, print them both out
 	printMatricesComp(s1, A1, A2, eps, sfAfter, sfBefore);

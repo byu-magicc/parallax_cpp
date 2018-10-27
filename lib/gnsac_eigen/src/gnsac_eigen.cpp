@@ -64,7 +64,7 @@ SO3& SO3::operator= (const SO3& other)
 	return *this;
 }
 
-void SO3::boxplus(const Eigen::Vector3d& delta, SO3& result)
+void SO3::boxplus(const Eigen::Vector3d& delta, SO3& result) const
 {
 	Matrix3d dR;
 	axisAngleGetR(delta, dR);
@@ -111,7 +111,7 @@ SO2& SO2::operator= (const SO2& other)
 	return *this;
 }
 
-void SO2::boxplus(const Eigen::Vector2d& delta_, SO2& result)
+void SO2::boxplus(const Eigen::Vector2d& delta_, SO2& result) const
 {
 	Matrix3d dR;
 	Vector3d delta;
@@ -176,7 +176,7 @@ void EManifold::setTR(Matrix3d TR)
 	updateE();
 }
 
-void EManifold::boxplus(const Matrix<double, 5, 1>& delta, EManifold& result)
+void EManifold::boxplus(const Matrix<double, 5, 1>& delta, EManifold& result) const
 {
 	rot.boxplus(delta.head(3), result.rot);
 	vec.boxplus(delta.tail(2), result.vec);
@@ -227,7 +227,7 @@ DifferentiableResidual::DifferentiableResidual()
 	
 }
 
-std::shared_ptr<DifferentiableResidual> DifferentiableResidual::from_enum(cost_function_t cost_fcn)
+shared_ptr<DifferentiableResidual> DifferentiableResidual::from_enum(cost_function_t cost_fcn)
 {
 	if (cost_fcn == cost_algebraic)
 	{
@@ -672,6 +672,8 @@ double LMEDS_Algorithm::score(const common::scan_t& pts1, const common::scan_t& 
 
 GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::string result_directory) : common::ESolver(yaml_filename, node, result_directory)
 {
+	run_tests();
+
 	// Optimizer cost
 	string optimizer_cost_str;
 	common::get_yaml_node("optimizer_cost", yaml_filename, node, optimizer_cost_str);
@@ -841,8 +843,6 @@ void run_tests()
 {
 	std::default_random_engine rng(0);
 	std::normal_distribution<double> dist(0.0, 1.0);
-	//std::uniform_int_distribution<> dist(0, pts1.size() - 1);
-
 	for(int i = 0; i < 100; i++)
 	{
 		// Test axisAngleGetR
@@ -891,9 +891,118 @@ void run_tests()
 		SO2 vec2(rot.R);
 		common::checkMatrices("v", "v.boxplus([0; 0; 1])", v, vec2.v);
 
-		// Jacobian tests for SO2, SO3, and EManifold
+		////////// Jacobian tests for Manifold Elements ////////////
+		// SO3
+		common::fill_rnd(w, dist, rng);
+		axisAngleGetR(w, R);
+		rot = SO3(R);
+		for(int i = 0; i < 3; i++)
+		{
+			Matrix3d deriv, deriv_num;
 
-		// Jacobian tests for Algebraic, Single Image, and Sampson cost functions
+			// Analytical derivative
+			rot.derivative(i, deriv);
+
+			// Numerical derivative
+			numericalDerivative_i<3>([](const SO3& rot_so3) -> Matrix3d {
+					return rot_so3.R;
+				}, rot,	deriv_num, i);
+
+			// Check result
+			common::checkMatrices("SO3 deriv", "SO3 deriv_num", deriv, deriv_num, i);
+		}
+
+		// SO2
+		common::fill_rnd(w, dist, rng);
+		axisAngleGetR(w, R);
+		vec = SO2(R);
+		for(int i = 0; i < 2; i++)
+		{
+			Vector3d deriv, deriv_num;
+
+			// Analytical derivative
+			vec.derivative(i, deriv);
+
+			// Numerical derivative
+			numericalDerivative_i<2>([](const SO2& vec_so2) -> Vector3d {
+					return vec_so2.v;
+				}, vec,	deriv_num, i);
+
+			// Check result
+			common::checkMatrices("SO2 deriv", "SO2 deriv_num", deriv, deriv_num, i);
+		}
+
+		// EManifold
+		common::fill_rnd(w1, dist, rng);
+		common::fill_rnd(w2, dist, rng);
+		axisAngleGetR(w1, R1);
+		axisAngleGetR(w2, R2);
+		EManifold eManifold = EManifold(R1, R2);
+		for(int i = 0; i < 5; i++)
+		{
+			Matrix3d deriv, deriv_num;
+
+			// Analytical derivative
+			eManifold.derivative(i, deriv);
+
+			// Numerical derivative
+			numericalDerivative_i<5>([](const EManifold& e_manifold) -> Matrix3d {
+					return e_manifold.E;
+				}, eManifold, deriv_num, i);
+
+			// Check result
+			common::checkMatrices("SO2 deriv", "SO2 deriv_num", deriv, deriv_num, i);
+		}
+
+		////////// Jacobian tests for Cost Functions ////////////
+		common::scan_t pts1;
+		common::scan_t pts2;
+		const int N_PTS = 1;
+		for(int i = 0; i < N_PTS; i++)
+		{
+			Vector2d pt1;
+			Vector2d pt2;
+			common::fill_rnd(pt1, dist, rng);
+			common::fill_rnd(pt2, dist, rng);
+			pts1.push_back(pt1);
+			pts2.push_back(pt2);
+		}
+		vector<shared_ptr<DifferentiableResidual>> cost_functions;
+		cost_functions.push_back(DifferentiableResidual::from_enum(cost_algebraic));
+		cost_functions.push_back(DifferentiableResidual::from_enum(cost_single));
+		cost_functions.push_back(DifferentiableResidual::from_enum(cost_sampson));
+		vector<string> cost_function_names = {"Algebraic", "Sampson", "Single"};
+		for(int i = 0; i < cost_functions.size(); i++)
+		{
+			shared_ptr<DifferentiableResidual> cost_function = cost_functions[i];
+			string name = cost_function_names[i];
+			Matrix<double, N_PTS, 5> J, J_num;
+			Matrix<double, N_PTS, 1> err;
+			Matrix<double, N_PTS, 1> err2;
+			Matrix<double, N_PTS, 1> err_sqr;
+			Map<VectorXd> err_map = Map<VectorXd>(err.data(), N_PTS, 1);
+			Map<VectorXd> err2_map = Map<VectorXd>(err2.data(), N_PTS, 1);
+			Map<VectorXd> err_sqr_map = Map<VectorXd>(err_sqr.data(), N_PTS, 1);
+			Map<MatrixXd> J_map = Map<MatrixXd>(J.data(), N_PTS, 5);
+
+			// Analytical derivative
+			cost_function->residual(pts1, pts2, eManifold, err_map);
+			cost_function->residual_sqr(pts1, pts2, eManifold, err2_map);
+			cost_function->residual_diff(pts1, pts2, eManifold, err_sqr_map, J_map);
+
+			// Numerical derivative
+			numericalDerivative([&](const EManifold& e_manifold) -> Matrix<double, N_PTS, 1> {
+					Matrix<double, N_PTS, 1> err;
+					Map<VectorXd> err_map = Map<VectorXd>(err.data(), N_PTS);
+					cost_function->residual(pts1, pts2, e_manifold, err_map);
+					return err;
+				}, eManifold, J_num);
+
+			// Check result
+			common::checkMatrices(name + "_err", name + "_err2", err, err2);
+			common::checkMatrices(name + "_err^2", name + "err_sqr", err.array().square().matrix(), err_sqr);
+			common::checkMatrices(name + "_J", name + "_J_Num", J, J_num);
+		}
 	}
 }
 

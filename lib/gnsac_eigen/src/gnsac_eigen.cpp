@@ -150,11 +150,17 @@ EManifold::EManifold(const Eigen::Matrix3d& _R, const Eigen::Vector3d& _t) : rot
 
 EManifold& EManifold::operator= (const EManifold& other)
 {
+	release_assert(R.data() == rot.R.data());
+	release_assert(TR.data() == vec.R.data());
+
 	if(&other == this)
 		return *this;
 	E = other.E;
 	rot = other.rot;
 	vec = other.vec;
+
+	release_assert(other.R.data() == other.rot.R.data());
+	release_assert(other.TR.data() == other.vec.R.data());
 	return *this;
 }
 
@@ -186,6 +192,10 @@ void EManifold::boxplus(const Matrix<double, 5, 1>& delta, EManifold& result) co
 	common::write_log(common::log_test5, (char*)result.rot.R.data(), sizeof(double)*3*3);
 	common::write_log(common::log_test6, (char*)result.vec.R.data(), sizeof(double)*3*3);
 	common::write_log(common::log_test7, (char*)result.vec.v.data(), sizeof(double)*3*1);
+	release_assert(R.data() == rot.R.data());
+	release_assert(TR.data() == vec.R.data());
+	release_assert(result.R.data() == result.rot.R.data());
+	release_assert(result.TR.data() == result.vec.R.data());
 
 	rot.boxplus(delta.head(3), result.rot);
 	vec.boxplus(delta.tail(2), result.vec);
@@ -202,6 +212,9 @@ void EManifold::boxplus(const Matrix<double, 5, 1>& delta, EManifold& result) co
 
 void EManifold::updateE()
 {
+	release_assert(R.data() == rot.R.data());
+	release_assert(TR.data() == vec.R.data());
+
 	//E = Tx*R;
 	Matrix3d Tx;
 	skew(t, Tx);

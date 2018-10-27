@@ -98,7 +98,7 @@ void run_test(string video_str, string solver_str, int frames)
 
 int main(int argc, char *argv[])
 {
-	gnsac_eigen::run_optimizer_tests();
+	gnsac_eigen::run_tests();
 
 	// Get rid of first arg (executable name)
 	argc--; argv++;

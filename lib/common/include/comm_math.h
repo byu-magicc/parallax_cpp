@@ -19,9 +19,9 @@ void fill_rnd(Eigen::MatrixBase<T>& A, T2 dist, std::default_random_engine& rng)
 			A(i, j) = dist(rng);
 }
 
-void printMatricesComp(std::string s, const Eigen::MatrixXd A1, const Eigen::MatrixXd A2, float eps = 1e-4, int sfAfter = 4, int sfBefore = 5);
+void printMatricesComp(std::string s, const Eigen::MatrixXd A1, const Eigen::MatrixXd A2, float eps = 1e-6, int sfAfter = 4, int sfBefore = 5);
 
-void checkMatrices(std::string s1, std::string s2, const Eigen::MatrixXd A1, const Eigen::MatrixXd A2, int dir = -1, float eps = 1e-4, int sfAfter = 4, int sfBefore = 5, bool block = true);
+void checkMatrices(std::string s1, std::string s2, const Eigen::MatrixXd A1, const Eigen::MatrixXd A2, int dir = -1, float eps = 1e-6, int sfAfter = 4, int sfBefore = 5, bool block = true);
 
 Eigen::Matrix3d skew(Eigen::Vector3d v);
 

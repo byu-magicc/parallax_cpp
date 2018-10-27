@@ -297,7 +297,6 @@ void AlgebraicResidual::residual_diff(const common::scan_t& pts1, const common::
 		Vector3d E_x1 = E * x1;
 		double x2t_E_x1 = x2.dot(E_x1);
 		err(i) = x2t_E_x1;
-
 		for(int j = 0; j < 5; j++)
 		{
 			Vector3d dE_x1 = deltaE[j] * x1;
@@ -316,31 +315,36 @@ SingleImageResidual::SingleImageResidual()
 
 void SingleImageResidual::residual(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& eManifold, Map<VectorXd>& err)
 {
+	const Matrix3d& E = eManifold.E;
 	for(int i = 0; i < pts1.size(); i++)
 	{
 		Vector3d x1, x2;
 		x1 << pts1[i](0), pts1[i](1), 1;
 		x2 << pts2[i](0), pts2[i](1), 1;
-		Vector3d E_x1 = eManifold.E * x1;
+		Vector3d E_x1 = E * x1;
 		double x2t_E_x1 = x2.dot(E_x1);
-		double a = E_x1(0) * E_x1(0);
-		double b = E_x1(1) * E_x1(1);
-		err(i) = x2t_E_x1 / sqrt(a + b);
+		double a = E_x1(0);
+		double b = E_x1(1);
+		double sum = a*a + b*b;
+		double sqrt_sum = sqrt(sum);
+		err(i) = x2t_E_x1 / sqrt_sum;
 	}
 }
 
 void SingleImageResidual::residual_sqr(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& eManifold, Map<VectorXd>& err)
 {
+	const Matrix3d& E = eManifold.E;
 	for(int i = 0; i < pts1.size(); i++)
 	{
 		Vector3d x1, x2;
 		x1 << pts1[i](0), pts1[i](1), 1;
 		x2 << pts2[i](0), pts2[i](1), 1;
-		Vector3d E_x1 = eManifold.E * x1;
+		Vector3d E_x1 = E * x1;
 		double x2t_E_x1 = x2.dot(E_x1);
-		double a = E_x1(0) * E_x1(0);
-		double b = E_x1(1) * E_x1(1);
-		err(i) = x2t_E_x1 * x2t_E_x1 / (a + b);
+		double a = E_x1(0);
+		double b = E_x1(1);
+		double sum = a*a + b*b;
+		err(i) = x2t_E_x1 * x2t_E_x1 / sum;
 	}
 }
 
@@ -357,24 +361,23 @@ void SingleImageResidual::residual_diff(const common::scan_t& pts1, const common
 		x2 << pts2[i](0), pts2[i](1), 1;
 		Vector3d E_x1 = E * x1;
 		double x2t_E_x1 = x2.dot(E_x1);
-
-		double a1 = E_x1(0) * E_x1(0);
-		double a2 = E_x1(1) * E_x1(1);
-		double a = a1 + a2;
-		err(i) = x2t_E_x1 / sqrt(a);
-				
+		double a = E_x1(0);
+		double b = E_x1(1);
+		double sum = a*a + b*b;
+		double sqrt_sum = sqrt(sum);
+		err(i) = x2t_E_x1 / sqrt_sum;
 		for(int j = 0; j < 5; j++)
 		{
+			// Observe that the bottom part of the fraction is a scalar, so we can take the derivative using the quotient rule
 			Vector3d dE_x1 = deltaE[j] * x1;
-			Vector3d dEt_x2 = deltaE[j].transpose() * x2;
 			double x2t_dE_x1 = x2.dot(dE_x1);
-
-			double d1 = E_x1(0) * dE_x1(0);
-			double d2 = E_x1(1) * dE_x1(1);
-			double d = d1 + d2;
-			jacobian(i, j) = (x2t_dE_x1 * sqrt(a) - x2t_E_x1 * d) / a;
+			double dA = dE_x1(0);
+			double dB = dE_x1(1);
+			double dSum = a*dA + b*dB;
+			jacobian(i, j) = (sqrt_sum * x2t_dE_x1 - x2t_E_x1 / sqrt_sum * dSum) / sum;
 		}
 	}
+
 }
 
 // Sampson Residual
@@ -385,43 +388,47 @@ SampsonResidual::SampsonResidual()
 
 void SampsonResidual::residual(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& eManifold, Map<VectorXd>& err)
 {
+	const Matrix3d& E = eManifold.E;
 	for(int i = 0; i < pts1.size(); i++)
 	{
 		Vector3d x1, x2;
 		x1 << pts1[i](0), pts1[i](1), 1;
 		x2 << pts2[i](0), pts2[i](1), 1;
-		Vector3d Ex1 = eManifold.E * x1;
-		Vector3d Etx2 = eManifold.E.transpose() * x2;
-		double x2tEx1 = x2.dot(Ex1);
-		double a = Ex1(0) * Ex1(0);
-		double b = Ex1(1) * Ex1(1);
-		double c = Etx2(0) * Etx2(0);
-		double d = Etx2(1) * Etx2(1);
-		err(i) = x2tEx1 / sqrt(a + b + c + d);
+		Vector3d E_x1 = E * x1;
+		Vector3d Et_x2 = E.transpose() * x2;
+		double x2t_E_x1 = x2.dot(E_x1);
+		double a = E_x1(0);
+		double b = E_x1(1);
+		double c = Et_x2(0);
+		double d = Et_x2(1);
+		double sum = a*a + b*b + c*c + d*d;
+		double sqrt_sum = sqrt(sum);
+		err(i) = x2t_E_x1 / sqrt_sum;
 	}
 }
 
 void SampsonResidual::residual_sqr(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& eManifold, Map<VectorXd>& err)
 {
+	const Matrix3d& E = eManifold.E;
 	for(int i = 0; i < pts1.size(); i++)
 	{
 		Vector3d x1, x2;
 		x1 << pts1[i](0), pts1[i](1), 1;
 		x2 << pts2[i](0), pts2[i](1), 1;
-		Vector3d Ex1 = eManifold.E * x1;
-		Vector3d Etx2 = eManifold.E.transpose() * x2;
-		double x2tEx1 = x2.dot(Ex1);
-		double a = Ex1(0) * Ex1(0);
-		double b = Ex1(1) * Ex1(1);
-		double c = Etx2(0) * Etx2(0);
-		double d = Etx2(1) * Etx2(1);
-		err(i) = x2tEx1 * x2tEx1 / (a + b + c + d);
+		Vector3d E_x1 = E * x1;
+		Vector3d Et_x2 = E.transpose() * x2;
+		double x2t_E_x1 = x2.dot(E_x1);
+		double a = E_x1(0);
+		double b = E_x1(1);
+		double c = Et_x2(0);
+		double d = Et_x2(1);
+		double sum = a*a + b*b + c*c + d*d;
+		err(i) = x2t_E_x1*x2t_E_x1 / sum;
 	}
 }
 
 void SampsonResidual::residual_diff(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& eManifold, Map<VectorXd>& err, Map<MatrixXd>& jacobian)
 {
-	residual(pts1, pts2, eManifold, err);
 	const Matrix3d& E = eManifold.E;
 	Matrix3d deltaE[5];
 	for(int j = 0; j < 5; j++)
@@ -434,26 +441,25 @@ void SampsonResidual::residual_diff(const common::scan_t& pts1, const common::sc
 		Vector3d E_x1 = E * x1;
 		Vector3d Et_x2 = E.transpose() * x2;
 		double x2t_E_x1 = x2.dot(E_x1);
-
-		double a1 = E_x1(0)  * E_x1(0);
-		double a2 = E_x1(1)  * E_x1(1);
-		double a3 = Et_x2(0) * Et_x2(0);
-		double a4 = Et_x2(1) * Et_x2(1);
-		double a = a1 + a2 + a3 + a4;
-		err(i) = x2t_E_x1 / sqrt(a);
-
+		double a = E_x1(0);
+		double b = E_x1(1);
+		double c = Et_x2(0);
+		double d = Et_x2(1);
+		double sum = a*a + b*b + c*c + d*d;
+		double sqrt_sum = sqrt(sum);
+		err(i) = x2t_E_x1 / sqrt_sum;
 		for(int j = 0; j < 5; j++)
 		{
+			// Observe that the bottom part of the fraction is a scalar, so we can take the derivative using the quotient rule
 			Vector3d dE_x1 = deltaE[j] * x1;
 			Vector3d dEt_x2 = deltaE[j].transpose() * x2;
 			double x2t_dE_x1 = x2.dot(dE_x1);
-
-			double d1 = E_x1(0)  * dE_x1(0);
-			double d2 = E_x1(1)  * dE_x1(1);
-			double d3 = Et_x2(0) * dEt_x2(0);
-			double d4 = Et_x2(1) * dEt_x2(1);
-			double d = d1 + d2 + d3 + d4;
-			jacobian(i, j) = (x2t_dE_x1 * sqrt(a) - x2t_E_x1 * d) / a;
+			double dA = dE_x1(0);
+			double dB = dE_x1(1);
+			double dC = dEt_x2(0);
+			double dD = dEt_x2(1);
+			double dSum = a*dA + b*dB + c*dC + d*dD;
+			jacobian(i, j) = (sqrt_sum * x2t_dE_x1 - x2t_E_x1 / sqrt_sum * dSum) / sum;
 		}
 	}
 }
@@ -843,8 +849,10 @@ void run_tests()
 {
 	std::default_random_engine rng(0);
 	std::normal_distribution<double> dist(0.0, 1.0);
-	for(int i = 0; i < 100; i++)
+	for(int ii = 0; ii < 100; ii++)
 	{
+		cout << "ii = " << ii << endl;
+
 		// Test axisAngleGetR
 		double theta = dist(rng);
 		Matrix3d R;
@@ -960,21 +968,17 @@ void run_tests()
 		const int N_PTS = 1;
 		for(int i = 0; i < N_PTS; i++)
 		{
-			Vector2d pt1;
-			Vector2d pt2;
+			Vector2d pt1, pt2;
 			common::fill_rnd(pt1, dist, rng);
 			common::fill_rnd(pt2, dist, rng);
-			pts1.push_back(pt1);
-			pts2.push_back(pt2);
+			pts1.push_back(unit(pt1));
+			pts2.push_back(unit(pt2));
 		}
-		vector<shared_ptr<DifferentiableResidual>> cost_functions;
-		cost_functions.push_back(DifferentiableResidual::from_enum(cost_algebraic));
-		cost_functions.push_back(DifferentiableResidual::from_enum(cost_single));
-		cost_functions.push_back(DifferentiableResidual::from_enum(cost_sampson));
-		vector<string> cost_function_names = {"Algebraic", "Sampson", "Single"};
+		vector<cost_function_t> cost_functions = {cost_algebraic, cost_single, cost_sampson};
+		vector<string> cost_function_names = {"Algebraic", "Single", "Sampson"};
 		for(int i = 0; i < cost_functions.size(); i++)
 		{
-			shared_ptr<DifferentiableResidual> cost_function = cost_functions[i];
+			shared_ptr<DifferentiableResidual> cost_function = DifferentiableResidual::from_enum(cost_functions[i]);
 			string name = cost_function_names[i];
 			Matrix<double, N_PTS, 5> J, J_num;
 			Matrix<double, N_PTS, 1> err;
@@ -1001,7 +1005,7 @@ void run_tests()
 			// Check result
 			common::checkMatrices(name + "_err", name + "_err2", err, err2);
 			common::checkMatrices(name + "_err^2", name + "err_sqr", err.array().square().matrix(), err_sqr);
-			common::checkMatrices(name + "_J", name + "_J_Num", J, J_num);
+			common::checkMatrices(name + "_J", name + "_J_Num", J, J_num, -1, 1e-5);
 		}
 	}
 }

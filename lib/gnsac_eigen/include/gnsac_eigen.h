@@ -138,27 +138,28 @@ public:
 template <typename _Function, typename _X, int _Rows, int _Cols>
 void numericalDerivative(_Function fcn, _X x, Eigen::Matrix<double, _Rows, _Cols>& J)
 {
-	double h = 1e-10;
-	Eigen::Matrix<double, _Rows, 1> fcn0 = fcn(x);
+	double h = 1e-8;
 	for(int i = 0; i < _Cols; i++)
 	{
 		Eigen::Matrix<double, _Cols, 1> dx = Eigen::Matrix<double, _Cols, 1>::Zero();
-		dx(i) = h;
-		_X x2;
+		dx(i) = h/2;
+		_X x1, x2;
+		x.boxplus(-dx, x1);
 		x.boxplus(dx, x2);
-		J.col(i) = (fcn(x2) - fcn0) / h;
+		J.col(i) = (fcn(x2) - fcn(x1)) / h;
 	}
 }
 
 template <int _InputRows, typename _Function, typename _X, int _Rows, int _Cols>
 void numericalDerivative_i(_Function fcn, _X x, Eigen::Matrix<double, _Rows, _Cols>& J, int i)
 {
-	double h = 1e-10;
+	double h = 1e-8;
 	Eigen::Matrix<double, _InputRows, 1> dx = Eigen::Matrix<double, _InputRows, 1>::Zero();
-	dx(i) = h;
-	_X x2;
+	dx(i) = h/2;
+	_X x1, x2;
+	x.boxplus(-dx, x1);
 	x.boxplus(dx, x2);
-	J = (fcn(x2) - fcn(x)) / h;
+	J = (fcn(x2) - fcn(x1)) / h;
 }
 
 ////////////////

@@ -167,6 +167,7 @@ public:
 	sequence_t pts1;
 	sequence_t pts2;
 	truth_t RT;
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 }

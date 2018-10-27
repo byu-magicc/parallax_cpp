@@ -346,7 +346,7 @@ double* common::get_cat_times_verbose()
 // Enum String //
 /////////////////
 
-int common::get_enum_from_string(string comma_separated_enums, string str)
+vector<string> common::get_enum_vector(string comma_separated_enums)
 {
 	// Tokenize the comma-separated enum names
 	string enums_names_no_spaces = replace(comma_separated_enums, " ", "");
@@ -361,7 +361,11 @@ int common::get_enum_from_string(string comma_separated_enums, string str)
 			item.nextToken('_');
 		enum_names_vector.push_back(item.str());
 	}
+	return enum_names_vector;
+}
 
+int common::get_enum_from_string(vector<string> enum_names_vector, string str)
+{
 	// Find the enum name that matches the input
 	for(int i = 0; i < enum_names_vector.size(); i++)
 	{

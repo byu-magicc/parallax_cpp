@@ -593,13 +593,13 @@ GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node, string result_
 	cout << "log_optimizer " << log_optimizer << endl;
 	cout << "log_comparison " << log_comparison << endl;
 
-	optimizer = (optimizer_t)common::get_enum_from_string(optimizer_t_str, optimizer_str);
-	optimizer_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, optimizer_cost_str);
-	scoring_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, scoring_cost_str);
-	scoring_impl = (implementation_t)common::get_enum_from_string(implementation_t_str, scoring_impl_str);
-	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
-	initial_guess_method = (initial_guess_t)common::get_enum_from_string(initial_guess_t_str, initial_guess_method_str);
-	pose_disambig_method = (pose_disambig_t)common::get_enum_from_string(pose_disambig_t_str, pose_disambig_str);
+	optimizer = (optimizer_t)common::get_enum_from_string(optimizer_t_vec, optimizer_str);
+	optimizer_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_vec, optimizer_cost_str);
+	scoring_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_vec, scoring_cost_str);
+	scoring_impl = (implementation_t)common::get_enum_from_string(implementation_t_vec, scoring_impl_str);
+	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_vec, consensus_alg_str);
+	initial_guess_method = (initial_guess_t)common::get_enum_from_string(initial_guess_t_vec, initial_guess_method_str);
+	pose_disambig_method = (pose_disambig_t)common::get_enum_from_string(pose_disambig_t_vec, pose_disambig_str);
 	
 	if(consensus_alg == consensus_RANSAC)
 		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);

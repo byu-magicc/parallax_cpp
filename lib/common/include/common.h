@@ -103,9 +103,11 @@ void print_eig(const char* s, Eigen::MatrixBase<T>& p, int sfAfter = 3, int sfBe
 }
 
 // Enum string and macro
-int get_enum_from_string(std::string comma_separated_enums, std::string str);
+std::vector<std::string> get_enum_vector(std::string comma_separated_enums);
 
-#define enum_str(name, str_name, ...) enum name {__VA_ARGS__}; const std::string str_name = #__VA_ARGS__;
+int get_enum_from_string(std::vector<std::string> enum_names_vector, std::string str);
+
+#define enum_str(name, vec_name, ...) enum name {__VA_ARGS__}; const std::vector<std::string> vec_name = common::get_enum_vector(#__VA_ARGS__);
 
 // Assert
 #define release_assert(expr) { if (!(expr)) common::release_error(#expr, __FILE__, __LINE__, __func__); }

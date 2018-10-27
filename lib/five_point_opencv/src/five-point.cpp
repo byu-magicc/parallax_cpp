@@ -554,7 +554,7 @@ five_point_opencv::FivePointSolver::FivePointSolver(string yaml_filename, YAML::
 	string consensus_alg_str;
 	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
 	common::get_yaml_node("n_subsets", yaml_filename, node, n_subsets);
-	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
+	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_vec, consensus_alg_str);
 	if(consensus_alg == consensus_RANSAC)
 		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
 	instance = this;

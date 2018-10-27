@@ -12,17 +12,17 @@
 namespace gnsac_eigen
 {
 
-enum_str(optimizer_t, optimizer_t_str, optimizer_GN, optimizer_LM)
+enum_str(optimizer_t, optimizer_t_vec, optimizer_GN, optimizer_LM)
 
-enum_str(cost_function_t, cost_function_t_str, cost_algebraic, cost_single, cost_sampson)
+enum_str(cost_function_t, cost_function_t_vec, cost_algebraic, cost_single, cost_sampson)
 
-enum_str(implementation_t, implementation_t_str, impl_eig, impl_ptr)
+enum_str(implementation_t, implementation_t_vec, impl_eig, impl_ptr)
 
-enum_str(consensus_t, consensus_t_str, consensus_RANSAC, consensus_LMEDS)
+enum_str(consensus_t, consensus_t_vec, consensus_RANSAC, consensus_LMEDS)
 
-enum_str(initial_guess_t, initial_guess_t_str, init_random, init_previous, init_truth)
+enum_str(initial_guess_t, initial_guess_t_vec, init_random, init_previous, init_truth)
 
-enum_str(pose_disambig_t, pose_disambig_t_str, disambig_none, disambig_chierality, disambig_trace)
+enum_str(pose_disambig_t, pose_disambig_t_vec, disambig_none, disambig_chierality, disambig_trace)
 
 const int MAX_PTS = 2000;
 
@@ -293,6 +293,8 @@ private:
 	std::ofstream comparison_gn_log_file;
 	Eigen::Matrix4d RT_truth;
 	EManifold prevResult;
+public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW	
 };
 
 void run_tests();

@@ -171,7 +171,7 @@ namespace five_point_opencv
 	CV_EXPORTS_W cv::Mat findEssentialMatPreempt(cv::InputArray points1, cv::InputArray points2, cv::InputArray cameraMatrix,
 		float threshold = 1.0, int n_iters = 200, int blocksize = 30, cv::OutputArray mask = cv::noArray());
 
-	enum_str(consensus_t, consensus_t_str, consensus_RANSAC, consensus_LMEDS)
+	enum_str(consensus_t, consensus_t_vec, consensus_RANSAC, consensus_LMEDS)
 
 	class FivePointSolver : public common::ESolver
 	{

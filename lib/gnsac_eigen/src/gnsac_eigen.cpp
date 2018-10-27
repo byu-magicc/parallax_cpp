@@ -682,7 +682,7 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::stri
 	// Optimizer cost
 	string optimizer_cost_str;
 	common::get_yaml_node("optimizer_cost", yaml_filename, node, optimizer_cost_str);
-	cost_function_t opt_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, optimizer_cost_str);
+	cost_function_t opt_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_vec, optimizer_cost_str);
 	optimizerCost = DifferentiableResidual::from_enum(opt_cost);
 
 	// Optimizer
@@ -692,7 +692,7 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::stri
 	common::get_yaml_node("optimizer", yaml_filename, node, optimizer_str);
 	common::get_yaml_node("max_iterations", yaml_filename, node, maxIterations);
 	common::get_yaml_node("exit_tolerance", yaml_filename, node, exitTolerance);
-	optimizer_t optim = (optimizer_t)common::get_enum_from_string(optimizer_t_str, optimizer_str);
+	optimizer_t optim = (optimizer_t)common::get_enum_from_string(optimizer_t_vec, optimizer_str);
 	if(optim == optimizer_GN)
 		optimizer = make_shared<GaussNewton>(optimizerCost, maxIterations, exitTolerance);
 	else if(optim == optimizer_LM)
@@ -710,7 +710,7 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::stri
 	// Consensus cost
 	string scoring_cost_str;
 	common::get_yaml_node("scoring_cost", yaml_filename, node, scoring_cost_str);
-	cost_function_t score_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_str, scoring_cost_str);
+	cost_function_t score_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_vec, scoring_cost_str);
 	scoringCost = DifferentiableResidual::from_enum(score_cost);
 
 	// Consensus Algorithm
@@ -720,7 +720,7 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::stri
 	common::get_yaml_node("n_subsets", yaml_filename, node, n_subsets);
 	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
 	common::get_yaml_node("consensus_seed_best", yaml_filename, node, consensus_seed_best);
-	consensus_t consen_alg = (consensus_t)common::get_enum_from_string(consensus_t_str, consensus_alg_str);
+	consensus_t consen_alg = (consensus_t)common::get_enum_from_string(consensus_t_vec, consensus_alg_str);
 	if(consen_alg == consensus_RANSAC)
 	{
 		double RANSAC_threshold;
@@ -741,8 +741,8 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::stri
 	common::get_yaml_node("pose_disambig", yaml_filename, node, pose_disambig_str);
 	common::get_yaml_node("log_optimizer", yaml_filename, node, log_optimizer);
 	common::get_yaml_node("log_comparison", yaml_filename, node, log_comparison);
-	initialGuessMethod = (initial_guess_t)common::get_enum_from_string(initial_guess_t_str, initial_guess_method_str);
-	poseDisambigMethod = (pose_disambig_t)common::get_enum_from_string(pose_disambig_t_str, pose_disambig_str);
+	initialGuessMethod = (initial_guess_t)common::get_enum_from_string(initial_guess_t_vec, initial_guess_method_str);
+	poseDisambigMethod = (pose_disambig_t)common::get_enum_from_string(pose_disambig_t_vec, pose_disambig_str);
 	if(log_optimizer)
 	{
 		common::get_yaml_node("log_optimizer_verbose", yaml_filename, node, log_optimizer_verbose);

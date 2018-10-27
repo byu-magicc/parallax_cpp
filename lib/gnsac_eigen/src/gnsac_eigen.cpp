@@ -132,17 +132,17 @@ void SO2::derivative(int i, Vector3d& result) const
 	result = (genR * R).transpose().col(2);
 }
 
-EManifold::EManifold() : rot(), vec(), R(rot.R.data()), TR(vec.R.data()), t(vec.v)
+EManifold::EManifold() : rot(), vec(), R(rot.R.data()), TR(vec.R.data()), t(vec.R.data() + 2)
 {
 	updateE();
 }
 
-EManifold::EManifold(const Eigen::Matrix3d& _R, const Eigen::Matrix3d& _TR) : rot(_R), vec(_TR), R(rot.R.data()), TR(vec.R.data()), t(vec.v)
+EManifold::EManifold(const Eigen::Matrix3d& _R, const Eigen::Matrix3d& _TR) : rot(_R), vec(_TR), R(rot.R.data()), TR(vec.R.data()), t(vec.R.data() + 2)
 {
 	updateE();
 }
 
-EManifold::EManifold(const Eigen::Matrix3d& _R, const Eigen::Vector3d& _t) : rot(_R), vec(_t), R(rot.R.data()), TR(vec.R.data()), t(vec.v)
+EManifold::EManifold(const Eigen::Matrix3d& _R, const Eigen::Vector3d& _t) : rot(_R), vec(_t), R(rot.R.data()), TR(vec.R.data()), t(vec.R.data() + 2)
 {
 	updateE();
 }
@@ -206,7 +206,7 @@ void EManifold::derivative(int i, Matrix3d& result) const
 	{
 		// deltaE = skew(derivTR)*R;
 		Vector3d derivT;
-		vec.derivative(i, derivT);
+		vec.derivative(i - 3, derivT);
 		Matrix3d derivT_skew;
 		skew(derivT, derivT_skew);
 		result = derivT_skew * R;
@@ -987,8 +987,8 @@ void run_tests()
 
 			// Analytical derivative
 			cost_function->residual(pts1, pts2, eManifold, err_map);
-			cost_function->residual_sqr(pts1, pts2, eManifold, err2_map);
-			cost_function->residual_diff(pts1, pts2, eManifold, err_sqr_map, J_map);
+			cost_function->residual_sqr(pts1, pts2, eManifold, err_sqr_map);
+			cost_function->residual_diff(pts1, pts2, eManifold, err2_map, J_map);
 
 			// Numerical derivative
 			numericalDerivative([&](const EManifold& e_manifold) -> Matrix<double, N_PTS, 1> {

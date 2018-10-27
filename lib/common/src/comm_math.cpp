@@ -58,9 +58,9 @@ void common::checkMatrices(string s1, string s2, const MatrixXd A1, const Matrix
 	if(block)
 	{
 		if(dir != -1)
-			printf(RED_TEXT "Error: Matrix comparison failed in direction %d.\n" BLACK_TEXT, dir);
+			printf(RED_TEXT "Error: Matrix comparison failed in direction %d." BLACK_TEXT "\n", dir);
 		else
-			printf(RED_TEXT "Error: Matrix comparison failed.\n" BLACK_TEXT);
+			printf(RED_TEXT "Error: Matrix comparison failed." BLACK_TEXT "\n");
 	}
 
 	// If the arrays are not equal, print them both out

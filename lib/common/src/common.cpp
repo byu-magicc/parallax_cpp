@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 #include <cstdarg>
+#include <yaml-cpp/yaml.h>
+#include <experimental/filesystem>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -17,6 +19,8 @@
 
 using namespace std;
 using namespace Eigen;
+namespace fs = std::experimental::filesystem;
+
 
 ///////////////////////
 // String Formatting //
@@ -384,6 +388,46 @@ int common::get_enum_from_string(vector<string> enum_names_vector, string str)
 	}
 	cout << str << " is not a valid option. Valid options are {" << options << "}" << endl;
 	exit(EXIT_FAILURE);
+}
+
+
+/////////////
+// Logging //
+/////////////
+
+std::vector<std::ofstream> log_files(common::log_t_vec.size());
+
+void common::init_logs(string yaml_filename, string result_directory)
+{
+	YAML::Node node = YAML::LoadFile(yaml_filename);
+	for(int i = 0; i < log_t_vec.size(); i++)
+	{
+		string log_name = log_t_vec[i];
+		string log_param = "log_" + log_name;
+		if (node[log_param] && node[log_param].as<bool>())
+		{
+			log_files[i].open(fs::path(result_directory) / (log_name + ".bin"));
+			cout << "Opening log file " << (fs::path(result_directory) / (log_name + ".bin")) << endl;
+		}
+		else
+		{
+			cout << "Key " << log_param << " not found, or set to false." << endl;
+		}
+	}
+}
+
+void common::write_log(log_t log_id, const char* s, int n)
+{
+	int i = (int)log_id;
+	assert(i >= 0 && i < log_files.size());
+	log_files[i].write(s, n);
+}
+
+void common::close_logs()
+{
+	for(int i = 0; i < log_t_vec.size(); i++)
+		if (log_files[i].is_open())
+			log_files[i].close();
 }
 
 ////////////////////////////////////////////

@@ -1015,10 +1015,7 @@ void run_jacobian_tests()
 
 void run_optimizer_tests()
 {
-	ofstream Pts_log_file, pts_log_file;
-	Pts_log_file.open("../logs/pts_world.bin");
-	pts_log_file.open("../logs/pts_camera.bin");
-	
+	common::init_logs("../params/solvers/gn_eigen.yaml", "../logs/test");	
 	std::default_random_engine rng(0);
 	std::normal_distribution<double> dist(0.0, 1.0);
 
@@ -1033,7 +1030,7 @@ void run_optimizer_tests()
 		common::fill_rnd(pt, dist, rng);
 		Pts.push_back(unit(pt));
 	}
-	Pts_log_file.write((char*)&Pts[0], sizeof(double) * 3 * n_pts);
+	common::write_log(common::log_pts_world, (char*)&Pts[0], sizeof(double) * 3 * n_pts);
 
 	// Place the camera 2 units away from the center of the sphere, so that the maximum
 	// FOV angle is approx 45 degrees.
@@ -1122,8 +1119,8 @@ void run_optimizer_tests()
 		release_assert(fabs(pts2[i](0)) < 1);
 		release_assert(fabs(pts2[i](1)) < 1);
 	}
-	pts_log_file.write((char*)&pts1[0], sizeof(double) * 2 * n_pts);
-	pts_log_file.write((char*)&pts2[0], sizeof(double) * 2 * n_pts);
+	common::write_log(common::log_pts_camera, (char*)&pts1[0], sizeof(double) * 2 * n_pts);
+	common::write_log(common::log_pts_camera, (char*)&pts2[0], sizeof(double) * 2 * n_pts);
 
 	// Run optimizers!
 	double maxIterations = 20;
@@ -1179,8 +1176,7 @@ void run_optimizer_tests()
 			printf("\n");				
 		}
 	}
-	pts_log_file.close();
-	Pts_log_file.close();
+	common::close_logs();
 	exit(EXIT_FAILURE);
 }
 

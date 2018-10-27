@@ -12,3 +12,5 @@ initial_guess: previous
 log_optimizer: false
 log_comparison: false
 pose_disambig: trace
+log_pts_world: true
+log_pts_camera: true

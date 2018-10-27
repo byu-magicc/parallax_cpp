@@ -109,6 +109,15 @@ int get_enum_from_string(std::vector<std::string> enum_names_vector, std::string
 
 #define enum_str(name, vec_name, ...) enum name {__VA_ARGS__}; const std::vector<std::string> vec_name = common::get_enum_vector(#__VA_ARGS__);
 
+// Logging
+enum_str(log_t, log_t_vec, log_pts_world, log_pts_camera)
+
+void init_logs(std::string yaml_filename, std::string result_directory);
+
+void write_log(log_t log_id, const char* s, int n);
+
+void close_logs();
+
 // Assert
 #define release_assert(expr) { if (!(expr)) common::release_error(#expr, __FILE__, __LINE__, __func__); }
 

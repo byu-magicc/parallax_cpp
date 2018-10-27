@@ -1,6 +1,6 @@
 n_pts = 50;
-pts_world = read_binary('../logs/pts_world.bin', [3, n_pts]);
-pts_camera_nip = read_binary('../logs/pts_camera.bin', [2, n_pts, 2]);
+pts_world = read_binary('../logs/test/pts_world.bin', [3, n_pts]);
+pts_camera_nip = read_binary('../logs/test/pts_camera.bin', [2, n_pts, 2]);
 pts1 = pts_camera_nip(:, :, 1);
 pts2 = pts_camera_nip(:, :, 2);
 subplot(221);

@@ -396,6 +396,7 @@ int common::get_enum_from_string(vector<string> enum_names_vector, string str)
 /////////////
 
 std::vector<std::ofstream> log_files(common::log_t_vec.size());
+std::vector<bool> logs_enabled(common::log_t_vec.size(), false);
 
 void common::init_logs(string yaml_filename, string result_directory)
 {
@@ -406,8 +407,13 @@ void common::init_logs(string yaml_filename, string result_directory)
 		string log_param = "log_" + log_name;
 		if (node[log_param] && node[log_param].as<bool>())
 		{
-			log_files[i].open(fs::path(result_directory) / (log_name + ".bin"));
-			cout << "Opening log file " << (fs::path(result_directory) / (log_name + ".bin")) << endl;
+			string log_filename = fs::path(result_directory) / (log_name + ".bin");
+			cout << "Opening log file " << log_filename << endl;
+			log_files[i].open(log_filename);
+			if(log_files[i].is_open())
+				logs_enabled[i] = true;
+			else
+				cout << "Error opening log file " << log_filename << endl;
 		}
 		else
 		{
@@ -420,7 +426,8 @@ void common::write_log(log_t log_id, const char* s, int n)
 {
 	int i = (int)log_id;
 	assert(i >= 0 && i < log_files.size());
-	log_files[i].write(s, n);
+	if(logs_enabled[i])
+		log_files[i].write(s, n);
 }
 
 void common::close_logs()

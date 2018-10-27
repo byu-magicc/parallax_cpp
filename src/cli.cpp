@@ -2,6 +2,7 @@
 #include <iostream>
 #include "gnsac_ptr_eig.h"
 #include "gnsac_ptr_ocv.h"
+#include "gnsac_eigen.h"
 #include "common.h"
 #include <vector>
 #include <fstream>
@@ -56,10 +57,7 @@ void run_test(string video_str, string solver_str, int frames)
 	std::normal_distribution<double> dist(0.0, 1.0);
 
 	// Open log files
-	std::ofstream accuracy_log_file, timing_log_file, timing_verbose_log_file;
-	accuracy_log_file.open(fs::path(result_directory) / "accuracy.bin");
-	timing_log_file.open(fs::path(result_directory) / "timing.bin");
-	timing_verbose_log_file.open(fs::path(result_directory) / "timing_verbose.bin");
+	common::init_logs(result_directory, solver_yaml);
 
 	// Loop for all points
 	if (frames == -1)
@@ -81,10 +79,10 @@ void run_test(string video_str, string solver_str, int frames)
 		EHypothesis result;
 		solver->find_best_hypothesis(pts1, pts2, video_data.RT[frame], result);
 		timeMeasurement time_E = toc("FindE", 1, 2, false);
-		timing_log_file.write((char*)get_cat_times(), sizeof(double) * TIME_CATS_COUNT);
-		timing_log_file.write((char*)&time_E.actualTime, sizeof(double));
-		timing_verbose_log_file.write((char*)get_cat_times_verbose(), sizeof(double) * TIME_CATS_VERBOSE_COUNT);
-		timing_verbose_log_file.write((char*)&time_E.actualTime, sizeof(double));
+		common::write_log(common::log_timing, (char*)get_cat_times(), sizeof(double) * TIME_CATS_COUNT);
+		common::write_log(common::log_timing, (char*)&time_E.actualTime, sizeof(double));
+		common::write_log(common::log_timing_verbose, (char*)get_cat_times_verbose(), sizeof(double) * TIME_CATS_VERBOSE_COUNT);
+		common::write_log(common::log_timing_verbose, (char*)&time_E.actualTime, sizeof(double));
 
 		// Calculate error to truth essential matrix.
 		Vector4d err;
@@ -92,15 +90,16 @@ void run_test(string video_str, string solver_str, int frames)
 			err = common::err_truth(result.R, result.t, video_data.RT[frame]);
 		else
 			err = common::err_truth(result.E, video_data.RT[frame]);
-		accuracy_log_file.write((char*)err.data(), sizeof(double) * 4);
+		common::write_log(common::log_accuracy, (char*)err.data(), sizeof(double) * 4);
 		common::progress(frame + 1, frames);
 	}
-	accuracy_log_file.close();
-	timing_log_file.close();
+	common::close_logs();
 }
 
 int main(int argc, char *argv[])
 {
+	gnsac_eigen::run_optimizer_tests();
+
 	// Get rid of first arg (executable name)
 	argc--; argv++;
 

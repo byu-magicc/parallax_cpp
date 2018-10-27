@@ -9,8 +9,19 @@ consensus_seed_best: true
 max_iterations: 10
 exit_tolerance: 0.000001
 initial_guess: previous
-log_optimizer: false
-log_comparison: false
 pose_disambig: trace
-log_pts_world: true
-log_pts_camera: true
+log_optimizer: true
+log_comparison: false
+log_unit_test_pts_world: true
+log_unit_test_pts_camera: true
+log_test1: true
+log_test2: true
+log_test3: true
+log_test4: true
+log_test5: true
+log_test6: true
+log_test7: true
+log_test8: true
+log_test9: true
+log_test10: true
+

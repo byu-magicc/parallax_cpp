@@ -179,9 +179,25 @@ void EManifold::setTR(Matrix3d TR)
 
 void EManifold::boxplus(const Matrix<double, 5, 1>& delta, EManifold& result) const
 {
+	common::write_log(common::log_test1, (char*)result.E.data(), sizeof(double)*3*3);
+	common::write_log(common::log_test2, (char*)result.R.data(), sizeof(double)*3*3);
+	common::write_log(common::log_test3, (char*)result.t.data(), sizeof(double)*3*1);
+	common::write_log(common::log_test4, (char*)result.TR.data(), sizeof(double)*3*3);
+	common::write_log(common::log_test5, (char*)result.rot.R.data(), sizeof(double)*3*3);
+	common::write_log(common::log_test6, (char*)result.vec.R.data(), sizeof(double)*3*3);
+	common::write_log(common::log_test7, (char*)result.vec.v.data(), sizeof(double)*3*1);
+
 	rot.boxplus(delta.head(3), result.rot);
 	vec.boxplus(delta.tail(2), result.vec);
 	result.updateE();
+
+	common::write_log(common::log_test1, (char*)result.E.data(), sizeof(double)*3*3);
+	common::write_log(common::log_test2, (char*)result.R.data(), sizeof(double)*3*3);
+	common::write_log(common::log_test3, (char*)result.t.data(), sizeof(double)*3*1);
+	common::write_log(common::log_test4, (char*)result.TR.data(), sizeof(double)*3*3);
+	common::write_log(common::log_test5, (char*)result.rot.R.data(), sizeof(double)*3*3);
+	common::write_log(common::log_test6, (char*)result.vec.R.data(), sizeof(double)*3*3);
+	common::write_log(common::log_test7, (char*)result.vec.v.data(), sizeof(double)*3*1);
 }
 
 void EManifold::updateE()
@@ -494,6 +510,16 @@ void GaussNewton::optimize(const common::scan_t& pts1, const common::scan_t& pts
 		residual_fcn->residual(pts1, pts2, result, r);
 		double residual_norm = r.norm();
 		double dx_norm = dx.norm();
+
+		time_cat(common::TimeCatNone);
+		double lambda = -1;
+		int attempts = -1;
+		common::write_log(common::log_optimizer, (char*)&residual_norm, sizeof(double));
+		common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
+		common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
+		common::write_log(common::log_optimizer, (char*)&attempts, sizeof(double));
+		time_cat(common::TimeCatHypoGen);
+
 		if (residual_norm < exitTolerance)
 			break;
 	}
@@ -556,6 +582,13 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 			}
 		}
 		double dx_norm = dx.norm();
+
+		common::write_log(common::log_optimizer, (char*)&r_norm, sizeof(double));
+		common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
+		common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
+		common::write_log(common::log_optimizer, (char*)&attempts, sizeof(double));
+		time_cat(common::TimeCatHypoGen);
+
 		if (r_norm < exitTolerance)
 			break;
 	}
@@ -1030,7 +1063,7 @@ void run_optimizer_tests()
 		common::fill_rnd(pt, dist, rng);
 		Pts.push_back(unit(pt));
 	}
-	common::write_log(common::log_pts_world, (char*)&Pts[0], sizeof(double) * 3 * n_pts);
+	common::write_log(common::log_unit_test_pts_world, (char*)&Pts[0], sizeof(double) * 3 * n_pts);
 
 	// Place the camera 2 units away from the center of the sphere, so that the maximum
 	// FOV angle is approx 45 degrees.
@@ -1108,8 +1141,9 @@ void run_optimizer_tests()
 	// Project world points into the camera frame (normalized image plane)
 	vector<float> dist1, dist2;
 	common::scan_t pts1, pts2;
-	common::project_points(Pts, pts1, dist1, RT_1_0);
-	common::project_points(Pts, pts2, dist2, RT_2_0);
+	Matrix3d cameraMatrixNone = Matrix3d::Identity();
+	common::project_points(Pts, pts1, dist1, RT_1_0, cameraMatrixNone);
+	common::project_points(Pts, pts2, dist2, RT_2_0, cameraMatrixNone);
 	for(int i = 0; i < n_pts; i++)
 	{
 		release_assert(dist1[i] > 0);
@@ -1119,8 +1153,8 @@ void run_optimizer_tests()
 		release_assert(fabs(pts2[i](0)) < 1);
 		release_assert(fabs(pts2[i](1)) < 1);
 	}
-	common::write_log(common::log_pts_camera, (char*)&pts1[0], sizeof(double) * 2 * n_pts);
-	common::write_log(common::log_pts_camera, (char*)&pts2[0], sizeof(double) * 2 * n_pts);
+	common::write_log(common::log_unit_test_pts_camera, (char*)&pts1[0], sizeof(double) * 2 * n_pts);
+	common::write_log(common::log_unit_test_pts_camera, (char*)&pts2[0], sizeof(double) * 2 * n_pts);
 
 	// Run optimizers!
 	double maxIterations = 20;

@@ -758,10 +758,10 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 	if(log_optimizer && (last_iteration || log_optimizer_verbose))
 	{
 		time_cat(common::TimeCatNone);
-		optimizer_log_file.write((char*)&r_norm, sizeof(double));
-		optimizer_log_file.write((char*)&delta_norm, sizeof(double));
-		optimizer_log_file.write((char*)&lambda, sizeof(double));
-		optimizer_log_file.write((char*)&LM_attempts, sizeof(double));
+		common::write_log(common::log_optimizer, (char*)&r_norm, sizeof(double));
+		common::write_log(common::log_optimizer, (char*)&delta_norm, sizeof(double));
+		common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
+		common::write_log(common::log_optimizer, (char*)&LM_attempts, sizeof(double));
 		time_cat(common::TimeCatHypoGen);
 	}
 	if(log_comparison && last_iteration && pts1.size() == 5)
@@ -779,7 +779,7 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 		for(int i = 0; i < n_hypotheses_5P; i++)
 			mean_err[i] = common::sampson_err(hypotheses_5P[i], pts1, pts2)[1];
 		mean_err[10] = common::sampson_err(h2.E_map, pts1, pts2)[1];
-		accuracy_log_file.write((char*)&mean_err[0], sizeof(double) * 11);
+		common::write_log(common::log_comparison_accuracy, (char*)&mean_err[0], sizeof(double) * 11);
 
 		// Find out which 5-point E is closest to the truth and which is closest to GN.
 		Vector4d vec4_none;
@@ -794,8 +794,8 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 			dist_GN[i] = common::dist_E(hypotheses_5P[i], h2.E_map);
 		}
 		dist_truth[10] = common::err_truth(h2.E_map, RT_truth);
-		comparison_tr_log_file.write((char*)&dist_truth[0], sizeof(double) * 11 * 4);
-		comparison_gn_log_file.write((char*)&dist_GN[0], sizeof(double) * 10 * 2);
+		common::write_log(common::log_comparison_tr, (char*)&dist_truth[0], sizeof(double) * 11 * 4);
+		common::write_log(common::log_comparison_gn, (char*)&dist_GN[0], sizeof(double) * 10 * 2);
 		time_cat(common::TimeCatHypoGen);
 	}	
 	return r_norm;

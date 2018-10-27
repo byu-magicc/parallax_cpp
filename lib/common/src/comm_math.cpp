@@ -273,7 +273,7 @@ Vector2d common::dist_E(const Matrix3d& E1, const Matrix3d& E2)
 	return err;
 }
 
-void common::undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d camera_matrix)
+void common::undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d& camera_matrix)
 {
 	// Note: We aren't inverting actually the actual camera matrix. We assume 
 	// the camera matrix is formatted as expected:
@@ -289,7 +289,7 @@ void common::undistort_points(const scan_t& pts, scan_t& pts_u, Matrix3d camera_
 		pts_u[i] << (pts[i](0) - cx)*inv_fx, (pts[i](1) - cy)*inv_fy;
 }
 
-void common::project_points(const vector<Vector3d> Pts, scan_t& pts, vector<float>& dist, const Matrix3d& R, const Vector3d& t, const Matrix3d camera_matrix)
+void common::project_points(const vector<Vector3d>& Pts, scan_t& pts, vector<float>& dist, const Matrix3d& R, const Vector3d& t, const Matrix3d& camera_matrix)
 {
 	pts.resize(Pts.size());
 	dist.resize(Pts.size());
@@ -302,7 +302,7 @@ void common::project_points(const vector<Vector3d> Pts, scan_t& pts, vector<floa
 	}
 }
 
-void common::project_points(const vector<Vector3d> Pts, scan_t& pts, vector<float>& dist, const Matrix4d& RT, const Matrix3d camera_matrix)
+void common::project_points(const vector<Vector3d>& Pts, scan_t& pts, vector<float>& dist, const Matrix4d& RT, const Matrix3d& camera_matrix)
 {
 	Matrix3d R;
 	Vector3d t;

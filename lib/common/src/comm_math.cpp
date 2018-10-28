@@ -223,8 +223,13 @@ Vector4d common::err_truth(const Matrix3d& R1, const Matrix3d& R2, const Vector3
 
 	// Calculate errors for R1, R2, t, and -t
 	Vector3d t_unit = unit(t);
-	double err_t1 = acos(t_unit.dot(t_truth));
-	double err_t2 = acos(-t_unit.dot(t_truth));
+	double err_t1;
+	double dot_product = t_unit.dot(t_truth);
+	if(dot_product >= 1 || dot_product <= -1)
+		err_t1 = 0;
+	else
+		err_t1 = acos(dot_product);
+	double err_t2 = M_PI - err_t1;
 	double err_R1 = R_norm(R1 * R_truth.transpose());
 	double err_R2 = R_norm(R2 * R_truth.transpose());
 	double err_t_min = min(err_t1, err_t2);

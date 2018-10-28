@@ -547,6 +547,7 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 {
 	Map<VectorXd> r = Map<VectorXd>(r_buf, (int)pts1.size());
 	Map<MatrixXd> J = Map<MatrixXd>(J_buf, (int)pts2.size(), 5);
+	Matrix<double, 5, 1> dx;
 	double r_norm;
 	double lambda = lambda0;
 	result = initialGuess;
@@ -554,10 +555,6 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 	for(int i = 0; i < maxIterations; i++)
 	{
 		residual_fcn->residual_diff(pts1, pts2, result, r, J);
-		// Todo: Figure out how to use matrix workspaces
-		Matrix<double, 5, 1> dx = -J.fullPivLu().solve(r);
-		result.boxplus(dx, result);
-		residual_fcn->residual(pts1, pts2, result, r);
 		r_norm = r.norm();
 
 		// JtJ = J'*J;
@@ -568,11 +565,12 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 		while(true)
 		{		
 			// dx = -(JtJ + lambda*diag(diag(JtJ)))\J'*r;
+			// Todo: Figure out how to use matrix workspaces
 			time_cat_verbose(common::TimeCatVerboseSolveMatrix);
 			Matrix<double, 5, 5> JtJ_diag_only = JtJ.diagonal().asDiagonal();
 			dx = -(JtJ + lambda*JtJ_diag_only).fullPivLu().solve(Jtr);
 			result.boxplus(dx, tmp);
-			residual_fcn->residual(pts1, pts2, result, r);
+			residual_fcn->residual(pts1, pts2, tmp, r);
 			double r_norm_tmp = r.norm();
 			if(r_norm_tmp <= r_norm || lambda > 1e30)
 			{
@@ -596,10 +594,11 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 		}
 		double dx_norm = dx.norm();
 
+		double attempts_double = attempts;
 		common::write_log(common::log_optimizer, (char*)&r_norm, sizeof(double));
 		common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
 		common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
-		common::write_log(common::log_optimizer, (char*)&attempts, sizeof(double));
+		common::write_log(common::log_optimizer, (char*)&attempts_double, sizeof(double));
 		time_cat(common::TimeCatHypoGen);
 
 		if (r_norm < exitTolerance)
@@ -1156,9 +1155,10 @@ void run_optimizer_tests()
 	// We'll use a little trick to do this. We'll do this using the SO2 unit vector object
 	// to get the position (just multiply by 2), and the SO2 derivatives to get the unit vectors
 	// in the other directions.
-	//common::fill_rnd(w, dist, rng);
-	//axisAngleGetR(w, R);
-	Matrix3d R = Matrix3d::Identity();
+	Vector3d w;
+	Matrix3d R;
+	common::fill_rnd(w, dist, rng);
+	axisAngleGetR(w, R);
 	SO2 vec(R);
 	Vector3d pos_0_1 = -vec.v * 2;
 
@@ -1175,8 +1175,6 @@ void run_optimizer_tests()
 	// We'll have to invert it later to get the actual rotation we want.
 	Matrix3d R_0_1;
 	R_0_1 << x_0_1, y_0_1, z_0_1;
-	cout << R_0_1 << endl;
-	cout << R_0_1.determinant() << endl;
 
 	// Make sure that the basis vectors are orthogonal and that it is a right-hand coordinate frame.
 	release_assert(fabs(R_0_1.determinant() - 1) < 1e-8);
@@ -1186,8 +1184,7 @@ void run_optimizer_tests()
 	// by moving the position and rotation.
 	double move_rot_deg = 2;
 	double move_pos = 0.1;
-	Vector3d w;
-	common::fill_rnd(w, dist, rng);	
+	common::fill_rnd(w, dist, rng);
 	w = unit(w) * move_rot_deg * M_PI/180;
 	Matrix3d dR;
 	axisAngleGetR(w, dR);
@@ -1221,7 +1218,7 @@ void run_optimizer_tests()
 	common::fill_rnd(d_pos, dist, rng);
 	d_pos = unit(d_pos) * perterb_pos;
 	Matrix3d R_initialGuess = R_true*dR;
-	Vector3d t_initialGuess = unit(pos_0_1 + d_pos);
+	Vector3d t_initialGuess = unit(t_true + d_pos);
 	EManifold initialGuess(R_initialGuess, t_initialGuess);
 
 	// Project world points into the camera frame (normalized image plane)
@@ -1280,6 +1277,7 @@ void run_optimizer_tests()
 			printf("             %-8s %-8s %-8s %-8s %-8s\n", "Cost", "R", "t", "ch_R", "ch_t");
 			printf("Initial err: %-8.3f %-8.3f %-8.3f %-8.3f %-8.3f\n", cost, err_truth(0), err_truth(1), err_truth(2), err_truth(3));
 
+			// Optimize 
 			optimizer->optimize(pts1, pts2, eManifold, eManifold);
 
 			// Err after
@@ -1287,7 +1285,6 @@ void run_optimizer_tests()
 			cost = err_vec.norm();
 			err_truth = common::err_truth(eManifold.R, eManifold.t, RT_true);
 			printf("Final err:   %-8.3f %-8.3f %-8.3f %-8.3f %-8.3f\n", cost, err_truth(0), err_truth(1), err_truth(2), err_truth(3));
-			printf("\n");
 
 			// Err truth (should be zero)
 			cost_function->residual(pts1, pts2, eManifoldTruth, err_map);
@@ -1298,7 +1295,6 @@ void run_optimizer_tests()
 		}
 	}
 	common::close_logs();
-	exit(EXIT_FAILURE);
 }
 
 }

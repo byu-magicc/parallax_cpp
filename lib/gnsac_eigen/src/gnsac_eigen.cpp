@@ -133,34 +133,33 @@ void SO2::derivative(int i, Vector3d& result) const
 	result = (genR * R).transpose().col(2);
 }
 
-EManifold::EManifold() : rot(), vec(), R(rot.R.data()), TR(vec.R.data()), t(vec.R.data() + 2)
+EManifold::EManifold() : rot(), vec(), E(E_), R(rot.R), TR(vec.R), t(vec.v)
+{
+	release_assert(t.data() == vec.v.data());
+	updateE();
+}
+
+// Note: The order of initialization is very important here, but it has nothing to do with
+// the order the variables appear in the member initializer list. We have to make sure we
+// have the correct order in the class definition!
+// See https://stackoverflow.com/questions/4037219/order-of-execution-in-constructor-initialization-list
+EManifold::EManifold(const Eigen::Matrix3d& _R, const Eigen::Matrix3d& _TR) : rot(_R), vec(_TR), E(E_), R(rot.R), TR(vec.R), t(vec.v)
 {
 	updateE();
 }
 
-EManifold::EManifold(const Eigen::Matrix3d& _R, const Eigen::Matrix3d& _TR) : rot(_R), vec(_TR), R(rot.R.data()), TR(vec.R.data()), t(vec.R.data() + 2)
-{
-	updateE();
-}
-
-EManifold::EManifold(const Eigen::Matrix3d& _R, const Eigen::Vector3d& _t) : rot(_R), vec(_t), R(rot.R.data()), TR(vec.R.data()), t(vec.R.data() + 2)
+EManifold::EManifold(const Eigen::Matrix3d& _R, const Eigen::Vector3d& _t) : rot(_R), vec(_t), E(E_), R(rot.R), TR(vec.R), t(vec.v)
 {
 	updateE();
 }
 
 EManifold& EManifold::operator= (const EManifold& other)
 {
-	release_assert(R.data() == rot.R.data());
-	release_assert(TR.data() == vec.R.data());
-
 	if(&other == this)
 		return *this;
-	E = other.E;
+	E_ = other.E_;
 	rot = other.rot;
 	vec = other.vec;
-
-	release_assert(other.R.data() == other.rot.R.data());
-	release_assert(other.TR.data() == other.vec.R.data());
 	return *this;
 }
 
@@ -172,7 +171,7 @@ void EManifold::setR(Matrix3d R)
 
 void EManifold::setT(Vector3d t)
 {
-	SO2 vec2 = SO2(t);
+	SO2 vec2(t);
 	vec.R = vec2.R;
 	updateE();
 }
@@ -214,11 +213,12 @@ void EManifold::updateE()
 {
 	release_assert(R.data() == rot.R.data());
 	release_assert(TR.data() == vec.R.data());
+	release_assert(t.data() == vec.v.data());
 
 	//E = Tx*R;
 	Matrix3d Tx;
 	skew(t, Tx);
-	E = Tx*R;
+	E_ = Tx*R;
 }
 
 void EManifold::derivative(int i, Matrix3d& result) const
@@ -896,6 +896,17 @@ void run_tests()
 	run_optimizer_tests();
 }
 
+class EManifoldTest : public EManifold
+{
+public:
+	EManifoldTest() : EManifold() {}
+	EManifoldTest(const Matrix3d& R, const Matrix3d& TR) : EManifold(R, TR) {}
+	EManifoldTest(const Matrix3d& R, const Vector3d& t) : EManifold(R, t) {}
+	SO3& getRot() {return rot;}
+	SO2& getVec() {return vec;}
+	Matrix3d& getE_() {return E_;}
+};
+
 void run_jacobian_tests()
 {
 	std::default_random_engine rng(0);
@@ -914,8 +925,8 @@ void run_jacobian_tests()
 		axisAngleGetR(w, R_);
 		common::checkMatrices("R_cos&sin", "R_axisAngle", R, R_);
 
-		// Boxplus
-		// Negation
+		// SO3
+		// Boxplus negation
 		common::fill_rnd(w, dist, rng);
 		axisAngleGetR(w, R);
 		SO3 rot(R), rot2;
@@ -934,6 +945,16 @@ void run_jacobian_tests()
 		Matrix3d R12 = R2*R1;
 		common::checkMatrices("R1.boxplus(w2)", "R2*R1", rot.R, R12);
 
+		// Test copy assignment operator (make sure it copies by value, not reference)
+		SO3 rot_copy;
+		rot_copy = rot;
+		release_assert(&rot_copy != &rot);
+		release_assert(&rot_copy.R != &rot.R);
+		common::checkMatrices("rot_copy.R", "rot.R", rot_copy.R, rot.R);
+		rot_copy.R = Matrix3d::Zero();
+		release_assert(rot_copy.R.determinant() == 0);
+		release_assert(fabs(rot.R.determinant() - 1) < 1e-8);
+
 		// Unit vector
 		Vector3d v;
 		common::fill_rnd(v, dist, rng);
@@ -941,12 +962,64 @@ void run_jacobian_tests()
 		SO2 vec(v);
 		common::checkMatrices("SO2(v).v", "v", vec.v, v);
 
+		// Test copy assignment operator (make sure it copies by value, not reference)
+		SO2 vec_copy;
+		vec_copy = vec;
+		release_assert(&vec_copy != &vec);
+		release_assert(&vec_copy.R != &vec.R);
+		release_assert(&vec_copy.v != &vec.v);
+		common::checkMatrices("vec_copy.R", "vec.R", vec_copy.R, vec.R);
+		common::checkMatrices("vec_copy.v", "vec.v", vec_copy.v, vec.v);
+		vec_copy.R = Matrix3d::Zero();
+		release_assert(vec_copy.R.determinant() == 0);
+		release_assert(vec_copy.v.sum() == 0);
+		release_assert(fabs(vec.R.determinant() - 1) < 1e-8);
+		release_assert(vec.v.sum() != 0);
+
+		// Ensure pointer is initialized correctly
+		release_assert(vec.v.data() == vec.R.data() + 2);
+		Vector3d z_dir;
+		z_dir << 0, 0, 1;
+		common::checkMatrices("vec.v", "vec.R'*[0; 0; 1]", vec.v, vec.R.transpose()*z_dir);
+
 		// Ensure no rotation for unit vector in z direction
 		rot = SO3(vec.R);
 		w << 0, 0, 1;
 		rot.boxplus(w, rot);
 		SO2 vec2(rot.R);
 		common::checkMatrices("v", "v.boxplus([0; 0; 1])", v, vec2.v);
+
+		// Essential Matrix
+		common::fill_rnd(w1, dist, rng);
+		common::fill_rnd(w2, dist, rng);
+		axisAngleGetR(w1, R1);
+		axisAngleGetR(w2, R2);
+		EManifoldTest E(R1, R2);
+
+		// Check pointers
+		common::checkMatrices("R", "E.R", R1, E.R);
+		common::checkMatrices("TR", "E.TR", R2, E.TR);
+		common::checkMatrices("E.R", "E.rot.R", E.R, E.getRot().R);
+		common::checkMatrices("E.TR", "E.vec.R", E.TR, E.getVec().R);
+		common::checkMatrices("E.t", "E.vec.v", E.t, E.getVec().v);
+		common::checkMatrices("E.E", "E.E_", E.E, E.getE_());
+		release_assert(&E.R == &E.getRot().R);
+		release_assert(&E.TR == &E.getVec().R);
+		release_assert(&E.t == &E.getVec().v);
+		release_assert(&E.E == &E.getE_());
+
+		// Test copy assignment operator (make sure it copies by value, not reference)
+		EManifoldTest E_copy;
+		E_copy = E;
+		release_assert(&E_copy != &E);
+		release_assert(&E_copy.E != &E.E);
+		release_assert(&E_copy.R != &E.R);
+		release_assert(&E_copy.t != &E.t);
+		release_assert(&E_copy.TR != &E.TR);
+		common::checkMatrices("E_copy.E", "E.E", E_copy.E, E.E);
+		common::checkMatrices("E_copy.R", "E.R", E_copy.R, E.R);
+		common::checkMatrices("E_copy.t", "E.t", E_copy.t, E.t);
+		common::checkMatrices("E_copy.TR", "E.TR", E_copy.TR, E.TR);
 
 		////////// Jacobian tests for Manifold Elements ////////////
 		// SO3
@@ -994,7 +1067,7 @@ void run_jacobian_tests()
 		common::fill_rnd(w2, dist, rng);
 		axisAngleGetR(w1, R1);
 		axisAngleGetR(w2, R2);
-		EManifold eManifold = EManifold(R1, R2);
+		EManifold eManifold(R1, R2);
 		for(int i = 0; i < 5; i++)
 		{
 			Matrix3d deriv, deriv_num;
@@ -1086,7 +1159,7 @@ void run_optimizer_tests()
 	//common::fill_rnd(w, dist, rng);
 	//axisAngleGetR(w, R);
 	Matrix3d R = Matrix3d::Identity();
-	SO2 vec = SO2(R);
+	SO2 vec(R);
 	Vector3d pos_0_1 = -vec.v * 2;
 
 	// These vectors are the basis vectors of the camera in frame 0 (global frame)
@@ -1135,7 +1208,7 @@ void run_optimizer_tests()
 	Vector3d t_true;
 	common::RT_split(RT_true, R_true, t_true);
 	t_true = unit(t_true);
-	EManifold eManifoldTruth = EManifold(R_true, t_true);
+	EManifold eManifoldTruth(R_true, t_true);
 
 	// Now perterb the position and rotation by a small ratio of the original
 	// movement. This will be used as an initial guess for the optimizer.
@@ -1149,7 +1222,7 @@ void run_optimizer_tests()
 	d_pos = unit(d_pos) * perterb_pos;
 	Matrix3d R_initialGuess = R_true*dR;
 	Vector3d t_initialGuess = unit(pos_0_1 + d_pos);
-	EManifold initialGuess = EManifold(R_initialGuess, t_initialGuess);
+	EManifold initialGuess(R_initialGuess, t_initialGuess);
 
 	// Project world points into the camera frame (normalized image plane)
 	vector<float> dist1, dist2;
@@ -1193,7 +1266,8 @@ void run_optimizer_tests()
 				optimizer = make_shared<LevenbergMarquardt>(cost_function, maxIterations, exitTolerance, lambda0);
 
 			// Setup
-			EManifold eManifold = initialGuess;
+			EManifold eManifold;
+			eManifold = initialGuess;
 			double cost;
 			Vector4d err_truth;
 			VectorXd err_vec = VectorXd(n_pts);
@@ -1206,7 +1280,7 @@ void run_optimizer_tests()
 			printf("             %-8s %-8s %-8s %-8s %-8s\n", "Cost", "R", "t", "ch_R", "ch_t");
 			printf("Initial err: %-8.3f %-8.3f %-8.3f %-8.3f %-8.3f\n", cost, err_truth(0), err_truth(1), err_truth(2), err_truth(3));
 
-			optimizer->optimize(pts1, pts2, initialGuess, eManifold);
+			optimizer->optimize(pts1, pts2, eManifold, eManifold);
 
 			// Err after
 			cost_function->residual(pts1, pts2, eManifold, err_map);

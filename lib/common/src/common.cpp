@@ -441,10 +441,28 @@ void common::close_logs()
 // Release Assert and Determinism Checker //
 ////////////////////////////////////////////
 
-void common::release_error(const std::string expr, const char* file, int line, const char* func)
+class Exception : public std::exception
 {
-	cout << "Assertion failed: " << expr << ", file " << file << ", line " << line << endl;
-	exit(EXIT_FAILURE);
+public:
+	Exception()
+	{
+	}
+
+	Exception(string _msg) : msg(_msg)
+	{
+	}
+
+	const char* what() const throw()
+	{
+		return msg.c_str();
+	}
+	string msg;
+};
+
+void common::release_error(const char* expr, const char* file, int line, const char* func)
+{
+	string msg = str_format("Assertion failed: %s, file %s, line %d, in %s", expr, file, line, func);
+	throw Exception(msg);
 }
 
 common::DeterminismChecker::DeterminismChecker(string name, int trial) : check(false)

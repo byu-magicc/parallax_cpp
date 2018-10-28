@@ -125,7 +125,7 @@ void close_logs();
 // Assert
 #define release_assert(expr) { if (!(expr)) common::release_error(#expr, __FILE__, __LINE__, __func__); }
 
-void release_error(const std::string expr, const char* file, int line, const char* func);
+void release_error(const char* expr, const char* file, int line, const char* func);
 
 // Macro to call a determinism checker object with the file, line, and function information
 #define STR_HELPER(x) #x

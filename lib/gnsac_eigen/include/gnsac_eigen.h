@@ -35,6 +35,7 @@ class SO3
 public:
 	SO3();
 	SO3(const Eigen::Matrix3d& R);
+	SO3(const SO3&) = delete;
 	Eigen::Matrix3d R;
 	SO3& operator= (const SO3& other);
 	void boxplus(const Eigen::Vector3d& delta, SO3& result) const;
@@ -47,37 +48,49 @@ public:
 	SO2();
 	SO2(const Eigen::Matrix3d& R);
 	SO2(const Eigen::Vector3d& v);
+	SO2(const SO2&) = delete;
 	Eigen::Matrix3d R;
 	SO2& operator= (const SO2& other);
 
 	// To get the vector, we use v = R'*[0; 0; 1]. This is the 3rd row of the matrix,
 	// Hence to initialize the map we need to use v(R.data() + 2).
 	// Changing it directly isn't allowed, because it would alter R.
-	const Eigen::Map<Eigen::Matrix<double, 3, 1>, Eigen::Unaligned, Eigen::Stride<1, 3> > v;
+	const Eigen::Map<const Eigen::Matrix<double, 3, 1>, Eigen::Unaligned, Eigen::Stride<1, 3> > v;
 	void boxplus(const Eigen::Vector2d& delta, SO2& result) const;
 	void derivative(int i, Eigen::Vector3d& result) const;
 };
 
 class EManifold
 {
+
 public:
 	EManifold();
 	EManifold(const Eigen::Matrix3d& R, const Eigen::Matrix3d& TR);
 	EManifold(const Eigen::Matrix3d& R, const Eigen::Vector3d& t);
+	EManifold(const EManifold&) = delete;
 	EManifold& operator= (const EManifold& other);
-	Eigen::Matrix3d E;
-	const Eigen::Map<Eigen::Matrix3d> R;
-	const Eigen::Map<Eigen::Matrix3d> TR;
-	const Eigen::Map<Eigen::Matrix<double, 3, 1>, Eigen::Unaligned, Eigen::Stride<1, 3> > t;
 	void setR(Eigen::Matrix3d R);
 	void setT(Eigen::Vector3d t);
 	void setTR(Eigen::Matrix3d TR);
 	void boxplus(const Eigen::Matrix<double, 5, 1>& delta, EManifold& result) const;
 	void derivative(int i, Eigen::Matrix3d& result) const;
 private:
+	void updateE();
+	
+// Note: This is not as appealing to put private member variables before the public ones,
+// but if we want to initialize our eigen references in the constructor, their dependencies 
+// have to be listed first so they will be initialized first.
+// See https://stackoverflow.com/questions/4037219/order-of-execution-in-constructor-initialization-list
+protected:
 	SO3 rot;
 	SO2 vec;
-	void updateE();
+	Eigen::Matrix3d E_;
+
+public:
+	const Eigen::Matrix3d& E;
+	const Eigen::Matrix3d& R;
+	const Eigen::Matrix3d& TR;
+	const Eigen::Map<const Eigen::Matrix<double, 3, 1>, Eigen::Unaligned, Eigen::Stride<1, 3> >& t;
 };
 
 ////////////////////////////////
@@ -136,7 +149,7 @@ public:
 };
 
 template <typename _Function, typename _X, int _Rows, int _Cols>
-void numericalDerivative(_Function fcn, _X x, Eigen::Matrix<double, _Rows, _Cols>& J)
+void numericalDerivative(_Function fcn, _X& x, Eigen::Matrix<double, _Rows, _Cols>& J)
 {
 	double h = 1e-8;
 	for(int i = 0; i < _Cols; i++)
@@ -151,7 +164,7 @@ void numericalDerivative(_Function fcn, _X x, Eigen::Matrix<double, _Rows, _Cols
 }
 
 template <int _InputRows, typename _Function, typename _X, int _Rows, int _Cols>
-void numericalDerivative_i(_Function fcn, _X x, Eigen::Matrix<double, _Rows, _Cols>& J, int i)
+void numericalDerivative_i(_Function fcn, _X& x, Eigen::Matrix<double, _Rows, _Cols>& J, int i)
 {
 	double h = 1e-8;
 	Eigen::Matrix<double, _InputRows, 1> dx = Eigen::Matrix<double, _InputRows, 1>::Zero();

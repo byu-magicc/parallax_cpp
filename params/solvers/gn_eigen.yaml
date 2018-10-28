@@ -10,18 +10,13 @@ max_iterations: 10
 exit_tolerance: 0.000001
 initial_guess: previous
 pose_disambig: trace
+
 log_optimizer: true
+log_optimizer_verbose: false
+
 log_comparison: false
 log_unit_test_pts_world: true
 log_unit_test_pts_camera: true
-log_test1: true
-log_test2: true
-log_test3: true
-log_test4: true
-log_test5: true
-log_test6: true
-log_test7: true
-log_test8: true
-log_test9: true
-log_test10: true
-
+log_accuracy: true
+log_timing: true
+log_timing_verbose: true

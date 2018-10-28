@@ -12,3 +12,6 @@ initial_guess: previous
 log_optimizer: false
 log_comparison: false
 pose_disambig: trace
+log_accuracy: true
+log_timing: true
+log_timing_verbose: true

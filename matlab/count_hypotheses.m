@@ -1,7 +1,7 @@
 % Read hypothesis categories
 scaleToEquiv = 1;
 video = 'holodeck';
-methods = {'five-point', 'gn', 'lm'};
+methods = {'five-point', 'gn', 'lm', 'gn_eigen'};
 bar_lgnd = cell(1, length(methods));
 cat_count = zeros(length(methods), 3);
 for i = 1:length(methods)

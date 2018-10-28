@@ -405,9 +405,9 @@ void common::init_logs(string yaml_filename, string result_directory)
 	{
 		string log_name = log_t_vec[i];
 		string log_param = "log_" + log_name;
+		string log_filename = fs::path(result_directory) / (log_name + ".bin");
 		if (node[log_param] && node[log_param].as<bool>())
 		{
-			string log_filename = fs::path(result_directory) / (log_name + ".bin");
 			cout << "Opening log file " << log_filename << endl;
 			log_files[i].open(log_filename);
 			if(log_files[i].is_open())
@@ -417,7 +417,7 @@ void common::init_logs(string yaml_filename, string result_directory)
 		}
 		else
 		{
-			cout << "Key " << log_param << " not found, or set to false." << endl;
+			cout << "Option to log to " << log_filename << " set to false or unset." << endl;
 		}
 	}
 }

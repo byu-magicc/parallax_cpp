@@ -184,29 +184,9 @@ void EManifold::setTR(Matrix3d TR)
 
 void EManifold::boxplus(const Matrix<double, 5, 1>& delta, EManifold& result) const
 {
-	common::write_log(common::log_test1, (char*)result.E.data(), sizeof(double)*3*3);
-	common::write_log(common::log_test2, (char*)result.R.data(), sizeof(double)*3*3);
-	common::write_log(common::log_test3, (char*)result.t.data(), sizeof(double)*3*1);
-	common::write_log(common::log_test4, (char*)result.TR.data(), sizeof(double)*3*3);
-	common::write_log(common::log_test5, (char*)result.rot.R.data(), sizeof(double)*3*3);
-	common::write_log(common::log_test6, (char*)result.vec.R.data(), sizeof(double)*3*3);
-	common::write_log(common::log_test7, (char*)result.vec.v.data(), sizeof(double)*3*1);
-	release_assert(R.data() == rot.R.data());
-	release_assert(TR.data() == vec.R.data());
-	release_assert(result.R.data() == result.rot.R.data());
-	release_assert(result.TR.data() == result.vec.R.data());
-
 	rot.boxplus(delta.head(3), result.rot);
 	vec.boxplus(delta.tail(2), result.vec);
 	result.updateE();
-
-	common::write_log(common::log_test1, (char*)result.E.data(), sizeof(double)*3*3);
-	common::write_log(common::log_test2, (char*)result.R.data(), sizeof(double)*3*3);
-	common::write_log(common::log_test3, (char*)result.t.data(), sizeof(double)*3*1);
-	common::write_log(common::log_test4, (char*)result.TR.data(), sizeof(double)*3*3);
-	common::write_log(common::log_test5, (char*)result.rot.R.data(), sizeof(double)*3*3);
-	common::write_log(common::log_test6, (char*)result.vec.R.data(), sizeof(double)*3*3);
-	common::write_log(common::log_test7, (char*)result.vec.v.data(), sizeof(double)*3*1);
 }
 
 void EManifold::updateE()
@@ -516,22 +496,29 @@ void GaussNewton::optimize(const common::scan_t& pts1, const common::scan_t& pts
 	result = initialGuess;
 	for(int i = 0; i < maxIterations; i++)
 	{
+		time_cat_verbose(common::TimeCatVerboseMakeJ);
 		residual_fcn->residual_diff(pts1, pts2, result, r, J);
+
 		// Todo: Figure out how to use matrix workspaces
+		time_cat_verbose(common::TimeCatVerboseSolveMatrix);
 		Matrix<double, 5, 1> dx = -J.fullPivLu().solve(r);
+
+		time_cat_verbose(common::TimeCatVerboseManifoldUpdate);
 		result.boxplus(dx, result);
+
+		time_cat_verbose(common::TimeCatVerboseCalcResidual);
 		residual_fcn->residual(pts1, pts2, result, r);
 		double residual_norm = r.norm();
 		double dx_norm = dx.norm();
 
-		time_cat(common::TimeCatNone);
-		double lambda = -1;
-		int attempts = -1;
-		common::write_log(common::log_optimizer, (char*)&residual_norm, sizeof(double));
-		common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
-		common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
-		common::write_log(common::log_optimizer, (char*)&attempts, sizeof(double));
-		time_cat(common::TimeCatHypoGen);
+		// time_cat(common::TimeCatNone);
+		// double lambda = -1;
+		// int attempts = -1;
+		// common::write_log(common::log_optimizer, (char*)&residual_norm, sizeof(double));
+		// common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
+		// common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
+		// common::write_log(common::log_optimizer, (char*)&attempts, sizeof(double));
+		// time_cat(common::TimeCatHypoGen);
 
 		if (residual_norm < exitTolerance)
 			break;
@@ -554,6 +541,7 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 	EManifold tmp;
 	for(int i = 0; i < maxIterations; i++)
 	{
+		time_cat_verbose(common::TimeCatVerboseMakeJ);
 		residual_fcn->residual_diff(pts1, pts2, result, r, J);
 		r_norm = r.norm();
 
@@ -569,7 +557,11 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 			time_cat_verbose(common::TimeCatVerboseSolveMatrix);
 			Matrix<double, 5, 5> JtJ_diag_only = JtJ.diagonal().asDiagonal();
 			dx = -(JtJ + lambda*JtJ_diag_only).fullPivLu().solve(Jtr);
+
+			time_cat_verbose(common::TimeCatVerboseManifoldUpdate);
 			result.boxplus(dx, tmp);
+
+			time_cat_verbose(common::TimeCatVerboseCalcResidual);
 			residual_fcn->residual(pts1, pts2, tmp, r);
 			double r_norm_tmp = r.norm();
 			if(r_norm_tmp <= r_norm || lambda > 1e30)
@@ -594,12 +586,12 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 		}
 		double dx_norm = dx.norm();
 
-		double attempts_double = attempts;
-		common::write_log(common::log_optimizer, (char*)&r_norm, sizeof(double));
-		common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
-		common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
-		common::write_log(common::log_optimizer, (char*)&attempts_double, sizeof(double));
-		time_cat(common::TimeCatHypoGen);
+		// double attempts_double = attempts;
+		// common::write_log(common::log_optimizer, (char*)&r_norm, sizeof(double));
+		// common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
+		// common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
+		// common::write_log(common::log_optimizer, (char*)&attempts_double, sizeof(double));
+		// time_cat(common::TimeCatHypoGen);
 
 		if (r_norm < exitTolerance)
 			break;
@@ -637,7 +629,6 @@ void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& p
 			optimizer->optimize(subset1, subset2, bestModel, model);
 		else
 			optimizer->optimize(subset1, subset2, initialGuess, model);
-		time_cat_verbose(common::TimeCatVerboseNone);
 
 		// Partially score hypothesis (terminate early if cost exceeds lowest cost)
 		time_cat(common::TimeCatHypoScoring);
@@ -722,8 +713,6 @@ double LMEDS_Algorithm::score(const common::scan_t& pts1, const common::scan_t& 
 
 GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::string result_directory) : common::ESolver(yaml_filename, node, result_directory)
 {
-	run_tests();
-
 	// Optimizer cost
 	string optimizer_cost_str;
 	common::get_yaml_node("optimizer_cost", yaml_filename, node, optimizer_cost_str);
@@ -851,6 +840,8 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 	consensusAlg->run(pts1, pts2, initialGuess, bestModel);
 
 	// Disambiguate rotation and translation
+	time_cat(common::TimeCatNone);
+	time_cat_verbose(common::TimeCatVerboseNone);
 	Vector3d t = bestModel.t;
 	Matrix3d R1 = bestModel.R;
 	Matrix3d R2 = common::R1toR2(R1, t);
@@ -874,7 +865,6 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 		bestModel.setR(R12[max_idx]);
 		bestModel.setT(t12[max_idx]);
 	}
-	time_cat(common::TimeCatNone);
 	result.R = bestModel.R;
 	result.t = bestModel.t;
 	result.E = bestModel.E;

@@ -57,7 +57,7 @@ void run_test(string video_str, string solver_str, int frames)
 	std::normal_distribution<double> dist(0.0, 1.0);
 
 	// Open log files
-	common::init_logs(result_directory, solver_yaml);
+	common::init_logs(solver_yaml, result_directory);
 
 	// Loop for all points
 	if (frames == -1)
@@ -98,7 +98,7 @@ void run_test(string video_str, string solver_str, int frames)
 
 int main(int argc, char *argv[])
 {
-	gnsac_eigen::run_tests();
+	//gnsac_eigen::run_tests();
 
 	// Get rid of first arg (executable name)
 	argc--; argv++;

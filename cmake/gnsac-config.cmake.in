@@ -1,0 +1,13 @@
+# - Config file for the gnsac package
+# It defines the following variables
+#  GNSAC_INCLUDE_DIRS - include directories for gnsac
+#  GNSAC_LIBS         - libraries to link against
+#  GNSAC_VERSION      - the library version
+ 
+# Compute paths
+get_filename_component(GNSAC_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include("${GNSAC_CMAKE_DIR}/gnsac.cmake")
+
+set(GNSAC_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+set(GNSAC_VERSION "@GNSAC_VERSION@")
+set(GNSAC_LIBS "@PROJECT_NAME@")

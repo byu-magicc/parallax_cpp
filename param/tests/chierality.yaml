@@ -1,2 +1,3 @@
 # Compares what happens if we use chierality instead of the trace to disambiguiate pose.
 log_accuracy: true
+log_chierality: true

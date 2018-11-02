@@ -849,13 +849,15 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 	Vector3d t = bestModel.t;
 	Matrix3d R1 = bestModel.R;
 	Matrix3d R2 = common::R1toR2(R1, t);
+	double chieralityChoice = 0;
 	if(poseDisambigMethod == disambig_trace)
 	{
 		if(R2.trace() > R1.trace())
 			bestModel.setR(R2);
 		Matrix3d R = bestModel.R;
-		if(common::chierality(pts1, pts2, R, -t) > 
-		   common::chierality(pts1, pts2, R, t))
+		bool flipDir = common::chierality(pts1, pts2, R, -t) > common::chierality(pts1, pts2, R, t);
+		chieralityChoice = flipDir;
+		if(flipDir)
 		   bestModel.setT(-t);
 	}
 	else if(poseDisambigMethod == disambig_chierality)
@@ -866,9 +868,11 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 		for(int i = 0; i < 4; i++)
 			num_pos_depth[i] = common::chierality(pts1, pts2, R12[i], t12[i]);
 		int max_idx = max_element(num_pos_depth, num_pos_depth + 4) - num_pos_depth;
+		chieralityChoice = max_idx;
 		bestModel.setR(R12[max_idx]);
 		bestModel.setT(t12[max_idx]);
 	}
+	common::write_log(common::log_chierality, (char*)&chieralityChoice, sizeof(double));
 	result.R = bestModel.R;
 	result.t = bestModel.t;
 	result.E = bestModel.E;

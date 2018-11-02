@@ -1,0 +1,3 @@
+!include:gn_eigen
+# Don't even try to figure out the correct R and t.
+pose_disambig: none

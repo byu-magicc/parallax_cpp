@@ -1,9 +1,18 @@
 % Plots the consensus error (Sampson) vs. the number of iterations of the algorithm.
 video = 'holodeck';
 %methods = {'poly_opencv', 'gn_eigen', 'lm_eigen'};
-%methods = {'poly_opencv', 'gn_eigen', 'gn_eigen_no_seed', 'gn_eigen_no_prior'};
-%methods = {'poly_opencv', 'lm_eigen', 'lm_eigen_no_seed', 'lm_eigen_no_prior'};
-methods = {'poly_opencv', 'gn_eigen_no_seed', 'lm_eigen_no_seed'};
+
+% Best way to seed algorithm?
+%methods = {'gn_eigen_prior', 'gn_eigen_prior_recursive', 'gn_eigen_random', 'gn_eigen_random_recursive'};
+methods = {'lm_eigen_prior', 'lm_eigen_prior_recursive', 'lm_eigen_random', 'lm_eigen_random_recursive'};
+
+% Best cost function?
+% For GN, the algebraic cost seems to work better, but for LM the sampson cost seems to be slightly better.
+%methods = {'poly_opencv', 'lm_eigen', 'lm_eigen_single', 'lm_eigen_sampson'};
+%methods = {'poly_opencv', 'gn_eigen', 'gn_eigen_single', 'gn_eigen_sampson'};
+
+% Does it matter if we exit early?
+% It doesn't matter with 10 iterations anyway.
 %methods = {'gn_eigen', 'gn_eigen_no_exit'};
 %methods = {'lm_eigen', 'lm_eigen_no_exit'};
 use_mean = 0;

@@ -84,17 +84,17 @@ void SO3::derivative(int i, Matrix3d& result) const
 	result = genR * R;
 }
 
-SO2::SO2() : R(Matrix3d::Identity()), v(R.data() + 2)
+S2::S2() : R(Matrix3d::Identity()), v(R.data() + 2)
 {
 	
 }
 
-SO2::SO2(const Matrix3d& _R) : R(_R), v(R.data() + 2)
+S2::S2(const Matrix3d& _R) : R(_R), v(R.data() + 2)
 {
 
 }
 
-SO2::SO2(const Vector3d& _v) : v(R.data() + 2)
+S2::S2(const Vector3d& _v) : v(R.data() + 2)
 {
 	Vector3d t_unit = unit(_v);
 	double theta = acos(t_unit(2));
@@ -104,7 +104,7 @@ SO2::SO2(const Vector3d& _v) : v(R.data() + 2)
 	axisAngleGetR(w, R);
 }
 
-SO2& SO2::operator= (const SO2& other)
+S2& S2::operator= (const S2& other)
 {
 	if(&other == this)
 		return *this;
@@ -112,7 +112,7 @@ SO2& SO2::operator= (const SO2& other)
 	return *this;
 }
 
-void SO2::boxplus(const Eigen::Vector2d& delta_, SO2& result) const
+void S2::boxplus(const Eigen::Vector2d& delta_, S2& result) const
 {
 	Matrix3d dR;
 	Vector3d delta;
@@ -121,7 +121,7 @@ void SO2::boxplus(const Eigen::Vector2d& delta_, SO2& result) const
 	result.R = dR * R;
 }
 
-void SO2::derivative(int i, Vector3d& result) const
+void S2::derivative(int i, Vector3d& result) const
 {
 	// genR = skew(elementaryVector(3, i));
 	Vector3d delta = Vector3d::Zero();
@@ -171,7 +171,7 @@ void EManifold::setR(Matrix3d R)
 
 void EManifold::setT(Vector3d t)
 {
-	SO2 vec2(t);
+	S2 vec2(t);
 	vec.R = vec2.R;
 	updateE();
 }
@@ -608,7 +608,7 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 // Consensus Algorithms //
 //////////////////////////
 
-ConsensusAlgorithm::ConsensusAlgorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, bool _seedWithBestHypothesis) : optimizer(_optimizer), n_subsets(_n_subsets), seedWithBestHypothesis(_seedWithBestHypothesis)
+ConsensusAlgorithm::ConsensusAlgorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, initial_guess_t _optimizerSeed) : optimizer(_optimizer), n_subsets(_n_subsets), optimizerSeed(_optimizerSeed)
 {
 
 }
@@ -617,6 +617,7 @@ void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& p
 {
 	std::default_random_engine rng(0);
 	std::uniform_int_distribution<> dist(0, pts1.size() - 1);
+	std::normal_distribution<double> dist_normal(0.0, 1.0);
 
 	// Fully score initial hypothesis
 	time_cat(common::TimeCatHypoScoring);
@@ -631,10 +632,26 @@ void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& p
 		getSubset(pts1, pts2, subset1, subset2, 5, dist, rng);
 
 		// Generate a hypothesis using subset
-		if(seedWithBestHypothesis)
+		if(optimizerSeed == init_random)
+		{
+			Matrix3d R0 = Matrix3d::Identity();
+			Vector3d t0;
+			common::fill_rnd(t0, dist_normal, rng);
+			EManifold seed(R0, t0);
+			optimizer->optimize(subset1, subset2, seed, model);
+		}
+		else if(optimizerSeed == init_first)
+			optimizer->optimize(subset1, subset2, initialGuess, model);
+		else if(optimizerSeed == init_best)
 			optimizer->optimize(subset1, subset2, bestModel, model);
 		else
-			optimizer->optimize(subset1, subset2, initialGuess, model);
+			throw common::Exception("Invalid optimizer seeding method");
+
+		Matrix3d R0 = Matrix3d::Identity();
+		Vector3d t0;
+		std::normal_distribution<double> dist_normal(0.0, 1.0);
+		common::fill_rnd(t0, dist_normal, rng);
+
 
 		// Partially score hypothesis (terminate early if cost exceeds lowest cost)
 		time_cat(common::TimeCatHypoScoring);
@@ -680,8 +697,8 @@ void ConsensusAlgorithm::getSubset(const common::scan_t& pts1, const common::sca
 	}
 }
 
-RANSAC_Algorithm::RANSAC_Algorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, bool _seedWithBestHypothesis, std::shared_ptr<DifferentiableResidual> _cost_fcn, double _threshold) :
-	ConsensusAlgorithm(_optimizer, _n_subsets, _seedWithBestHypothesis), residual_fcn(_cost_fcn), threshold(_threshold)
+RANSAC_Algorithm::RANSAC_Algorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, initial_guess_t _optimizerSeed, std::shared_ptr<DifferentiableResidual> _cost_fcn, double _threshold) :
+	ConsensusAlgorithm(_optimizer, _n_subsets, _optimizerSeed), residual_fcn(_cost_fcn), threshold(_threshold)
 {
 
 }
@@ -699,8 +716,8 @@ double RANSAC_Algorithm::score(const common::scan_t& pts1, const common::scan_t&
 	return cost;
 }
 
-LMEDS_Algorithm::LMEDS_Algorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, bool _seedWithBestHypothesis, std::shared_ptr<DifferentiableResidual> _cost_fcn) :
-	ConsensusAlgorithm(_optimizer, _n_subsets, _seedWithBestHypothesis), residual_fcn(_cost_fcn)
+LMEDS_Algorithm::LMEDS_Algorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, initial_guess_t _optimizerSeed, std::shared_ptr<DifferentiableResidual> _cost_fcn) :
+	ConsensusAlgorithm(_optimizer, _n_subsets, _optimizerSeed), residual_fcn(_cost_fcn)
 {
 
 }
@@ -758,19 +775,20 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node) : common:
 	// Consensus Algorithm
 	string consensus_alg_str;
 	int n_subsets;
-	bool consensus_seed_best;
+	string optimizer_seed_str;
 	common::get_yaml_node("n_subsets", yaml_filename, node, n_subsets);
 	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
-	common::get_yaml_node("consensus_seed_best", yaml_filename, node, consensus_seed_best);
+	common::get_yaml_node("optimizer_seed", yaml_filename, node, optimizer_seed_str);
+	initial_guess_t optimizerSeed = (initial_guess_t)common::get_enum_from_string(initial_guess_t_vec, optimizer_seed_str);
 	consensus_t consen_alg = (consensus_t)common::get_enum_from_string(consensus_t_vec, consensus_alg_str);
 	if(consen_alg == consensus_RANSAC)
 	{
 		double RANSAC_threshold;
 		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
-		consensusAlg = make_shared<RANSAC_Algorithm>(optimizer, n_subsets, consensus_seed_best, scoringCost, RANSAC_threshold);
+		consensusAlg = make_shared<RANSAC_Algorithm>(optimizer, n_subsets, optimizerSeed, scoringCost, RANSAC_threshold);
 	}
 	else if(consen_alg == consensus_LMEDS)
-		consensusAlg = make_shared<LMEDS_Algorithm>(optimizer, n_subsets, consensus_seed_best, scoringCost);
+		consensusAlg = make_shared<LMEDS_Algorithm>(optimizer, n_subsets, optimizerSeed, scoringCost);
 	else
 	{
 		printf("Consensus algorithm enum value %d not recognized.", (int)optim);
@@ -778,10 +796,10 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node) : common:
 	}
 
 	// Other parameters
-	string initial_guess_method_str, pose_disambig_str;
-	common::get_yaml_node("initial_guess", yaml_filename, node, initial_guess_method_str);
+	string consensus_seed_str, pose_disambig_str;
+	common::get_yaml_node("consensus_seed", yaml_filename, node, consensus_seed_str);
 	common::get_yaml_node("pose_disambig", yaml_filename, node, pose_disambig_str);
-	initialGuessMethod = (initial_guess_t)common::get_enum_from_string(initial_guess_t_vec, initial_guess_method_str);
+	consensusSeed = (initial_guess_t)common::get_enum_from_string(initial_guess_t_vec, consensus_seed_str);
 	poseDisambigMethod = (pose_disambig_t)common::get_enum_from_string(pose_disambig_t_vec, pose_disambig_str);
 }
 
@@ -802,22 +820,24 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 	std::default_random_engine rng(0);
 	std::uniform_int_distribution<> dist(0, pts1.size() - 1);
 	EManifold initialGuess;
-	if(initialGuessMethod == init_previous)
+	if(consensusSeed == init_previous)
 		initialGuess = prevResult;
-	else if(initialGuessMethod == init_random)
+	else if(consensusSeed == init_random)
 	{
 		Matrix3d R0 = Matrix3d::Identity();
 		Vector3d t0;
 		std::normal_distribution<double> dist_normal(0.0, 1.0);
-		t0 << dist_normal(rng), dist_normal(rng), dist_normal(rng);
+		common::fill_rnd(t0, dist_normal, rng);
 		initialGuess = EManifold(R0, t0);
 	}
-	else if(initialGuessMethod == init_truth)
+	else if(consensusSeed == init_truth)
 	{
 		Matrix3d R_truth = RT_truth.block<3, 3>(0, 0);
 		Vector3d t_truth = RT_truth.block<3, 1>(0, 3);
 		initialGuess = EManifold(R_truth, t_truth);
 	}
+	else
+		throw common::Exception("Unsupported consensus seed method");
 	
 	// Run RANSAC or LMEDS
 	EManifold bestModel;
@@ -876,7 +896,7 @@ public:
 	EManifoldTest(const Matrix3d& R, const Matrix3d& TR) : EManifold(R, TR) {}
 	EManifoldTest(const Matrix3d& R, const Vector3d& t) : EManifold(R, t) {}
 	SO3& getRot() {return rot;}
-	SO2& getVec() {return vec;}
+	S2& getVec() {return vec;}
 	Matrix3d& getE_() {return E_;}
 };
 
@@ -932,11 +952,11 @@ void run_jacobian_tests()
 		Vector3d v;
 		common::fill_rnd(v, dist, rng);
 		v = unit(v);
-		SO2 vec(v);
-		common::checkMatrices("SO2(v).v", "v", vec.v, v);
+		S2 vec(v);
+		common::checkMatrices("S2(v).v", "v", vec.v, v);
 
 		// Test copy assignment operator (make sure it copies by value, not reference)
-		SO2 vec_copy;
+		S2 vec_copy;
 		vec_copy = vec;
 		release_assert(&vec_copy != &vec);
 		release_assert(&vec_copy.R != &vec.R);
@@ -959,7 +979,7 @@ void run_jacobian_tests()
 		rot = SO3(vec.R);
 		w << 0, 0, 1;
 		rot.boxplus(w, rot);
-		SO2 vec2(rot.R);
+		S2 vec2(rot.R);
 		common::checkMatrices("v", "v.boxplus([0; 0; 1])", v, vec2.v);
 
 		// Essential Matrix
@@ -1015,10 +1035,10 @@ void run_jacobian_tests()
 			common::checkMatrices("SO3 deriv", "SO3 deriv_num", deriv, deriv_num, i);
 		}
 
-		// SO2
+		// S2
 		common::fill_rnd(w, dist, rng);
 		axisAngleGetR(w, R);
-		vec = SO2(R);
+		vec = S2(R);
 		for(int i = 0; i < 2; i++)
 		{
 			Vector3d deriv, deriv_num;
@@ -1027,12 +1047,12 @@ void run_jacobian_tests()
 			vec.derivative(i, deriv);
 
 			// Numerical derivative
-			numericalDerivative_i<2>([](const SO2& vec_so2) -> Vector3d {
-					return vec_so2.v;
+			numericalDerivative_i<2>([](const S2& vec_s2) -> Vector3d {
+					return vec_s2.v;
 				}, vec,	deriv_num, i);
 
 			// Check result
-			common::checkMatrices("SO2 deriv", "SO2 deriv_num", deriv, deriv_num, i);
+			common::checkMatrices("S2 deriv", "S2 deriv_num", deriv, deriv_num, i);
 		}
 
 		// EManifold
@@ -1054,7 +1074,7 @@ void run_jacobian_tests()
 				}, eManifold, deriv_num, i);
 
 			// Check result
-			common::checkMatrices("SO2 deriv", "SO2 deriv_num", deriv, deriv_num, i);
+			common::checkMatrices("S2 deriv", "S2 deriv_num", deriv, deriv_num, i);
 		}
 
 		////////// Jacobian tests for Cost Functions ////////////
@@ -1126,14 +1146,14 @@ void run_optimizer_tests()
 
 	// Place the camera 2 units away from the center of the sphere, so that the maximum
 	// FOV angle is approx 45 degrees.
-	// We'll use a little trick to do this. We'll do this using the SO2 unit vector object
-	// to get the position (just multiply by 2), and the SO2 derivatives to get the unit vectors
+	// We'll use a little trick to do this. We'll do this using the S2 unit vector object
+	// to get the position (just multiply by 2), and the S2 derivatives to get the unit vectors
 	// in the other directions.
 	Vector3d w;
 	Matrix3d R;
 	common::fill_rnd(w, dist, rng);
 	axisAngleGetR(w, R);
-	SO2 vec(R);
+	S2 vec(R);
 	Vector3d pos_0_1 = -vec.v * 2;
 
 	// These vectors are the basis vectors of the camera in frame 0 (global frame)

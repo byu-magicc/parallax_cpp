@@ -20,7 +20,7 @@ enum_str(implementation_t, implementation_t_vec, impl_eig, impl_ptr)
 
 enum_str(consensus_t, consensus_t_vec, consensus_RANSAC, consensus_LMEDS)
 
-enum_str(initial_guess_t, initial_guess_t_vec, init_random, init_previous, init_truth)
+enum_str(initial_guess_t, initial_guess_t_vec, init_random, init_previous, init_first, init_best, init_truth)
 
 enum_str(pose_disambig_t, pose_disambig_t_vec, disambig_none, disambig_chierality, disambig_trace)
 
@@ -42,21 +42,21 @@ public:
 	void derivative(int i, Eigen::Matrix3d& result) const;
 };
 
-class SO2
+class S2
 {
 public:
-	SO2();
-	SO2(const Eigen::Matrix3d& R);
-	SO2(const Eigen::Vector3d& v);
-	SO2(const SO2&) = delete;
+	S2();
+	S2(const Eigen::Matrix3d& R);
+	S2(const Eigen::Vector3d& v);
+	S2(const S2&) = delete;
 	Eigen::Matrix3d R;
-	SO2& operator= (const SO2& other);
+	S2& operator= (const S2& other);
 
 	// To get the vector, we use v = R'*[0; 0; 1]. This is the 3rd row of the matrix,
 	// Hence to initialize the map we need to use v(R.data() + 2).
 	// Changing it directly isn't allowed, because it would alter R.
 	const Eigen::Map<const Eigen::Matrix<double, 3, 1>, Eigen::Unaligned, Eigen::Stride<1, 3> > v;
-	void boxplus(const Eigen::Vector2d& delta, SO2& result) const;
+	void boxplus(const Eigen::Vector2d& delta, S2& result) const;
 	void derivative(int i, Eigen::Vector3d& result) const;
 };
 
@@ -83,7 +83,7 @@ private:
 // See https://stackoverflow.com/questions/4037219/order-of-execution-in-constructor-initialization-list
 protected:
 	SO3 rot;
-	SO2 vec;
+	S2 vec;
 	Eigen::Matrix3d E_;
 
 public:
@@ -226,7 +226,7 @@ private:
 class ConsensusAlgorithm
 {
 protected:
-	ConsensusAlgorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, bool seedWithBestHypothesis);
+	ConsensusAlgorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, initial_guess_t optimizerSeed);
 
 public:
 	void run(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& initialGuess, EManifold& bestModel);
@@ -237,14 +237,14 @@ private:
 	void getSubset(const common::scan_t& pts1, const common::scan_t& pts2, common::scan_t& subset1, common::scan_t& subset2, int modelPoints, 
 		std::uniform_int_distribution<>& dist, std::default_random_engine& rng);
 	int n_subsets;
-	bool seedWithBestHypothesis;
+	initial_guess_t optimizerSeed;
 	std::shared_ptr<Optimizer> optimizer;
 };
 
 class RANSAC_Algorithm : public ConsensusAlgorithm
 {
 public:
-	RANSAC_Algorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, bool seedWithBestHypothesis, std::shared_ptr<DifferentiableResidual> cost_fcn, double threshold);
+	RANSAC_Algorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, initial_guess_t optimizerSeed, std::shared_ptr<DifferentiableResidual> cost_fcn, double threshold);
 
 	double score(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, double best_cost);
 
@@ -257,7 +257,7 @@ private:
 class LMEDS_Algorithm : public ConsensusAlgorithm
 {
 public:
-	LMEDS_Algorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, bool seedWithBestHypothesis, std::shared_ptr<DifferentiableResidual> cost_fcn);
+	LMEDS_Algorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, initial_guess_t optimizerSeed, std::shared_ptr<DifferentiableResidual> cost_fcn);
 
 	double score(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, double best_cost);
 
@@ -288,14 +288,10 @@ public:
 	std::shared_ptr<ConsensusAlgorithm> consensusAlg;
 	std::shared_ptr<DifferentiableResidual> optimizerCost;
 	std::shared_ptr<DifferentiableResidual> scoringCost;
-	initial_guess_t initialGuessMethod;
+	initial_guess_t consensusSeed;
 	pose_disambig_t poseDisambigMethod;
 
 private:
-	std::ofstream optimizer_log_file;
-	std::ofstream accuracy_log_file;
-	std::ofstream comparison_tr_log_file;
-	std::ofstream comparison_gn_log_file;
 	//Eigen::Matrix4d RT_truth;
 	EManifold prevResult;
 public:

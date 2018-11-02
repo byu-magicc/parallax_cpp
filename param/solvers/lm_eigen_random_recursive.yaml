@@ -1,0 +1,4 @@
+!include:lm_eigen.yaml
+# Seed randomly, then improve seed
+optimizer_seed: best
+consensus_seed: random

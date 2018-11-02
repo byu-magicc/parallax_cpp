@@ -3,9 +3,10 @@ library: gnsac_eigen
 n_subsets: 100
 optimizer: GN
 optimizer_cost: algebraic
+optimizer_seed: best
 scoring_cost: sampson
 consensus_alg: LMEDS
-consensus_seed_best: true
+consensus_seed: previous
 max_iterations: 10
 exit_tolerance: 0.000001
 initial_guess: previous

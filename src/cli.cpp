@@ -21,7 +21,7 @@ using namespace Eigen;
 using namespace common;
 namespace fs = std::experimental::filesystem;
 
-void readYamlKeyVals(string filename, vector<string>& keys, vector<string>& vals)
+string readFile(string filename)
 {
 	ifstream file(filename);
 	if(!file.is_open())
@@ -31,8 +31,13 @@ void readYamlKeyVals(string filename, vector<string>& keys, vector<string>& vals
 	}	
 	stringstream ss;
 	ss << file.rdbuf();
-	string str = ss.str();
-	Tokenizer tokenizer = Tokenizer(str);
+	return ss.str();
+	file.close();
+}
+
+void yamlToKeyVals(string yaml, vector<string>& keys, vector<string>& vals)
+{
+	Tokenizer tokenizer = Tokenizer(yaml);
 	while(tokenizer.hasToken())
 	{
 		Tokenizer line = tokenizer.nextToken('\n');
@@ -41,20 +46,31 @@ void readYamlKeyVals(string filename, vector<string>& keys, vector<string>& vals
 			keys.push_back(line.nextToken(':').str());
 			vals.push_back(line.nextToken(':').str());
 		}
+		else
+		{
+			keys.push_back(line.str());
+			vals.push_back("");
+		}
 	}
-	file.close();
 }
 
-void concatFiles(string name1, string name2, string name_out)
+string keyValToStr(string key, string val)
+{
+	if(val != "")
+		return key + ":" + val + "\n";
+	else
+		return key + "\n";
+}
+
+string concatYamlStr(string yaml1, string yaml2, bool separate = false)
 {
 	vector<string> keys1, keys2;
 	vector<string> vals1, vals2;
-	readYamlKeyVals(name1, keys1, vals1);
-	readYamlKeyVals(name2, keys2, vals2);
-	ofstream file_out;
-	file_out.open(name_out);
-
-	// Add keys from file1 if they aren't overwritten by file2.
+	yamlToKeyVals(yaml1, keys1, vals1);
+	yamlToKeyVals(yaml2, keys2, vals2);
+	
+	// Add keys from yaml1 if they aren't overwritten by yaml2.
+	string yamlOut = "";
 	for(int i = 0; i < keys1.size(); i++)
 	{
 		bool found = false;
@@ -62,12 +78,42 @@ void concatFiles(string name1, string name2, string name_out)
 			if(keys1[i] == keys2[j])
 				found = true;
 		if(!found)
-			file_out << keys1[i] << ":" << vals1[i] << endl;
+			yamlOut += keyValToStr(keys1[i], vals1[i]);
 	}
+	if(separate)
+		yamlOut += "\n";
 
-	// Add everything from file2
+	// Add everything from yaml2
 	for(int i = 0; i < keys2.size(); i++)
-		file_out << keys2[i] << ":" << vals2[i] << endl;
+		yamlOut += keyValToStr(keys2[i], vals2[i]);
+	return yamlOut;
+}
+
+string readYamlIncludeOpt(string filename, string directory)
+{
+	string yaml = readFile(filename);
+	vector<string> keys;
+	vector<string> vals;
+	yamlToKeyVals(yaml, keys, vals);
+	string yamlOut = "";
+	for(int i = 0; i < keys.size(); i++)
+	{
+		if(keys[i] == "!include")
+			yamlOut = concatYamlStr(yamlOut, readYamlIncludeOpt(fs::path(directory) / vals[i], directory)) + "\n";
+		else
+			yamlOut = concatYamlStr(yamlOut, keyValToStr(keys[i], vals[i]));
+	}
+	return yamlOut;
+}
+
+void concatFiles(string name1, string name2, string name_out, string directory)
+{
+	string yaml1 = readYamlIncludeOpt(name1, directory);
+	string yaml2 = readYamlIncludeOpt(name2, directory);
+	string yaml_out = concatYamlStr(yaml1, yaml2, true);
+	ofstream file_out;
+	file_out.open(name_out);
+	file_out << yaml_out;
 	file_out.close();
 }
 
@@ -107,7 +153,7 @@ void run_test(string video_str, string solver_str, string test_str, int frames)
 	string run_yaml = fs::path(result_directory) / "solver.yaml";
 	cout << "Solver: " << solver_yaml << endl;
 	cout << "Tests: " << test_yaml << endl;
-	concatFiles(solver_yaml, test_yaml, run_yaml);
+	concatFiles(solver_yaml, test_yaml, run_yaml, "../param/solvers");
 	shared_ptr<ESolver> solver = ESolver::from_yaml(run_yaml);
 
 	// Random number generation

@@ -1,22 +1,4 @@
-# GNSAC, eigen version
-library: gnsac_eigen
-n_subsets: 100
-optimizer: GN
-optimizer_cost: algebraic
-scoring_cost: sampson
-consensus_alg: LMEDS
-consensus_seed_best: true
-max_iterations: 10
-exit_tolerance: 0.000001
-initial_guess: previous
-pose_disambig: trace
-
-log_optimizer: true
-log_optimizer_verbose: false
-
-log_comparison: false
-log_unit_test_pts_world: true
-log_unit_test_pts_camera: true
-log_accuracy: true
-log_timing: true
-log_timing_verbose: true
+!include:gn_eigen.yaml
+# Modify to LM
+optimizer: LM
+LM_lambda: 0.0001

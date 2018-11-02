@@ -4,7 +4,7 @@ video = 'holodeck';
 
 % Best way to seed algorithm?
 %methods = {'gn_eigen_prior', 'gn_eigen_prior_recursive', 'gn_eigen_random', 'gn_eigen_random_recursive'};
-methods = {'lm_eigen_prior', 'lm_eigen_prior_recursive', 'lm_eigen_random', 'lm_eigen_random_recursive'};
+%methods = {'lm_eigen_prior', 'lm_eigen_prior_recursive', 'lm_eigen_random', 'lm_eigen_random_recursive'};
 
 % Best cost function?
 % For GN, the algebraic cost seems to work better, but for LM the sampson cost seems to be slightly better.
@@ -17,11 +17,13 @@ methods = {'lm_eigen_prior', 'lm_eigen_prior_recursive', 'lm_eigen_random', 'lm_
 %methods = {'lm_eigen', 'lm_eigen_no_exit'};
 use_mean = 0;
 lgnd = cell(size(methods, 1), 1);
-test = 'consensus';
+%test = 'consensus'; n_subsets = 1000;
+test = 'consensus200'; n_subsets = 200;
+%test = 'consensus100'; n_subsets = 100;
 hold on;
 clrs = {'b', 'r', 'g', 'm'};
 for i=1:length(methods)
-	err = read_binary(['../logs/' video '/' methods{i} '/' test '/consensus.bin'], 1000);
+	err = read_binary(['../logs/' video '/' methods{i} '/' test '/consensus.bin'], n_subsets);
 	if use_mean
 		err_mean = mean(err, 2);
 		err_std = std(err, 0, 2);
@@ -43,7 +45,7 @@ for i=1:length(methods)
 	end
 	lgnd{i} = replace(methods{i}, '_', ' ');
 end
-xlim([0 200])
+xlim([0 min(n_subsets, 200)])
 ylim([0 4e-8])
 legend(lgnd)
 xlabel('LMEDS iterations')

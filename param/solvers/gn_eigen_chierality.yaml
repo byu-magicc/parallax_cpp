@@ -1,0 +1,3 @@
+!include:gn_eigen.yaml
+# Use only chierality to distinguish between R1, R2, +t, and -t.
+pose_disambig: chierality

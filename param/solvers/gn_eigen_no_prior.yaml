@@ -1,0 +1,3 @@
+!include:gn_eigen.yaml
+# Don't use prior best hypothesis
+initial_guess: random

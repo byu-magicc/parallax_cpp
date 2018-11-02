@@ -1,0 +1,3 @@
+!include:gn_eigen.yaml
+# Single-image residual
+optimizer_cost: single

@@ -21,25 +21,53 @@ using namespace Eigen;
 using namespace common;
 namespace fs = std::experimental::filesystem;
 
-void concat_files(string name1, string name2, string name_out)
+void readYamlKeyVals(string filename, vector<string>& keys, vector<string>& vals)
 {
-	std::ifstream file1(name1);
-	std::ifstream file2(name2);
-	if(!file1.is_open())
+	ifstream file(filename);
+	if(!file.is_open())
 	{
-		cout << "Error opening file " << name1 << endl;
+		cout << "Error opening file " << filename << endl;
 		throw common::Exception("Error opening file");
-	}
-		
-	if(!file2.is_open())
+	}	
+	stringstream ss;
+	ss << file.rdbuf();
+	string str = ss.str();
+	Tokenizer tokenizer = Tokenizer(str);
+	while(tokenizer.hasToken())
 	{
-		cout << "Error opening file " << name2 << endl;
-		throw common::Exception("Error opening file");
+		Tokenizer line = tokenizer.nextToken('\n');
+		if(line.countTokens(':') == 2)
+		{
+			keys.push_back(line.nextToken(':').str());
+			vals.push_back(line.nextToken(':').str());
+		}
 	}
-	std::ofstream file_out(name_out);
-	file_out << file1.rdbuf() << endl << file2.rdbuf();
-	file1.close();
-	file2.close();
+	file.close();
+}
+
+void concatFiles(string name1, string name2, string name_out)
+{
+	vector<string> keys1, keys2;
+	vector<string> vals1, vals2;
+	readYamlKeyVals(name1, keys1, vals1);
+	readYamlKeyVals(name2, keys2, vals2);
+	ofstream file_out;
+	file_out.open(name_out);
+
+	// Add keys from file1 if they aren't overwritten by file2.
+	for(int i = 0; i < keys1.size(); i++)
+	{
+		bool found = false;
+		for(int j = 0; j < keys2.size(); j++)
+			if(keys1[i] == keys2[j])
+				found = true;
+		if(!found)
+			file_out << keys1[i] << ":" << vals1[i] << endl;
+	}
+
+	// Add everything from file2
+	for(int i = 0; i < keys2.size(); i++)
+		file_out << keys2[i] << ":" << vals2[i] << endl;
 	file_out.close();
 }
 
@@ -79,7 +107,7 @@ void run_test(string video_str, string solver_str, string test_str, int frames)
 	string run_yaml = fs::path(result_directory) / "solver.yaml";
 	cout << "Solver: " << solver_yaml << endl;
 	cout << "Tests: " << test_yaml << endl;
-	concat_files(test_yaml, solver_yaml, run_yaml);
+	concatFiles(solver_yaml, test_yaml, run_yaml);
 	shared_ptr<ESolver> solver = ESolver::from_yaml(run_yaml);
 
 	// Random number generation

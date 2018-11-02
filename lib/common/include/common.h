@@ -113,8 +113,11 @@ int get_enum_from_string(std::vector<std::string> enum_names_vector, std::string
 enum_str(log_t, log_t_vec, 
 	log_timing, log_timing_verbose, log_accuracy,
 	log_optimizer, log_comparison_accuracy, log_comparison_tr, log_comparison_gn, 
+	log_consensus,
 	log_unit_test_pts_world, log_unit_test_pts_camera)
 	//log_test1, log_test2, log_test3, log_test4, log_test5, log_test6, log_test7, log_test8, log_test9, log_test10)
+
+extern std::vector<bool> logs_enabled;
 
 void init_logs(std::string yaml_filename, std::string result_directory);
 
@@ -124,6 +127,18 @@ void close_logs();
 
 // Assert
 #define release_assert(expr) { if (!(expr)) common::release_error(#expr, __FILE__, __LINE__, __func__); }
+
+class Exception : public std::exception
+{
+public:
+	Exception();
+
+	Exception(std::string _msg);
+
+	const char* what() const throw();
+
+	std::string msg;
+};
 
 void release_error(const char* expr, const char* file, int line, const char* func);
 

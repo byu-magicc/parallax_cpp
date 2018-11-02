@@ -549,7 +549,7 @@ cv::Mat five_point_opencv::findEssentialMatPreempt(cv::InputArray _points1, cv::
 
 five_point_opencv::FivePointSolver* five_point_opencv::FivePointSolver::instance = NULL;
 
-five_point_opencv::FivePointSolver::FivePointSolver(string yaml_filename, YAML::Node node, string result_directory) : common::ESolver(yaml_filename, node, result_directory)
+five_point_opencv::FivePointSolver::FivePointSolver(string yaml_filename, YAML::Node node) : common::ESolver(yaml_filename, node)
 {
 	string consensus_alg_str;
 	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);

@@ -511,14 +511,17 @@ void GaussNewton::optimize(const common::scan_t& pts1, const common::scan_t& pts
 		double residual_norm = r.norm();
 		double dx_norm = dx.norm();
 
-		// time_cat(common::TimeCatNone);
-		// double lambda = -1;
-		// int attempts = -1;
-		// common::write_log(common::log_optimizer, (char*)&residual_norm, sizeof(double));
-		// common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
-		// common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
-		// common::write_log(common::log_optimizer, (char*)&attempts, sizeof(double));
-		// time_cat(common::TimeCatHypoGen);
+		if(common::logs_enabled[common::log_optimizer])
+		{
+			time_cat(common::TimeCatNone);
+			double lambda = -1;
+			int attempts = -1;
+			common::write_log(common::log_optimizer, (char*)&residual_norm, sizeof(double));
+			common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
+			common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
+			common::write_log(common::log_optimizer, (char*)&attempts, sizeof(double));
+			time_cat(common::TimeCatHypoGen);
+		}
 
 		if (residual_norm < exitTolerance)
 			break;
@@ -586,12 +589,15 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 		}
 		double dx_norm = dx.norm();
 
-		// double attempts_double = attempts;
-		// common::write_log(common::log_optimizer, (char*)&r_norm, sizeof(double));
-		// common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
-		// common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
-		// common::write_log(common::log_optimizer, (char*)&attempts_double, sizeof(double));
-		// time_cat(common::TimeCatHypoGen);
+		if(common::logs_enabled[common::log_optimizer])
+		{
+			double attempts_double = attempts;
+			common::write_log(common::log_optimizer, (char*)&r_norm, sizeof(double));
+			common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
+			common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
+			common::write_log(common::log_optimizer, (char*)&attempts_double, sizeof(double));
+			time_cat(common::TimeCatHypoGen);
+		}
 
 		if (r_norm < exitTolerance)
 			break;
@@ -638,6 +644,8 @@ void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& p
 			bestModel = model;
 			bestCost = cost;
 		}
+		if(common::logs_enabled[common::log_consensus])
+			common::write_log(common::log_consensus, (char*)&bestCost, sizeof(double));
 	}
 }
 
@@ -711,7 +719,7 @@ double LMEDS_Algorithm::score(const common::scan_t& pts1, const common::scan_t& 
 // Top-level GNSAC_Solver //
 ////////////////////////////
 
-GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::string result_directory) : common::ESolver(yaml_filename, node, result_directory)
+GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node) : common::ESolver(yaml_filename, node)
 {
 	// Optimizer cost
 	string optimizer_cost_str;
@@ -773,32 +781,8 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::stri
 	string initial_guess_method_str, pose_disambig_str;
 	common::get_yaml_node("initial_guess", yaml_filename, node, initial_guess_method_str);
 	common::get_yaml_node("pose_disambig", yaml_filename, node, pose_disambig_str);
-	common::get_yaml_node("log_optimizer", yaml_filename, node, log_optimizer);
-	common::get_yaml_node("log_comparison", yaml_filename, node, log_comparison);
 	initialGuessMethod = (initial_guess_t)common::get_enum_from_string(initial_guess_t_vec, initial_guess_method_str);
 	poseDisambigMethod = (pose_disambig_t)common::get_enum_from_string(pose_disambig_t_vec, pose_disambig_str);
-	if(log_optimizer)
-	{
-		common::get_yaml_node("log_optimizer_verbose", yaml_filename, node, log_optimizer_verbose);
-		cout << "log_optimizer_verbose " << log_optimizer_verbose << endl;
-		init_optimizer_log(result_directory);
-	}
-	if(log_comparison)
-		init_comparison_log(result_directory);
-}
-
-void GNSAC_Solver::init_optimizer_log(string result_directory)
-{
-	optimizer->exitTolerance = 0; // Data is all garbled if each run has a different number of iterations...
-	optimizer_log_file.open(fs::path(result_directory) / "optimizer.bin");
-}
-
-void GNSAC_Solver::init_comparison_log(string result_directory)
-{
-	optimizer->exitTolerance = 0; // Data is all garbled if each run has a different number of iterations...
-	accuracy_log_file.open(fs::path(result_directory) / "5-point_accuracy.bin");
-	comparison_tr_log_file.open(fs::path(result_directory) / "5-point_comparison_tr.bin");
-	comparison_gn_log_file.open(fs::path(result_directory) / "5-point_comparison_gn.bin");
 }
 
 void GNSAC_Solver::generate_hypotheses(const common::scan_t& subset1, const common::scan_t& subset2, const common::EHypothesis& initial_guess, std::vector<common::EHypothesis>& hypotheses)

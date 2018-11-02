@@ -1,0 +1,6 @@
+# Logs the optimizer so we can see if GN or LM is better.
+# We need exit tolerance to be set to 0, otherwise each run will have
+# a different number of outputs.
+max_iterations: 200
+exit_tolerance: 0
+log_optimizer: true

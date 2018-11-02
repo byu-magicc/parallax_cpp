@@ -273,7 +273,7 @@ private:
 class GNSAC_Solver : public common::ESolver
 {
 public:
-	GNSAC_Solver(std::string yaml_filename, YAML::Node node, std::string result_directory);
+	GNSAC_Solver(std::string yaml_filename, YAML::Node node);
 
 	void generate_hypotheses(const common::scan_t& subset1, const common::scan_t& subset2, const common::EHypothesis& initial_guess, std::vector<common::EHypothesis>& hypotheses);
 
@@ -282,11 +282,6 @@ public:
 	void find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Eigen::Matrix4d& RT_truth, common::EHypothesis& result);
 
 	double score_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& hypothesis);
-
-private:
-	void init_optimizer_log(std::string result_directory);
-
-	void init_comparison_log(std::string result_directory);
 
 public:
 	std::shared_ptr<Optimizer> optimizer;
@@ -297,9 +292,6 @@ public:
 	pose_disambig_t poseDisambigMethod;
 
 private:
-	bool log_optimizer;
-	bool log_optimizer_verbose;
-	bool log_comparison;
 	std::ofstream optimizer_log_file;
 	std::ofstream accuracy_log_file;
 	std::ofstream comparison_tr_log_file;

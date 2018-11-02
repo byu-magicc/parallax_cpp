@@ -421,34 +421,36 @@ namespace five_point_opencv
 
 				nmodels = cb->runKernel(ms1, ms2, model);
 				time_cat_verbose(common::TimeCatVerboseNone);
-				if (nmodels <= 0)
-					continue;
-
-				CV_Assert(model.rows % nmodels == 0);
-				Size modelSize(model.cols, model.rows / nmodels);
-
-				time_cat(common::TimeCatHypoScoring);
-				for (i = 0; i < nmodels; i++)
+				if (nmodels > 0)
 				{
-					Mat model_i = model.rowRange(i*modelSize.height, (i + 1)*modelSize.height);
-					cb->computeError(m1, m2, model_i, err);
-					if (err.depth() != CV_32F)
-						err.convertTo(errf, CV_32F);
-					else
-						errf = err;
-					CV_Assert(errf.isContinuous() && errf.type() == CV_32F && (int)errf.total() == count);
-					// JHW: Why not use std::nth_element instead of std::sort? It's a lot more efficient than sorting the entire array.
-					std::sort(errf.ptr<int>(), errf.ptr<int>() + count);
+					CV_Assert(model.rows % nmodels == 0);
+					Size modelSize(model.cols, model.rows / nmodels);
 
-					double median = count % 2 != 0 ?
-						errf.at<float>(count / 2) : (errf.at<float>(count / 2 - 1) + errf.at<float>(count / 2))*0.5;
-
-					if (median < minMedian)
+					time_cat(common::TimeCatHypoScoring);
+					for (i = 0; i < nmodels; i++)
 					{
-						minMedian = median;
-						model_i.copyTo(bestModel);
+						Mat model_i = model.rowRange(i*modelSize.height, (i + 1)*modelSize.height);
+						cb->computeError(m1, m2, model_i, err);
+						if (err.depth() != CV_32F)
+							err.convertTo(errf, CV_32F);
+						else
+							errf = err;
+						CV_Assert(errf.isContinuous() && errf.type() == CV_32F && (int)errf.total() == count);
+						// JHW: Why not use std::nth_element instead of std::sort? It's a lot more efficient than sorting the entire array.
+						std::sort(errf.ptr<int>(), errf.ptr<int>() + count);
+
+						double median = count % 2 != 0 ?
+							errf.at<float>(count / 2) : (errf.at<float>(count / 2 - 1) + errf.at<float>(count / 2))*0.5;
+
+						if (median < minMedian)
+						{
+							minMedian = median;
+							model_i.copyTo(bestModel);
+						}
 					}
 				}
+				if(common::logs_enabled[common::log_consensus])
+					common::write_log(common::log_consensus, (char*)&minMedian, sizeof(double));
 			}
 
 			if (minMedian < DBL_MAX)

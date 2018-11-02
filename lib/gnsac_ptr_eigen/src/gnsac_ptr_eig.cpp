@@ -574,7 +574,7 @@ void copyHypothesis(const GNHypothesis& h1, GNHypothesis& h2)
 	h2.cost = h1.cost;
 }
 
-GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node, string result_directory) : common::ESolver(yaml_filename, node, result_directory)
+GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node) : common::ESolver(yaml_filename, node)
 {
 	string optimizer_str, optimizer_cost_str, scoring_cost_str, scoring_impl_str, 
 		consensus_alg_str, initial_guess_method_str, pose_disambig_str;
@@ -587,11 +587,7 @@ GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node, string result_
 	common::get_yaml_node("n_subsets", yaml_filename, node, n_subsets);
 	common::get_yaml_node("max_iterations", yaml_filename, node, max_iterations);
 	common::get_yaml_node("exit_tolerance", yaml_filename, node, exit_tolerance);
-	common::get_yaml_node("log_optimizer", yaml_filename, node, log_optimizer);
-	common::get_yaml_node("log_comparison", yaml_filename, node, log_comparison);
 	common::get_yaml_node("pose_disambig", yaml_filename, node, pose_disambig_str);
-	cout << "log_optimizer " << log_optimizer << endl;
-	cout << "log_comparison " << log_comparison << endl;
 
 	optimizer = (optimizer_t)common::get_enum_from_string(optimizer_t_vec, optimizer_str);
 	optimizer_cost = (cost_function_t)common::get_enum_from_string(cost_function_t_vec, optimizer_cost_str);
@@ -605,14 +601,6 @@ GNSAC_Solver::GNSAC_Solver(string yaml_filename, YAML::Node node, string result_
 		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
 	if(optimizer == optimizer_LM)
 		common::get_yaml_node("LM_lambda", yaml_filename, node, LM_lambda);
-	if(log_optimizer)
-	{
-		common::get_yaml_node("log_optimizer_verbose", yaml_filename, node, log_optimizer_verbose);
-		cout << "log_optimizer_verbose " << log_optimizer_verbose << endl;
-		init_optimizer_log(result_directory);
-	}
-	if(log_comparison)
-		init_comparison_log(result_directory);
 }
 
 double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2, 
@@ -755,7 +743,7 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 	time_cat_verbose(common::TimeCatVerboseNone);
 	
 	// Logging (optional)
-	if(log_optimizer && (last_iteration || log_optimizer_verbose))
+	if(common::logs_enabled[common::log_optimizer])
 	{
 		time_cat(common::TimeCatNone);
 		common::write_log(common::log_optimizer, (char*)&r_norm, sizeof(double));
@@ -764,7 +752,10 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 		common::write_log(common::log_optimizer, (char*)&LM_attempts, sizeof(double));
 		time_cat(common::TimeCatHypoGen);
 	}
-	if(log_comparison && last_iteration && pts1.size() == 5)
+	if(common::logs_enabled[common::log_comparison_accuracy] && 
+	   common::logs_enabled[common::log_comparison_tr] && 
+	   common::logs_enabled[common::log_comparison_gn])
+
 	{
 		time_cat(common::TimeCatNone);
 
@@ -799,20 +790,6 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 		time_cat(common::TimeCatHypoGen);
 	}	
 	return r_norm;
-}
-
-void GNSAC_Solver::init_optimizer_log(string result_directory)
-{
-	exit_tolerance = 0; // Data is all garbled if each run has a different number of iterations...
-	optimizer_log_file.open(fs::path(result_directory) / "optimizer.bin");
-}
-
-void GNSAC_Solver::init_comparison_log(string result_directory)
-{
-	exit_tolerance = 0;
-	accuracy_log_file.open(fs::path(result_directory) / "5-point_accuracy.bin");
-	comparison_tr_log_file.open(fs::path(result_directory) / "5-point_comparison_tr.bin");
-	comparison_gn_log_file.open(fs::path(result_directory) / "5-point_comparison_gn.bin");
 }
 
 int GNSAC_Solver::optimize(const common::scan_t& pts1, const common::scan_t& pts2, const GNHypothesis& h1, GNHypothesis& h2)

@@ -176,7 +176,7 @@ namespace five_point_opencv
 	class FivePointSolver : public common::ESolver
 	{
 	public:
-		FivePointSolver(std::string yaml_filename, YAML::Node node, std::string result_directory);
+		FivePointSolver(std::string yaml_filename, YAML::Node node);
 
 	public:
 		void generate_hypotheses(const common::scan_t& subset1, const common::scan_t& subset2, const common::EHypothesis& initial_guess, std::vector<common::EHypothesis>& hypotheses);

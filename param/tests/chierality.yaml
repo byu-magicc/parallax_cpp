@@ -1,0 +1,5 @@
+# Compares what happens if we use chierality instead of the trace to disambiguiate pose.
+pose_disambig: chierality
+log_accuracy: true
+log_timing: true
+log_timing_verbose: true

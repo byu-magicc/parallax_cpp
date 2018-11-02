@@ -30,7 +30,7 @@ public:
 class ESolver
 {
 public:
-	ESolver(std::string yaml_filename, YAML::Node node, std::string result_directory);
+	ESolver(std::string yaml_filename, YAML::Node node);
 
 public:
 	virtual void generate_hypotheses(const scan_t& subset1, const scan_t& subset2, const EHypothesis& initial_guess, std::vector<EHypothesis>& hypotheses);
@@ -41,7 +41,7 @@ public:
 
 	virtual double score_hypothesis(const scan_t& pts1, const scan_t& pts2, const EHypothesis& hypothesis);
 
-	static std::shared_ptr<ESolver> from_yaml(std::string yaml_filename, std::string result_directory);
+	static std::shared_ptr<ESolver> from_yaml(std::string yaml_filename);
 };
 
 }

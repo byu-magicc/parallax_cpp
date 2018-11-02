@@ -396,7 +396,7 @@ int common::get_enum_from_string(vector<string> enum_names_vector, string str)
 /////////////
 
 std::vector<std::ofstream> log_files(common::log_t_vec.size());
-std::vector<bool> logs_enabled(common::log_t_vec.size(), false);
+std::vector<bool> common::logs_enabled(common::log_t_vec.size(), false);
 
 void common::init_logs(string yaml_filename, string result_directory)
 {
@@ -414,10 +414,6 @@ void common::init_logs(string yaml_filename, string result_directory)
 				logs_enabled[i] = true;
 			else
 				cout << "Error opening log file " << log_filename << endl;
-		}
-		else
-		{
-			cout << "Option to log to " << log_filename << " set to false or unset." << endl;
 		}
 	}
 }
@@ -441,23 +437,18 @@ void common::close_logs()
 // Release Assert and Determinism Checker //
 ////////////////////////////////////////////
 
-class Exception : public std::exception
+common::Exception::Exception()
 {
-public:
-	Exception()
-	{
-	}
+}
 
-	Exception(string _msg) : msg(_msg)
-	{
-	}
+common::Exception::Exception(string _msg) : msg(_msg)
+{
+}
 
-	const char* what() const throw()
-	{
-		return msg.c_str();
-	}
-	string msg;
-};
+const char* common::Exception::what() const throw()
+{
+	return msg.c_str();
+}
 
 void common::release_error(const char* expr, const char* file, int line, const char* func)
 {

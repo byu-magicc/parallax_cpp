@@ -1,0 +1,3 @@
+# Log the consensus
+n_subsets: 1000
+log_consensus: true

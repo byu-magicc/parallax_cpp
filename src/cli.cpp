@@ -211,6 +211,7 @@ void run_tests(string video_str, string test_str)
 		throw common::Exception("Test \"" + test_yaml + "\" does not exist.");
 
 	// Search test folder to obtain all yaml files. Make sure they can all be loaded succesfully
+	vector<string> solver_paths;
     for (auto& solver_yaml : fs::directory_iterator(test_dir))
 	{
 		if(solver_yaml.path() != test_yaml)
@@ -218,6 +219,7 @@ void run_tests(string video_str, string test_str)
 			try
 			{
 				string unused = readYamlIncludeOpt(solver_yaml.path(), solver_dir);
+				solver_paths.push_back(solver_yaml.path());
 			}
 			catch(common::Exception e)
 			{
@@ -226,13 +228,14 @@ void run_tests(string video_str, string test_str)
 			}
 		}
 	}
+	sort(solver_paths.begin(), solver_paths.end());
 
 	// Now run the tests!
 	cout << GREEN_TEXT << "Running test " << test_yaml << " with all solvers in directory" BLACK_TEXT << endl;
-    for (auto& solver_yaml : fs::directory_iterator(test_dir))
+    for (int i = 0; i < solver_paths.size(); i++)
 	{
-		cout << GREEN_TEXT << "Solver " << solver_yaml.path() << BLACK_TEXT << endl;
-		string solver_str = solver_yaml.path().stem();
+		cout << GREEN_TEXT << "Solver " << solver_paths[i] << BLACK_TEXT << endl;
+		string solver_str = fs::path(solver_paths[i]).stem();
 		run_test(video_str, test_str, solver_str);
 	}
 }

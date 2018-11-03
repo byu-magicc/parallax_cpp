@@ -1,0 +1,2 @@
+# See which RANSAC threshold gives better results
+log_accuracy: true

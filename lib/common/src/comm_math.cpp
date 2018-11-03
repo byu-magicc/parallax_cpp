@@ -219,9 +219,15 @@ Vector4d common::err_truth(const Matrix3d& R1, const Matrix3d& R2, const Vector3
 	// Extract R and T from the 4x4 homogenous transformation
 	Matrix3d R_truth = RT.block<3, 3>(0, 0);
 	Vector3d t_truth = RT.block<3, 1>(0, 3);
-	t_truth = unit(t_truth);
+	if(t_truth.norm() > 0) // If we have a zero translation, the angle is undefined. Return zero instead.
+		t_truth = unit(t_truth);
 
 	// Calculate errors for R1, R2, t, and -t
+	if(t.norm() == 0)
+	{
+		cout << "Division by zero" << endl;
+		exit(EXIT_FAILURE);
+	}
 	Vector3d t_unit = unit(t);
 	double err_t1;
 	double dot_product = t_unit.dot(t_truth);

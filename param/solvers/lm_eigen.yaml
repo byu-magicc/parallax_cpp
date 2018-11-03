@@ -1,4 +1,4 @@
 !include:gn_eigen.yaml
 # Modify to LM
 optimizer: LM
-LM_lambda: 0.0001
+LM_lambda: 1e-4

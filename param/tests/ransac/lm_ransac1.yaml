@@ -1,0 +1,5 @@
+!include:lm_eigen.yaml
+
+# RANSAC threshold
+consensus_alg: RANSAC
+RANSAC_threshold: 1e-1

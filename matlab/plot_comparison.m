@@ -1,9 +1,12 @@
-function plot_comparison(title_str, dataset, methods, test, ylabels, name)
+function plot_comparison(title_str, video, test, methods, ylabels, name)
 	lgnd = cell(1, length(methods));
 	figure(1)
 	clf
 	for i = 1:length(methods)
-		filename = ['../logs/' dataset '/' methods{i} '/' test '/' name];
+		filename = ['../logs/' video '/' test '/' methods{i} '/' name];
+		if exist(filename, 'file') ~= 2
+			error(['file ' filename ' not found']);
+		end		
 		file = fopen(filename, 'r');
 		val = fread(file, 'double');
 		fclose(file);

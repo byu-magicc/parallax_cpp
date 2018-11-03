@@ -1,0 +1,4 @@
+!include:lm_eigen.yaml
+
+# LMEDS
+consensus_alg: LMEDS

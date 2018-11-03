@@ -1,0 +1,3 @@
+!include:gn_eigen.yaml
+# Single-image residual
+scoring_cost: single

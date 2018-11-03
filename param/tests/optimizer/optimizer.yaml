@@ -1,0 +1,4 @@
+# Log the optimizer
+log_optimizer: true
+max_iterations: 1000
+exit_tolerance: 0

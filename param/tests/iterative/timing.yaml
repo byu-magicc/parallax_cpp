@@ -1,0 +1,3 @@
+# This test is to show that iterative methods can out-perform their exact counterparts,
+# if they are initialized with a good prior.
+log_timing: true

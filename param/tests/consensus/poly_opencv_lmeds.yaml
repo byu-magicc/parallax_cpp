@@ -1,0 +1,3 @@
+!include:poly_opencv.yaml
+# LMEDS
+consensus_alg: LMEDS

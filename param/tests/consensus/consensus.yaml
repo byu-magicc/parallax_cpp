@@ -1,0 +1,2 @@
+# Log the distance to the true R and t.
+log_accuracy: true

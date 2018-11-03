@@ -1,0 +1,2 @@
+# See which cost results in answers closer to the truth
+log_accuracy: true

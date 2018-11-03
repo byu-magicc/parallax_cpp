@@ -1,0 +1,5 @@
+# Log consensus algorithm over time.
+# Note that logging the optimizer cost won't be useful because
+# we would be logging different cost functions
+n_subsets: 1000
+log_consensus: true

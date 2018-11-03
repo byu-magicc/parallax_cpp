@@ -25,10 +25,7 @@ string readFile(string filename)
 {
 	ifstream file(filename);
 	if(!file.is_open())
-	{
-		cout << "Error opening file " << filename << endl;
-		throw common::Exception("Error opening file");
-	}	
+		throw common::Exception("Error opening file \"" + filename + "\"");
 	stringstream ss;
 	ss << file.rdbuf();
 	return ss.str();
@@ -117,13 +114,13 @@ void concatFiles(string name1, string name2, string name_out, string directory)
 	file_out.close();
 }
 
-void run_test(string video_str, string solver_str, string test_str, int frames)
+void run_test(string video_str, string test_str, string solver_str, int frames = -1)
 {
 	// Create folder for results
 	string dir_part1 = fs::path("../logs");
 	string dir_part2 = fs::path("../logs") / video_str;
-	string dir_part3 = fs::path("../logs") / video_str / solver_str;
-	string result_directory = fs::path("../logs") / video_str / solver_str / test_str;
+	string dir_part3 = fs::path("../logs") / video_str / test_str;
+	string result_directory = fs::path("../logs") / video_str / test_str / solver_str;
 	cout << result_directory << endl;
 	if(!fs::exists(dir_part1))
 		fs::create_directory(dir_part1);
@@ -148,8 +145,8 @@ void run_test(string video_str, string solver_str, string test_str, int frames)
 			(int)video_data.RT.size(), (int)video_data.pts1.size());
 
 	// Concatenate solver and test to create a run yaml
-	string solver_yaml = fs::path("../param/solvers") / (solver_str + ".yaml");
-	string test_yaml = fs::path("../param/tests") / (test_str + ".yaml");
+	string solver_yaml = fs::path("../param/tests") / test_str / (solver_str + ".yaml");
+	string test_yaml = fs::path("../param/tests") / test_str / (test_str + ".yaml");
 	string run_yaml = fs::path(result_directory) / "solver.yaml";
 	cout << "Solver: " << solver_yaml << endl;
 	cout << "Tests: " << test_yaml << endl;
@@ -204,23 +201,78 @@ void run_test(string video_str, string solver_str, string test_str, int frames)
 	common::close_logs();
 }
 
+void run_tests(string video_str, string test_str)
+{
+	// First make sure that the test dir and yaml exists
+	string solver_dir = fs::path("../param/solvers");
+	string test_dir = fs::path("../param/tests") / test_str;
+	string test_yaml = fs::path("../param/tests") / test_str / (test_str + ".yaml");
+	if(!fs::exists(test_yaml))
+		throw common::Exception("Test \"" + test_yaml + "\" does not exist.");
+
+	// Search test folder to obtain all yaml files. Make sure they can all be loaded succesfully
+    for (auto& solver_yaml : fs::directory_iterator(test_dir))
+	{
+		if(solver_yaml.path() != test_yaml)
+		{
+			try
+			{
+				string unused = readYamlIncludeOpt(solver_yaml.path(), solver_dir);
+			}
+			catch(common::Exception e)
+			{
+				cout << RED_TEXT << "Error loading " << solver_yaml << BLACK_TEXT << endl;
+				cout << e.what() << endl;
+			}
+		}
+	}
+
+	// Now run the tests!
+	cout << GREEN_TEXT << "Running test " << test_yaml << " with all solvers in directory" BLACK_TEXT << endl;
+    for (auto& solver_yaml : fs::directory_iterator(test_dir))
+	{
+		cout << GREEN_TEXT << "Solver " << solver_yaml.path() << BLACK_TEXT << endl;
+		string solver_str = solver_yaml.path().stem();
+		run_test(video_str, test_str, solver_str);
+	}
+}
+
 int main(int argc, char *argv[])
 {
-	//gnsac_eigen::run_tests();
-
 	// Get rid of first arg (executable name)
 	argc--; argv++;
 
-	// Make sure there are sufficient arguments
-	string usage_str = "Usage: ./cli video solver test [frames]";
-	if(argc < 3)
+	// Run unit tests
+	if (argc == 1 && string(argv[0]) == "unit")
 	{
-		cout << usage_str << endl;
+		gnsac_eigen::run_tests();
 		return 0;
 	}
-	string video = string(argv[0]);
-	string solver = string(argv[1]);
-	string test = string(argv[2]);
-	int frames = (argc >= 4) ? atoi(argv[3]) : -1;
-	run_test(video, solver, test, frames);
+
+	// Run test with all solvers in directory
+	if(argc == 2)
+	{
+		string video = string(argv[0]);
+		string test = string(argv[1]);
+		run_tests(video, test);
+		return 0;
+	}
+
+	// Run test with a specific solver
+	if(argc >= 2)
+	{
+		string video = string(argv[0]);
+		string test = string(argv[1]);
+		string solver = string(argv[2]);
+		int frames = (argc >= 4) ? atoi(argv[3]) : -1;
+		run_test(video, test, solver, frames);
+		return 0;
+	}
+
+	// If there weren't sufficient arguments, exit.
+	cout << "Usage: Run from the parallax_cpp/build folder." << endl;
+	cout << "Enter yaml filenames without folder directory or extension (ie. enter \"gn_eigen\" for \"../param/solvers/gn_eigen.yaml\"" << endl;
+	cout << "./cli unit" << endl;
+	cout << "./cli video_yaml test_yaml [solver_yaml [frames]]" << endl;
+
 }

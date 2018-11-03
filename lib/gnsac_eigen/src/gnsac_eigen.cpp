@@ -1131,7 +1131,7 @@ void run_jacobian_tests()
 
 void run_optimizer_tests()
 {
-	common::init_logs("../params/solvers/gn_eigen.yaml", "../logs/test");	
+	common::init_logs("../param/solvers/gn_eigen.yaml", "../logs/test");	
 	std::default_random_engine rng(0);
 	std::normal_distribution<double> dist(0.0, 1.0);
 

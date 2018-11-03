@@ -1,4 +1,4 @@
-%% GN vs. LM: What percent are converged after a certian number of iterations?
+%% Lambda0: What percent are converged after a certian number of iterations?
 video = 'holodeck';
 test = 'lambda';
 hold on;

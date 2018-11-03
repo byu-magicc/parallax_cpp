@@ -173,6 +173,8 @@ namespace five_point_opencv
 
 	enum_str(consensus_t, consensus_t_vec, consensus_RANSAC, consensus_LMEDS)
 
+	enum_str(pose_disambig_t, pose_disambig_t_vec, disambig_none, disambig_chierality, disambig_trace)
+
 	class FivePointSolver : public common::ESolver
 	{
 	public:
@@ -187,9 +189,9 @@ namespace five_point_opencv
 
 	public:
 		consensus_t consensus_alg;
+		pose_disambig_t poseDisambigMethod;
 		int n_subsets;
 		double RANSAC_threshold;
-		Eigen::Matrix4d RT_truth;
 
 	private:
 		static FivePointSolver* instance;

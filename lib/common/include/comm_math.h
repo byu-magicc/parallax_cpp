@@ -70,6 +70,10 @@ void perspectiveTransform(const scan_t& pts1, scan_t& pts2, const Eigen::Matrix3
 
 void getParallaxField(const Eigen::Matrix3d& E, const Eigen::Vector2d& loc, Eigen::Vector2d& perpendicular, Eigen::Vector2d& parallel);
 
+void lineIntersection(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2, const Eigen::Vector3d& v1, const Eigen::Vector3d& v2, Eigen::Vector3d& n, double& err);
+
+void triangulatePoints(const scan_t& pts1, const scan_t& pts2, const Eigen::Matrix3d& R, const Eigen::Vector3d& t, std::vector<Eigen::Vector3d>& Pts1, std::vector<Eigen::Vector3d>& Pts2, std::vector<double>& err);
+
 int chierality(const scan_t& pts1, const scan_t& pts2, const Eigen::Matrix3d& R, const Eigen::Vector3d& t);
 
 }

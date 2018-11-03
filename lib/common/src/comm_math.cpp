@@ -411,29 +411,112 @@ void common::getParallaxField(const Matrix3d& E, const Vector2d& loc, Vector2d& 
 	parallel << perpendicular(1), -perpendicular(0);
 }
 
+// int common::chierality(const scan_t& pts1, const scan_t& pts2, const Matrix3d& R, const Vector3d& t)
+// {
+// 	// Derotate points
+// 	// Use rotation as a euclidian homography matrix to transform points to 2nd frame
+// 	// H_e = R + T_x*n
+// 	const Matrix3d& H_e = R;
+// 	scan_t pts1_warped;
+// 	perspectiveTransform(pts1, pts1_warped, H_e);
+
+// 	// Calculate the point velocities (velocity = parallax + actual velocity)
+// 	scan_t pointVelocities = scan_t(pts1.size());
+// 	for (int i = 0; i < pts1.size(); i++)
+// 		pointVelocities[i] = (pts2[i] - pts1_warped[i]);
+
+// 	// Use the translation as a skew symmetric matrix to calculate the field normal and parallel vectors
+// 	scan_t fieldPerpendicular = scan_t(pts1.size());
+// 	scan_t fieldParallel = scan_t(pts1.size());
+// 	for (int i = 0; i < pts1.size(); i++)
+// 		getParallaxField(skew(t), pts1_warped[i], fieldPerpendicular[i], fieldParallel[i]);
+
+// 	// Count how many points have a positive parallax component
+// 	int numPosDotProduct = 0;
+// 	for (int i = 0; i < pts1.size(); i++)
+// 		if (pointVelocities[i].dot(fieldParallel[i]) > 0)
+// 			numPosDotProduct++;
+// }
+
+void common::lineIntersection(const Vector3d& p1, const Vector3d& p2, const Vector3d& v1, const Vector3d& v2, Vector3d& n, double& err)
+{
+	Matrix<double, 3, 2> A;
+	A << v1, v2;
+	Vector3d b = p2 - p1;
+
+	// solve using least squares
+	Vector2d x = A.fullPivLu().solve(b);
+
+	// find nearest points
+	Vector3d n1 = p1 + v1*x(0);
+	Vector3d n2 = p2 - v2*x(1);
+
+	// intersection and error
+	n = (n1 + n2) / 2;
+	err = (n1 - n2).norm();
+}
+
+void common::triangulatePoints(const scan_t& pts1, const scan_t& pts2, const Matrix3d& R, const Vector3d& t, vector<Vector3d>& Pts1, vector<Vector3d>& Pts2, vector<double>& err)
+{
+	Pts1.resize(pts1.size());
+	Pts2.resize(pts1.size());
+	err.resize(pts1.size());
+	Matrix4d RT = RT_combine(R, t);
+	Matrix4d RT_inv = RT.inverse();
+	Vector3d pos_camera1_c1 = Vector3d::Zero();
+	Vector3d pos_camera2_c1 = RT_inv.block<3, 1>(0, 3);
+	for(int i = 0; i < pts1.size(); i++)
+	{
+		Vector3d vector1_c1, vector2_c2, nearest_point_c1;
+		vector1_c1 << pts1[i](0), pts1[i](1), 1;
+		vector2_c2 << pts2[i](0), pts2[i](1), 1;
+		Vector3d vector2_c1 = RT_inv.block<3, 3>(0, 0)*vector2_c2;
+		lineIntersection(pos_camera1_c1, pos_camera2_c1, vector1_c1, vector2_c1, nearest_point_c1, err[i]);
+		Pts1[i] = nearest_point_c1;
+		Pts2[i] = R*nearest_point_c1;
+	}
+}
+
 int common::chierality(const scan_t& pts1, const scan_t& pts2, const Matrix3d& R, const Vector3d& t)
 {
-	// Derotate points
-	// Use rotation as a euclidian homography matrix to transform points to 2nd frame
-	// H_e = R + T_x*n
-	const Matrix3d& H_e = R;
-	scan_t pts1_warped;
-	perspectiveTransform(pts1, pts1_warped, H_e);
+	int numPosDepth = 0;
+	vector<Vector3d> Pts1;
+	vector<Vector3d> Pts2;
+	vector<double> err;
+	triangulatePoints(pts1, pts2, R, t, Pts1, Pts2, err);
 
-	// Calculate the point velocities (velocity = parallax + actual velocity)
-	scan_t pointVelocities = scan_t(pts1.size());
-	for (int i = 0; i < pts1.size(); i++)
-		pointVelocities[i] = (pts2[i] - pts1_warped[i]);
-
-	// Use the translation as a skew symmetric matrix to calculate the field normal and parallel vectors
-	scan_t fieldPerpendicular = scan_t(pts1.size());
-	scan_t fieldParallel = scan_t(pts1.size());
-	for (int i = 0; i < pts1.size(); i++)
-		getParallaxField(skew(t), pts1_warped[i], fieldPerpendicular[i], fieldParallel[i]);
-
-	// Count how many points have a positive parallax component
-	int numPosDotProduct = 0;
-	for (int i = 0; i < pts1.size(); i++)
-		if (pointVelocities[i].dot(fieldParallel[i]) > 0)
-			numPosDotProduct++;
+	// Count how many points triangulated points have a positive depth
+	for(int i = 0; i < pts1.size(); i++)
+	{
+		numPosDepth += (Pts1[i](2) > 0);
+		numPosDepth += (Pts2[i](2) > 0);
+	}
+	return numPosDepth;
 }
+
+// int common::chierality(const scan_t& pts1, const scan_t& pts2, const Matrix3d& R, const Vector3d& t)
+// {
+// 	// Derotate points
+// 	// Use rotation as a euclidian homography matrix to transform points to 2nd frame
+// 	// H_e = R + T_x*n
+// 	const Matrix3d& H_e = R;
+// 	scan_t pts1_warped;
+// 	perspectiveTransform(pts1, pts1_warped, H_e);
+
+// 	// Calculate the point velocities (velocity = parallax + actual velocity)
+// 	scan_t pointVelocities = scan_t(pts1.size());
+// 	for (int i = 0; i < pts1.size(); i++)
+// 		pointVelocities[i] = (pts2[i] - pts1_warped[i]);
+
+// 	// Use the translation as a skew symmetric matrix to calculate the field normal and parallel vectors
+// 	scan_t fieldPerpendicular = scan_t(pts1.size());
+// 	scan_t fieldParallel = scan_t(pts1.size());
+// 	for (int i = 0; i < pts1.size(); i++)
+// 		getParallaxField(skew(t), pts1_warped[i], fieldPerpendicular[i], fieldParallel[i]);
+
+// 	// Count how many points have a positive parallax component
+// 	int numPosDotProduct = 0;
+// 	for (int i = 0; i < pts1.size(); i++)
+// 		if (pointVelocities[i].dot(fieldParallel[i]) > 0)
+// 			numPosDotProduct++;
+// }

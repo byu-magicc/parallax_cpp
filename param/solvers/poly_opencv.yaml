@@ -2,3 +2,4 @@
 library: five_point_opencv
 n_subsets: 100
 consensus_alg: LMEDS
+pose_disambig: chierality

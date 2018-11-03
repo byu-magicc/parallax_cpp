@@ -15,8 +15,8 @@ class EHypothesis
 {
 public:
 	EHypothesis();
-	EHypothesis(Eigen::Matrix3d E);
-	EHypothesis(Eigen::Matrix3d E, Eigen::Matrix3d R, Eigen::Vector3d t);
+	EHypothesis(Eigen::Matrix3d& E);
+	EHypothesis(Eigen::Matrix3d& E, Eigen::Matrix3d& R, Eigen::Vector3d& t);
 	Eigen::Matrix3d E;
 	Eigen::Matrix3d R;
 	Eigen::Vector3d t;

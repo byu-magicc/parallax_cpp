@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "common.h"
 #include <iostream>
 #include <experimental/filesystem>
+#include "opencv2/core/eigen.hpp"
 
 using namespace cv;
 using namespace std;
@@ -557,6 +558,10 @@ five_point_opencv::FivePointSolver::FivePointSolver(string yaml_filename, YAML::
 	consensus_alg = (consensus_t)common::get_enum_from_string(consensus_t_vec, consensus_alg_str);
 	if(consensus_alg == consensus_RANSAC)
 		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
+
+	string pose_disambig_str;
+	common::get_yaml_node("pose_disambig", yaml_filename, node, pose_disambig_str);
+	poseDisambigMethod = (pose_disambig_t)common::get_enum_from_string(pose_disambig_t_vec, pose_disambig_str);
 	instance = this;
 }
 
@@ -591,7 +596,8 @@ void five_point_opencv::FivePointSolver::generate_hypotheses(const common::scan_
 	hypotheses.resize(n_hypotheses);
 	for(int i = 0; i < n_hypotheses; i++)
 	{
-		Map<Matrix<double, 3, 3, RowMajor>> E_i = Map<Matrix<double, 3, 3, RowMajor>>(&E_cv.at<double>(i * 3, 0));
+		Map<Matrix<double, 3, 3, RowMajor>> E_i_rm = Map<Matrix<double, 3, 3, RowMajor>>(&E_cv.at<double>(i * 3, 0));
+		Matrix3d E_i = E_i_rm;
 		hypotheses[i] = common::EHypothesis(E_i);
 	}
 }
@@ -618,13 +624,47 @@ void five_point_opencv::FivePointSolver::find_best_hypothesis(const common::scan
 	double confidence = .999;
 	vector<uchar> mask;
 	cv::Mat E_cv = five_point_opencv::findEssentialMat(pts1_cv, pts2_cv, cv::Mat::eye(3, 3, CV_64F), method, confidence, RANSAC_threshold, n_subsets, mask);
-	Map<Matrix<double, 3, 3, RowMajor>> E = Map<Matrix<double, 3, 3, RowMajor>>(E_cv.ptr<double>());
-	result = common::EHypothesis(E);
 	if(E_cv.rows != 3)
 	{
 		cout << "Warning: " << E_cv.rows / 3 << " essential matrices generated " << endl;
 	}
+	Matrix3d E;
+	cv::cv2eigen(E_cv, E);
+
+	// Disambiguate rotation and translation
+	time_cat(common::TimeCatNone);
 	time_cat_verbose(common::TimeCatVerboseNone);
+	Matrix3d R1, R2, R;
+	Vector3d t;
+	common::decomposeEssentialMat(E, R1, R2, t);
+	double chieralityChoice = 0;
+	R = R1;
+	if(poseDisambigMethod == disambig_trace)
+	{
+		if(R2.trace() > R1.trace())
+			R = R2;
+		bool flipDir = common::chierality(pts1, pts2, R, -t) > common::chierality(pts1, pts2, R, t);
+		chieralityChoice = flipDir;
+		if(flipDir)
+		   t = -t;
+	}
+	else if(poseDisambigMethod == disambig_chierality)
+	{
+		int num_pos_depth[4];
+		Matrix3d R12[4] = {R1, R1, R2, R2};
+		Vector3d t12[4] = {t,  -t,  t, -t};
+		for(int i = 0; i < 4; i++)
+			num_pos_depth[i] = common::chierality(pts1, pts2, R12[i], t12[i]);
+		int max_idx = max_element(num_pos_depth, num_pos_depth + 4) - num_pos_depth;
+		chieralityChoice = max_idx;
+		R = R12[max_idx];
+		t = t12[max_idx];
+	}
+	common::write_log(common::log_chierality, (char*)&chieralityChoice, sizeof(double));
+	result.R = R;
+	result.t = t;
+	result.E = E;
+	result.has_RT = true;
 }
 
 five_point_opencv::FivePointSolver* five_point_opencv::FivePointSolver::getInstance()

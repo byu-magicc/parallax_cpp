@@ -1,6 +1,6 @@
 video = 'holodeck';
-%methods = {'poly_opencv', 'gn_eigen_trace'};
-methods = {'poly_opencv_trace', 'poly_opencv_chierality', 'poly_opencv_no_chierality'};
+methods = {'poly_opencv', 'gn_eigen'};
+%methods = {'poly_opencv_trace', 'poly_opencv_chierality', 'poly_opencv_no_chierality'};
 test = 'chierality';
 lgnd = cell(1, length(methods));
 fprintf('%-20s %-15s %-15s %-15s %-15s \n', 'Method', 'Rotation', 'Translation', 'Rot ratio', 'Tr ratio')

@@ -817,7 +817,10 @@ void GNSAC_Solver::generate_hypotheses(const common::scan_t& subset1, const comm
 	hypotheses.resize(1);
 	time_cat(common::TimeCatHypoGen);
 	optimize(subset1, subset2, model, model);
-	hypotheses[0] = common::EHypothesis(model.E_map, model.R_map, model.t_map);
+	hypotheses[0].E = model.E_map;
+	hypotheses[0].R = model.R_map;
+	hypotheses[0].t = model.t_map;
+	hypotheses[0].has_RT = true;
 }
 
 double GNSAC_Solver::score_single_ptr(const Vector2d& pt1, const Vector2d& pt2, const GNHypothesis& hypothesis)
@@ -980,7 +983,10 @@ void GNSAC_Solver::refine_hypothesis(const common::scan_t& pts1, const common::s
 {
 	GNHypothesis model = GNHypothesis(best_hypothesis.R, best_hypothesis.t);
 	optimize(pts1, pts2, model, model);
-	result = common::EHypothesis(model.E_map, model.R_map, model.t_map);
+	result.E = model.E_map;
+	result.R = model.R_map;
+	result.t = model.t_map;
+	result.has_RT = true;
 }
 
 void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const Matrix4d& RT_truth_, common::EHypothesis& result)

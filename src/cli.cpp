@@ -195,6 +195,9 @@ void run_test(string video_str, string solver_str, string test_str, int frames)
 			err = common::err_truth(result.R, result.t, video_data.RT[frame]);
 		else
 			err = common::err_truth(result.E, video_data.RT[frame]);
+		Matrix4d RT_est = common::RT_combine(result.R, result.t);
+		common::write_log(common::log_estimate, (char*)RT_est.data(), sizeof(double)*4*4);
+		common::write_log(common::log_truth, (char*)video_data.RT[frame].data(), sizeof(double)*4*4);
 		common::write_log(common::log_accuracy, (char*)err.data(), sizeof(double) * 4);
 		common::progress(frame + 1, frames);
 	}

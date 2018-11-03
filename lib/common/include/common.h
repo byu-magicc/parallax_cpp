@@ -112,6 +112,7 @@ int get_enum_from_string(std::vector<std::string> enum_names_vector, std::string
 // Logging
 enum_str(log_t, log_t_vec, 
 	log_timing, log_timing_verbose, log_accuracy,
+	log_estimate, log_truth,
 	log_optimizer, log_comparison_accuracy, log_comparison_tr, log_comparison_gn, 
 	log_consensus, log_chierality,
 	log_unit_test_pts_world, log_unit_test_pts_camera)

@@ -180,10 +180,13 @@ void common::loadPoints(string filename, sequence_t& data1, sequence_t& data2)
 		for(int i = 0; i < npts; i++)
 		{
 			line = file.nextLine();
-			pts1[i](0) = line.nextToken(' ').toFloat();
-			pts1[i](1) = line.nextToken(' ').toFloat();
+
+			// Gotcha: It turns out that the current frame point is listed first.
+			// This makes sense for VisualMTT and R-RANSAC, though it's rather confusing for us.
 			pts2[i](0) = line.nextToken(' ').toFloat();
 			pts2[i](1) = line.nextToken(' ').toFloat();
+			pts1[i](0) = line.nextToken(' ').toFloat();
+			pts1[i](1) = line.nextToken(' ').toFloat();
 		}
 	}
 }

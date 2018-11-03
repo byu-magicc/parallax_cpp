@@ -1,3 +1,3 @@
-!include:poly_opencv
+!include:poly_opencv.yaml
 # Don't even try to figure out the correct R and t.
 pose_disambig: none

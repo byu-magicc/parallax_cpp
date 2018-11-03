@@ -1,3 +1,3 @@
-!include:poly_opencv
+!include:poly_opencv.yaml
 # Use trace to distinguish between R1 and R2 and chierality to distinguish between R1, R2, +t, and -t.
 pose_disambig: trace

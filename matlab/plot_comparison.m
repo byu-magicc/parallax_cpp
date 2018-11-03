@@ -1,9 +1,9 @@
-function plot_comparison(title_str, dataset, methods, ylabels, name)
+function plot_comparison(title_str, dataset, methods, test, ylabels, name)
 	lgnd = cell(1, length(methods));
 	figure(1)
 	clf
 	for i = 1:length(methods)
-		filename = ['../logs/' dataset '/' methods{i} '/' name];
+		filename = ['../logs/' dataset '/' methods{i} '/' test '/' name];
 		file = fopen(filename, 'r');
 		val = fread(file, 'double');
 		fclose(file);

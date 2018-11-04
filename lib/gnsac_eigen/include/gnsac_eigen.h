@@ -74,6 +74,7 @@ public:
 	void setTR(Eigen::Matrix3d TR);
 	void boxplus(const Eigen::Matrix<double, 5, 1>& delta, EManifold& result) const;
 	void derivative(int i, Eigen::Matrix3d& result) const;
+	void renormalize();
 private:
 	void updateE();
 	
@@ -290,6 +291,7 @@ public:
 	std::shared_ptr<DifferentiableResidual> scoringCost;
 	initial_guess_t consensusSeed;
 	pose_disambig_t poseDisambigMethod;
+	bool renormalize;
 
 private:
 	//Eigen::Matrix4d RT_truth;

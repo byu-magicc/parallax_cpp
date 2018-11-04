@@ -1,0 +1,4 @@
+# See if renormalization helps any of the algorithms.
+log_accuracy: true
+sweep_key: renormalize
+sweep_vals: [false, true]

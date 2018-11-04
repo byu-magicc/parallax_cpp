@@ -201,6 +201,21 @@ void EManifold::updateE()
 	E_ = Tx*R;
 }
 
+void renormalize_rotation(const Matrix3d& R, Matrix3d& R_normalized)
+{
+	JacobiSVD<Matrix3d> svd(R, ComputeFullU | ComputeFullV);
+	Matrix3d U = svd.matrixU();
+	Matrix3d V = svd.matrixV();
+	R_normalized = U*V.transpose();
+}
+
+void EManifold::renormalize()
+{
+	renormalize_rotation(R, rot.R);
+	renormalize_rotation(TR, vec.R);
+	updateE();
+}
+
 void EManifold::derivative(int i, Matrix3d& result) const
 {
 	if(i >= 0 && i < 3)
@@ -801,6 +816,7 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node) : common:
 	common::get_yaml_node("pose_disambig", yaml_filename, node, pose_disambig_str);
 	consensusSeed = (initial_guess_t)common::get_enum_from_string(initial_guess_t_vec, consensus_seed_str);
 	poseDisambigMethod = (pose_disambig_t)common::get_enum_from_string(pose_disambig_t_vec, pose_disambig_str);
+	common::get_yaml_node("renormalize", yaml_filename, node, renormalize);
 }
 
 void GNSAC_Solver::generate_hypotheses(const common::scan_t& subset1, const common::scan_t& subset2, const common::EHypothesis& initial_guess, std::vector<common::EHypothesis>& hypotheses)
@@ -872,6 +888,8 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 		bestModel.setR(R12[max_idx]);
 		bestModel.setT(t12[max_idx]);
 	}
+	if(renormalize)
+		bestModel.renormalize();
 	common::write_log(common::log_chierality, (char*)&chieralityChoice, sizeof(double));
 	result.R = bestModel.R;
 	result.t = bestModel.t;
@@ -1017,6 +1035,21 @@ void run_jacobian_tests()
 		common::checkMatrices("E_copy.R", "E.R", E_copy.R, E.R);
 		common::checkMatrices("E_copy.t", "E.t", E_copy.t, E.t);
 		common::checkMatrices("E_copy.TR", "E.TR", E_copy.TR, E.TR);
+
+		// Renormalize
+		// Ensure we get the same essential matrix back
+		E.renormalize();
+		release_assert((E.R - R1).norm() < 1e-12);
+		release_assert((E.TR - R2).norm() < 1e-12);
+
+		// See if it can correct noise
+		Matrix3d N1, N2;
+		common::fill_rnd(N1, dist, rng);
+		common::fill_rnd(N2, dist, rng);
+		EManifoldTest E_(N1, N2);
+		E_.renormalize();
+		release_assert((Matrix3d::Identity() - E_.R*E_.R.transpose()).norm() < 1e-10);
+		release_assert((Matrix3d::Identity() - E_.TR*E_.TR.transpose()).norm() < 1e-10);
 
 		////////// Jacobian tests for Manifold Elements ////////////
 		// SO3

@@ -1,5 +1,3 @@
-# Log consensus algorithm over time.
-# Note that logging the optimizer cost won't be useful because
-# we would be logging different cost functions
-n_subsets: 1000
-log_consensus: true
+# See which cost results in answers closer to the truth
+log_accuracy: true
+log_timing: true

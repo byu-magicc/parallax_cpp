@@ -9,5 +9,4 @@ consensus_alg: LMEDS
 consensus_seed: previous
 max_iterations: 10
 exit_tolerance: 0.000001
-initial_guess: previous
 pose_disambig: trace

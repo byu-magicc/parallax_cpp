@@ -3,14 +3,14 @@ title_str = 'Essential Matrix Err';
 methods = {'gn_eigen_algebraic', 'gn_eigen_single', 'gn_eigen_sampson', ...
            'lm_eigen_algebraic', 'lm_eigen_single', 'lm_eigen_sampson'};
 video = 'holodeck';
-test = 'scoring_cost';
+test = 'optimizer_cost';
 ylabels = {'R (radians)', 't (radians)', 'Correct R', 'Correct t'};
 name = 'accuracy.bin';
 plot_comparison(title_str, video, test, methods, ylabels, name);
 
 %% Calculate median error
 video = 'holodeck';
-test = 'scoring_cost';
+test = 'optimizer_cost';
 lgnd = cell(1, length(methods));
 fprintf('%-25s %-15s %-15s %-15s %-15s \n', 'Method', 'Rotation', 'Translation', 'Correct R', 'Correct t')
 for i = 1:length(methods)

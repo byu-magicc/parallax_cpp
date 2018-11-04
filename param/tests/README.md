@@ -9,16 +9,35 @@ Ways to show results
 
 
 
+Things to show (in order of appearance in paper)
+Optimizer cost:
+- This doesn't seem that important. Most people would wonder why we aren't just optimizing the cost function we picked.
+- It's still interesting, but low priority
+
+Consensus cost:
+- This one is pretty important
+- Must use error truth
+
+GN vs. LM:
+- Also important
+- Must use error truth
+
+LMEDS vs. RANSAC:
+- Cool threshold plot!
+
+Seed (importance of using recursive seeding)
+- I think the graph we had was sufficient
+
+Timing
 
 
-This folder contains matlab scripts to plot the results for the iterative 5-point algorithm journal paper.
-
-* `lambda.m` - What should the Levengerg-Marquardt lambda start off with?
-* `scoring_cost.m` - Is algebraic, single, or sampson scoring cost better?
-* `ransac.m` - RANSAC threshold and LMEDS vs. RANSAC.
-* `chierality.m` - Best method for pose disambiguation.
-
-* `consensus_alg.m` - Which consensus algorithm to use?
+Refinement
 
 
 
+
+
+
+Note: Plots will slowly become outdated as we fine-tune parameters. For example, it still seems
+unclear the exact number of minimum subsets we need. We are going to run all the GN/LM algorithms
+with 100 for consistency, except when comparing directly to OpenCV_poly.

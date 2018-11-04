@@ -110,7 +110,7 @@ void concatFiles(string name1, string name2, string name_out, string directory, 
 	string yaml_out = concatYamlStr(yaml1, yaml2, true);
 	if(sweep_key != "")
 	{
-		string str_to_add = "# Automated sweep\n" + keyValToStr(sweep_key, sweep_val);
+		string str_to_add = "# Automated sweep\n" + keyValToStr(sweep_key, " " + sweep_val);
 		yaml_out = concatYamlStr(yaml_out, str_to_add, true);
 	}
 	ofstream file_out;

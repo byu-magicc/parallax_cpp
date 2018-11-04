@@ -1,0 +1,2 @@
+# See how many subsets are needed to be as good as the opencv 5-point
+log_accuracy: true

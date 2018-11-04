@@ -1,3 +1,3 @@
-!include:lm_eigen.yaml
+#!include:lm_eigen.yaml
 # Sampson residual
 scoring_cost: sampson

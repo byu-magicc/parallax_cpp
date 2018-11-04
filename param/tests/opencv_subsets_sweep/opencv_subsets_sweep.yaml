@@ -1,0 +1,4 @@
+# See how many subsets are needed to be as good as the opencv 5-point
+log_accuracy: true
+sweep_key: n_subsets
+sweep_vals: [50, 100, 150, 200, 250, 300]

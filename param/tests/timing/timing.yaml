@@ -1,2 +1,3 @@
 # Log the optimizer
 log_timing: true
+log_timing_verbose: true

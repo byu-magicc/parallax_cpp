@@ -1,4 +1,4 @@
 #!include:lm_eigen.yaml
-# Always seed with previous R and t
+
 optimizer_seed: first
 consensus_seed: previous

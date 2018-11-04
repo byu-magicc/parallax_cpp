@@ -1,1 +1,4 @@
-!include:gn_eigen.yaml
+#!include:gn_eigen.yaml
+
+# LMEDS
+consensus_alg: LMEDS

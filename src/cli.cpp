@@ -95,7 +95,7 @@ string readYamlIncludeOpt(string filename, string directory)
 	string yamlOut = "";
 	for(int i = 0; i < keys.size(); i++)
 	{
-		if(keys[i] == "!include")
+		if(keys[i] == "#!include")
 			yamlOut = concatYamlStr(yamlOut, readYamlIncludeOpt(fs::path(directory) / vals[i], directory)) + "\n";
 		else
 			yamlOut = concatYamlStr(yamlOut, keyValToStr(keys[i], vals[i]));
@@ -103,24 +103,29 @@ string readYamlIncludeOpt(string filename, string directory)
 	return yamlOut;
 }
 
-void concatFiles(string name1, string name2, string name_out, string directory)
+void concatFiles(string name1, string name2, string name_out, string directory, string sweep_key = "", string sweep_val = "")
 {
 	string yaml1 = readYamlIncludeOpt(name1, directory);
 	string yaml2 = readYamlIncludeOpt(name2, directory);
 	string yaml_out = concatYamlStr(yaml1, yaml2, true);
+	if(sweep_key != "")
+	{
+		string str_to_add = "# Automated sweep\n" + keyValToStr(sweep_key, sweep_val);
+		yaml_out = concatYamlStr(yaml_out, str_to_add, true);
+	}
 	ofstream file_out;
 	file_out.open(name_out);
 	file_out << yaml_out;
 	file_out.close();
 }
 
-void run_test(string video_str, string test_str, string solver_str, int frames = -1)
+void run_test(string video_str, string test_str, string solver_str, int frames = -1, string sweep_dir_idx = "", string sweep_key = "", string sweep_val = "")
 {
 	// Create folder for results
 	string dir_part1 = fs::path("../logs");
 	string dir_part2 = fs::path("../logs") / video_str;
 	string dir_part3 = fs::path("../logs") / video_str / test_str;
-	string result_directory = fs::path("../logs") / video_str / test_str / solver_str;
+	string result_directory = fs::path("../logs") / video_str / test_str / (solver_str + sweep_dir_idx);
 	cout << result_directory << endl;
 	if(!fs::exists(dir_part1))
 		fs::create_directory(dir_part1);
@@ -150,7 +155,7 @@ void run_test(string video_str, string test_str, string solver_str, int frames =
 	string run_yaml = fs::path(result_directory) / "solver.yaml";
 	cout << "Solver: " << solver_yaml << endl;
 	cout << "Tests: " << test_yaml << endl;
-	concatFiles(solver_yaml, test_yaml, run_yaml, "../param/solvers");
+	concatFiles(solver_yaml, test_yaml, run_yaml, "../param/solvers", sweep_key, sweep_val);
 	shared_ptr<ESolver> solver = ESolver::from_yaml(run_yaml);
 
 	// Random number generation
@@ -210,6 +215,18 @@ void run_tests(string video_str, string test_str)
 	if(!fs::exists(test_yaml))
 		throw common::Exception("Test \"" + test_yaml + "\" does not exist.");
 
+	// Second, read test yaml and see if there are any sweeps that we need to do.
+	YAML::Node node = YAML::LoadFile(test_yaml);
+	bool sweep = node["sweep_key"] && node["sweep_vals"];
+	string sweep_key;
+	vector<string> sweep_vals;
+	if(sweep)
+	{
+		sweep_key = node["sweep_key"].as<string>();
+		sweep_vals = node["sweep_vals"].as<std::vector<string>>();
+		cout << GREEN_TEXT << "Found sweep parameters for key " << sweep_key << BLACK_TEXT << endl;
+	}
+
 	// Search test folder to obtain all yaml files. Make sure they can all be loaded succesfully
 	vector<string> solver_paths;
     for (auto& solver_yaml : fs::directory_iterator(test_dir))
@@ -236,7 +253,18 @@ void run_tests(string video_str, string test_str)
 	{
 		cout << GREEN_TEXT << "Solver " << solver_paths[i] << BLACK_TEXT << endl;
 		string solver_str = fs::path(solver_paths[i]).stem();
-		run_test(video_str, test_str, solver_str);
+		if(sweep)
+		{
+			for(int i = 0; i < sweep_vals.size(); i++)
+			{
+				cout << YELLOW_TEXT << "Sweep: {" << sweep_key << ": " << sweep_vals[i] << "}" << BLACK_TEXT << endl;
+				run_test(video_str, test_str, solver_str, -1, to_string(i + 1), sweep_key, sweep_vals[i]);
+			}
+		}
+		else
+		{
+			run_test(video_str, test_str, solver_str);
+		}
 	}
 }
 

@@ -19,9 +19,10 @@ void fill_rnd(Eigen::MatrixBase<T>& A, T2 dist, std::default_random_engine& rng)
 			A(i, j) = dist(rng);
 }
 
-//#define RED_TEXT "\033[31m[49m"
-#define RED_TEXT "\033[101m"
+// Define colors (https://misc.flogisoft.com/bash/tip_colors_and_formatting#background)
+#define RED_TEXT "\033[91m"
 #define GREEN_TEXT "\033[32m"
+#define YELLOW_TEXT "\033[93m"
 #define BLACK_TEXT "\033[0m\033[49m"
 
 void printMatricesComp(std::string s, const Eigen::MatrixXd A1, const Eigen::MatrixXd A2, float eps = 1e-6, int sfAfter = 4, int sfBefore = 5);

@@ -63,7 +63,11 @@ void project_points(const std::vector<Eigen::Vector3d>& Pts, scan_t& pts, std::v
 
 void project_points(const std::vector<Eigen::Vector3d>& Pts, scan_t& pts, std::vector<float>& dist, const Eigen::Matrix4d& RT, const Eigen::Matrix3d& camera_matrix);
 
-Eigen::Vector2d sampson_err(const Eigen::Matrix3d& E, const scan_t& pts1, const scan_t& pts2);
+void sampson_err(const Eigen::Matrix3d& E, const scan_t& pts1, const scan_t& pts2, double& med_err, double& mean_err);
+
+double med_sampson_err(const Eigen::Matrix3d& E, const scan_t& pts1, const scan_t& pts2);
+
+double mean_sampson_err(const Eigen::Matrix3d& E, const scan_t& pts1, const scan_t& pts2);
 
 void five_point(const scan_t& subset1, const scan_t& subset2, std::vector<Eigen::Matrix3d>& hypotheses);
 

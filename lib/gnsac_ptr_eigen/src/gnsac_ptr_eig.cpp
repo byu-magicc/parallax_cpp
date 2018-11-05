@@ -768,8 +768,8 @@ double GNSAC_Solver::step(const common::scan_t& pts1, const common::scan_t& pts2
 		// (error should be very small since they are minimum subsets)
 		vector<double> mean_err = vector<double>(11, -1);
 		for(int i = 0; i < n_hypotheses_5P; i++)
-			mean_err[i] = common::sampson_err(hypotheses_5P[i], pts1, pts2)[1];
-		mean_err[10] = common::sampson_err(h2.E_map, pts1, pts2)[1];
+			mean_err[i] = common::mean_sampson_err(hypotheses_5P[i], pts1, pts2);
+		mean_err[10] = common::mean_sampson_err(h2.E_map, pts1, pts2);
 		common::write_log(common::log_comparison_accuracy, (char*)&mean_err[0], sizeof(double) * 11);
 
 		// Find out which 5-point E is closest to the truth and which is closest to GN.

@@ -321,8 +321,7 @@ void common::project_points(const vector<Vector3d>& Pts, scan_t& pts, vector<flo
 	project_points(Pts, pts, dist, R, t, camera_matrix);
 }
 
-
-Vector2d common::sampson_err(const Matrix3d& E, const scan_t& pts1, const scan_t& pts2)
+void common::sampson_err(const Matrix3d& E, const scan_t& pts1, const scan_t& pts2, double& med_err, double& mean_err)
 {
 	int n_pts = pts1.size();
 	int medianIdx = (int)n_pts / 2;
@@ -330,28 +329,37 @@ Vector2d common::sampson_err(const Matrix3d& E, const scan_t& pts1, const scan_t
 	double err_total = 0;
 	for(int i = 0; i < n_pts; i++)
 	{
-		Vector3d x1;
-		x1 << pts1[i](0), pts1[i](1), 1.;
-		Vector3d x2;
-		x2 << pts2[i](0), pts2[i](1), 1.;
-		Vector3d Ex1 = E * x1;
-		Vector3d Etx2 = E.transpose() * x2;
-		double x2tEx1 = x2.dot(Ex1);
-		
-		double a = Ex1[0] * Ex1[0];
-		double b = Ex1[1] * Ex1[1];
-		double c = Etx2[0] * Etx2[0];
-		double d = Etx2[1] * Etx2[1];
-		double err_i = x2tEx1 * x2tEx1 / (a + b + c + d);
-		err[i] = err_i;
-		err_total += err_i;
+		Vector3d x1, x2;
+		x1 << pts1[i](0), pts1[i](1), 1;
+		x2 << pts2[i](0), pts2[i](1), 1;
+		Vector3d E_x1 = E * x1;
+		Vector3d Et_x2 = E.transpose() * x2;
+		double x2t_E_x1 = x2.dot(E_x1);
+		double a = E_x1(0);
+		double b = E_x1(1);
+		double c = Et_x2(0);
+		double d = Et_x2(1);
+		double sum = a*a + b*b + c*c + d*d;
+		err[i] = x2t_E_x1*x2t_E_x1 / sum;
+		err_total += err[i];	
 	}
 	std::nth_element(err.begin(), err.begin() + medianIdx, err.end());
-	double med_err = err[medianIdx];
-	double mean_err = err_total / n_pts;
-	Vector2d err_result;
-	err_result << med_err, mean_err;
-	return err_result;
+	med_err = err[medianIdx];
+	mean_err = err_total / n_pts;
+}
+
+double common::med_sampson_err(const Matrix3d& E, const scan_t& pts1, const scan_t& pts2)
+{
+	double med_err, mean_err;
+	sampson_err(E, pts1, pts2, med_err, mean_err);
+	return med_err;
+}
+
+double common::mean_sampson_err(const Matrix3d& E, const scan_t& pts1, const scan_t& pts2)
+{
+	double med_err, mean_err;
+	sampson_err(E, pts1, pts2, med_err, mean_err);
+	return mean_err;
 }
 
 void common::five_point(const scan_t& subset1, const scan_t& subset2, vector<Matrix3d>& hypotheses)

@@ -201,6 +201,8 @@ void run_test(string video_str, string test_str, string solver_str, int frames =
 		common::write_log(common::log_estimate, (char*)RT_est.data(), sizeof(double)*4*4);
 		common::write_log(common::log_truth, (char*)video_data.RT[frame].data(), sizeof(double)*4*4);
 		common::write_log(common::log_accuracy, (char*)err.data(), sizeof(double) * 4);
+		double med_sampson_err = common::med_sampson_err(result.E, pts1, pts2);
+		common::write_log(common::log_accuracy, (char*)&med_sampson_err, sizeof(double));
 		common::progress(frame + 1, frames);
 	}
 	common::close_logs();

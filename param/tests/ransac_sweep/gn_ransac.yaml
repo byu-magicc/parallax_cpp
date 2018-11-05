@@ -1,0 +1,4 @@
+#!include:gn_eigen.yaml
+
+# RANSAC
+consensus_alg: RANSAC

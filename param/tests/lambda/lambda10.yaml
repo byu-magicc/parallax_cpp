@@ -1,4 +1,0 @@
-#!include:lm_eigen.yaml
-
-# Set the initial lambda
-LM_lambda: 1e-10

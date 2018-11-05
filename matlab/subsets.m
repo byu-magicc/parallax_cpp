@@ -1,15 +1,20 @@
+%% Calculate median error
 %n_subsets = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300];
 n_subsets = [50, 100, 150, 200, 250, 300];
 %n_subsets = n_subsets(1:20);
 
-%% Calculate median error
 video = 'holodeck';
 test_sweep = 'recursive_subsets_sweep';
-%test = 'subsets';
+test = 'subsets';
+name = 'accuracy.bin';
 %methods = {'lm_eigen', 'lm_eigen_prior', 'lm_eigen_prior_max', 'poly_opencv'};
 %methods = {'lm_eigen', 'lm_eigen_prior', 'poly_opencv'};
 %methods = {'lm_eigen_random_recursive', 'poly_opencv'};
-%methods = {'lm_eigen_prior_recursive', 'lm_eigen_random_recursive', 'poly_opencv'};
+
+%methods = {'gn_eigen_prior', 'lm_eigen_prior', 'poly_opencv'};
+%methods = {'gn_eigen_prior_recursive', 'lm_eigen_prior_recursive', 'poly_opencv'};
+%methods = {'gn_eigen_random_recursive', 'lm_eigen_random_recursive', 'poly_opencv'};
+
 %methods = {'gn_eigen_prior', 'gn_eigen_prior_recursive', 'gn_eigen_random', 'gn_eigen_random_recursive', 'poly_opencv'};
 methods = {'lm_eigen_prior', 'lm_eigen_prior_recursive', 'lm_eigen_random', 'lm_eigen_random_recursive', 'poly_opencv'};
 %methods = {'gn_eigen_prior', 'poly_opencv'};
@@ -63,6 +68,7 @@ end
 xlabel('Number of subsets')
 subplot(length(ylabels), 1, 1)
 legend(lgnd)
+return;
 
 %% histogram / kernel density
 subset_idx = 1;
@@ -97,17 +103,17 @@ ylabel('norm(t)')
 subplot(513)
 plot(err(5, :, 1));
 grid on;
-ylabel('sampson err (OpenCV)')
+ylabel('OpenCV')
 xlabel('Frame')
 subplot(514)
 plot(err(2, :, 1));
 grid on;
-ylabel('sampson err (PriorRecursive)')
+ylabel('PriorRecursive')
 xlabel('Frame')
 subplot(515)
 plot(err(4, :, 1));
 grid on;
-ylabel('sampson err (RandomRecursive)')
+ylabel('RandomRecursive')
 xlabel('Frame')
 
 

@@ -1,0 +1,5 @@
+# See which RANSAC threshold gives better results
+log_accuracy: true
+sweep_key: RANSAC_threshold
+#sweep_vals: [1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1]
+sweep_vals: [1.00e-10, 3.16e-10, 1.00e-09, 3.16e-09, 1.00e-08, 3.16e-08, 1.00e-07, 3.16e-07, 1.00e-06, 3.16e-06, 1.00e-05, 3.16e-05, 1.00e-04, 3.16e-04, 1.00e-03, 3.16e-03, 1.00e-02, 3.16e-02, 1.00e-01]

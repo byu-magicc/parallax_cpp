@@ -1,0 +1,11 @@
+# Log the optimizer
+log_optimizer: true
+n_subsets: 100
+max_iterations: 20
+exit_tolerance: 0
+
+# Sweep
+sweep_key: LM_lambda
+sweep_vals: [1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1]
+
+

@@ -1,5 +1,5 @@
 %% Calculate median error
-optimizer_seed_noise = [0, 0.01, 0.1, -.00001];
+optimizer_seed_noise = [0, -1e-10, -0.001, -0.01, -0.1];
 video = 'holodeck';
 test_sweep = 'optimizer_seed_noise_sweep';
 test = 'subsets';

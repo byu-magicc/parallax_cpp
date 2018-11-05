@@ -1,0 +1,4 @@
+#!include:lm_eigen.yaml
+
+# RANSAC
+consensus_alg: RANSAC

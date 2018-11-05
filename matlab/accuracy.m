@@ -7,4 +7,4 @@ video = 'holodeck';
 test = 'standard';
 ylabels = {'R (radians)', 't (radians)', 'Correct R', 'Correct t'};
 filename = 'accuracy.bin';
-plot_comparison(title_str, video, methods, test, ylabels, filename);
+plot_comparison(title_str, video, test, methods, ylabels, filename);

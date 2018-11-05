@@ -1,0 +1,3 @@
+log_truth_magnitude: true
+iterations: 1
+n_subsets: 1

@@ -1,0 +1,4 @@
+#!include:lm_eigen.yaml
+# Start with prior, then use best hypothesis
+optimizer_seed: best
+consensus_seed: previous

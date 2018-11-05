@@ -227,7 +227,7 @@ private:
 class ConsensusAlgorithm
 {
 protected:
-	ConsensusAlgorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, initial_guess_t optimizerSeed);
+	ConsensusAlgorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, initial_guess_t optimizerSeed, double _optimizerSeedNoise);
 
 public:
 	void run(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& initialGuess, EManifold& bestModel);
@@ -239,13 +239,14 @@ private:
 		std::uniform_int_distribution<>& dist, std::default_random_engine& rng);
 	int n_subsets;
 	initial_guess_t optimizerSeed;
+	double optimizerSeedNoise;
 	std::shared_ptr<Optimizer> optimizer;
 };
 
 class RANSAC_Algorithm : public ConsensusAlgorithm
 {
 public:
-	RANSAC_Algorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, initial_guess_t optimizerSeed, std::shared_ptr<DifferentiableResidual> cost_fcn, double threshold);
+	RANSAC_Algorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, initial_guess_t optimizerSeed, double _optimizerSeedNoise, std::shared_ptr<DifferentiableResidual> cost_fcn, double threshold);
 
 	double score(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, double best_cost);
 
@@ -258,7 +259,7 @@ private:
 class LMEDS_Algorithm : public ConsensusAlgorithm
 {
 public:
-	LMEDS_Algorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, initial_guess_t optimizerSeed, std::shared_ptr<DifferentiableResidual> cost_fcn);
+	LMEDS_Algorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, initial_guess_t optimizerSeed, double _optimizerSeedNoise, std::shared_ptr<DifferentiableResidual> cost_fcn);
 
 	double score(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, double best_cost);
 

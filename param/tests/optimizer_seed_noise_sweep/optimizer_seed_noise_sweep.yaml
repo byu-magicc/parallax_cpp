@@ -1,0 +1,4 @@
+# See how many subsets are needed to be as good as the opencv 5-point
+log_accuracy: true
+sweep_key: optimizer_seed_noise
+sweep_vals: [0, -1e-10, -0.001, -0.01, -0.1]

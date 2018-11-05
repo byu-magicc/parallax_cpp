@@ -1,27 +1,20 @@
-%n_subsets = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300];
-n_subsets = [50, 100, 150, 200, 250, 300];
-%n_subsets = n_subsets(1:20);
-
 %% Calculate median error
+optimizer_seed_noise = [0, 0.01, 0.1, -.00001];
 video = 'holodeck';
-test_sweep = 'recursive_subsets_sweep';
-%test = 'subsets';
-%methods = {'lm_eigen', 'lm_eigen_prior', 'lm_eigen_prior_max', 'poly_opencv'};
-%methods = {'lm_eigen', 'lm_eigen_prior', 'poly_opencv'};
-%methods = {'lm_eigen_random_recursive', 'poly_opencv'};
-%methods = {'lm_eigen_prior_recursive', 'lm_eigen_random_recursive', 'poly_opencv'};
-%methods = {'gn_eigen_prior', 'gn_eigen_prior_recursive', 'gn_eigen_random', 'gn_eigen_random_recursive', 'poly_opencv'};
-methods = {'lm_eigen_prior', 'lm_eigen_prior_recursive', 'lm_eigen_random', 'lm_eigen_random_recursive', 'poly_opencv'};
-%methods = {'gn_eigen_prior', 'poly_opencv'};
+test_sweep = 'optimizer_seed_noise_sweep';
+test = 'subsets';
+%methods = {'lm_eigen_prior', 'poly_opencv'};
+%methods = {'lm_eigen_prior', 'lm_eigen_prior_recursive', 'lm_eigen_random', 'lm_eigen_random_recursive', 'poly_opencv'};
+methods = {'lm_eigen_prior_recursive', 'lm_eigen_random_recursive', 'poly_opencv'};
 
-metrics = zeros(3, length(n_subsets), length(methods));
+metrics = zeros(3, length(optimizer_seed_noise), length(methods));
 t = 500;
-err = zeros(length(methods), 3599, length(n_subsets));
+err = zeros(length(methods), 3599, length(optimizer_seed_noise));
 for ii = 1:length(methods)
 	% RANSAC
 	method = methods{ii};
 	if contains(method, 'lm_eigen') || contains(method, 'gn_eigen')
-		for i = 1:length(n_subsets)
+		for i = 1:length(optimizer_seed_noise)
 			filename = ['../logs/' video '/' test_sweep '/' method sprintf('%d', i) '/' name];
 			A = read_binary(filename, 5);
 			metrics(:, i, ii) = mean(A([1 2 5], 1:t), 2);
@@ -32,7 +25,7 @@ for ii = 1:length(methods)
 	elseif contains(method, 'poly_opencv')
 		filename = ['../logs/' video '/' test '/' method '/' name];
 		A = read_binary(filename, 5);
-		for i = 1:length(n_subsets)
+		for i = 1:length(optimizer_seed_noise)
 			metrics(:, i, ii) = mean(A([1 2 5], 1:t), 2);
 			%metrics(:, i, ii) = quantile(A(1:2, :), 0.75, 2);
 			err(ii, :, i) = A(5, :);
@@ -48,7 +41,9 @@ lgnd = cell(1, length(methods));
 for i = 1:length(ylabels)
 	subplot(length(ylabels), 1, i)
 	for j = 1:length(methods)
-		plot(n_subsets, metrics(i, :, j))
+		xvals = 1:length(optimizer_seed_noise);
+		%xvals = optimizer_seed_noise;
+		plot(xvals, metrics(i, :, j))
 		hold on;
 		lgnd{j} = replace(methods{j}, '_', ' ');
 	end
@@ -109,7 +104,3 @@ plot(err(4, :, 1));
 grid on;
 ylabel('sampson err (RandomRecursive)')
 xlabel('Frame')
-
-
-
-

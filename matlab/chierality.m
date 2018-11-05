@@ -13,3 +13,4 @@ for i = 1:length(methods)
 	fprintf('%-25s %-15d %-15d %-15.3f %-15.3f\n', methods{i}, mean(A, 2).')
 	lgnd{i} = replace(methods{i}, '_', ' ');
 end
+

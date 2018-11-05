@@ -4,9 +4,11 @@ n_subsets: 100
 optimizer: GN
 optimizer_cost: algebraic
 optimizer_seed: best
+optimizer_seed_noise: 0
 scoring_cost: sampson
 consensus_alg: LMEDS
 consensus_seed: previous
 max_iterations: 10
 exit_tolerance: 0.000001
 pose_disambig: trace
+renormalize: false

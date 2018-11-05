@@ -49,6 +49,8 @@ void RT_split(const Eigen::Matrix4d& RT, Eigen::Matrix3d& R, Eigen::Vector3d& t)
 
 Eigen::Matrix4d RT_combine(const Eigen::Matrix3d& R, const Eigen::Vector3d& t);
 
+Eigen::Vector2d truth_magnitude(const Eigen::Matrix4d& RT);
+
 Eigen::Vector4d err_truth(const Eigen::Matrix3d& R1_est, const Eigen::Matrix3d& R2_est, const Eigen::Vector3d& t_est, const Eigen::Matrix4d& RT_truth);
 
 Eigen::Vector4d err_truth(const Eigen::Matrix3d& R_est, const Eigen::Vector3d& t_est, const Eigen::Matrix4d& RT_truth);

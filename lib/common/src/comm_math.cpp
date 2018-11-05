@@ -214,6 +214,22 @@ Matrix4d common::RT_combine(const Matrix3d& R, const Vector3d& t)
 	return RT;
 }
 
+Vector2d common::truth_magnitude(const Matrix4d& RT)
+{
+	// Extract R and T from the 4x4 homogenous transformation
+	Matrix3d R_truth = RT.block<3, 3>(0, 0);
+	Vector3d t_truth = RT.block<3, 1>(0, 3);
+
+	// Calculate magnitude of rotation
+	double R_mag = R_norm(R_truth);
+	double t_mag = t_truth.norm();
+
+	// Output result
+	Vector2d magnitude;
+	magnitude << R_mag, t_mag;
+	return magnitude;
+}
+
 Vector4d common::err_truth(const Matrix3d& R1, const Matrix3d& R2, const Vector3d& t, const Matrix4d& RT)
 {
 	// Extract R and T from the 4x4 homogenous transformation

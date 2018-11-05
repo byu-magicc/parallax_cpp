@@ -176,6 +176,7 @@ void run_test(string video_str, string test_str, string solver_str, int frames =
 		scan_t pts1, pts2;
 		undistort_points(video_data.pts1[frame], pts1, video_data.camera_matrix);
 		undistort_points(video_data.pts2[frame], pts2, video_data.camera_matrix);
+		Matrix4d RT_truth = video_data.RT[frame];
 
 		// Calculate essential matrix
 		Matrix3d R0 = Matrix3d::Identity();
@@ -184,7 +185,7 @@ void run_test(string video_str, string test_str, string solver_str, int frames =
 		tic();
 		cat_timer_reset();
 		EHypothesis result;
-		solver->find_best_hypothesis(pts1, pts2, video_data.RT[frame], result);
+		solver->find_best_hypothesis(pts1, pts2, RT_truth, result);
 		timeMeasurement time_E = toc("FindE", 1, 2, false);
 		common::write_log(common::log_timing, (char*)get_cat_times(), sizeof(double) * TIME_CATS_COUNT);
 		common::write_log(common::log_timing, (char*)&time_E.actualTime, sizeof(double));
@@ -199,10 +200,12 @@ void run_test(string video_str, string test_str, string solver_str, int frames =
 			err = common::err_truth(result.E, video_data.RT[frame]);
 		Matrix4d RT_est = common::RT_combine(result.R, result.t);
 		common::write_log(common::log_estimate, (char*)RT_est.data(), sizeof(double)*4*4);
-		common::write_log(common::log_truth, (char*)video_data.RT[frame].data(), sizeof(double)*4*4);
 		common::write_log(common::log_accuracy, (char*)err.data(), sizeof(double) * 4);
 		double med_sampson_err = common::med_sampson_err(result.E, pts1, pts2);
 		common::write_log(common::log_accuracy, (char*)&med_sampson_err, sizeof(double));
+		common::write_log(common::log_truth, (char*)RT_truth.data(), sizeof(double)*4*4);
+		Vector2d RT_truth_mag = common::truth_magnitude(video_data.RT[frame]);
+		common::write_log(common::log_truth_magnitude, (char*)RT_truth_mag.data(), sizeof(double)*2);
 		common::progress(frame + 1, frames);
 	}
 	common::close_logs();

@@ -61,11 +61,8 @@ bool get_yaml_node1(const std::string key, const std::string filename, T& val, b
 	}
 	else
 	{
-		if (print_error)
-		{
-			printf("Unable to load \"%s\" from %s\n", key.c_str(), filename.c_str());
-		}
-		return false;
+		printf("Unable to load \"%s\" from %s\n", key.c_str(), filename.c_str());
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -94,13 +91,13 @@ bool get_yaml_eigen(const std::string key, const std::string filename, Eigen::Ma
 		else
 		{
 			printf("Eigen Matrix Size does not match parameter size for \"%s\" in %s", key.c_str(), filename.c_str());
-			return false;
+			exit(EXIT_FAILURE);
 		}
 	}
 	else
 	{
 		printf("Unable to load \"%s\" from %s\n", key.c_str(), filename.c_str());
-		return false;
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -114,11 +111,8 @@ bool get_yaml_node(const std::string key, std::string filename, YAML::Node node,
 	}
 	else
 	{
-		if (print_error)
-		{
-			printf("Unable to load \"%s\" from %s\n", key.c_str(), filename.c_str());
-		}
-		return false;
+		printf("Unable to load \"%s\" from %s\n", key.c_str(), filename.c_str());
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -146,13 +140,13 @@ bool get_yaml_eigen(const std::string key, std::string filename, YAML::Node node
 		else
 		{
 			printf("Eigen Matrix Size does not match parameter size for \"%s\" in %s", key.c_str(), filename.c_str());
-			return false;
+			exit(EXIT_FAILURE);
 		}
 	}
 	else
 	{
 		printf("Unable to load \"%s\" from %s\n", key.c_str(), filename.c_str());
-		return false;
+		exit(EXIT_FAILURE);
 	}
 }
 

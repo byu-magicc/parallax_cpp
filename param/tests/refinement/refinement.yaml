@@ -1,0 +1,3 @@
+# Log the refinement algorithm
+log_accuracy: true
+log_refinement: true

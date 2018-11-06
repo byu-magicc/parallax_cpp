@@ -763,6 +763,20 @@ double RANSAC_Algorithm::score(const common::scan_t& pts1, const common::scan_t&
 	return cost;
 }
 
+double RANSAC_Algorithm::get_inliers(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, vector<bool>& inliers)
+{
+	// Scoring hypothesis puts the residual into err_buf
+	double cost = score(pts1, pts2, hypothesis, 1e10);
+
+	// Set inlier flag
+	int n_pts = pts1.size();
+	inliers.resize(n_pts);
+	double RANSAC_threshold_sqr = threshold * threshold;
+	for(int i = 0; i < n_pts; i++)
+		inliers[i] = (err_buf[i] < RANSAC_threshold_sqr);
+	return cost;
+}
+
 LMEDS_Algorithm::LMEDS_Algorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, int _n_subsetsIgnoreAfter, initial_guess_t _optimizerSeed, double _optimizerSeedNoise, std::shared_ptr<DifferentiableResidual> _cost_fcn) :
 	ConsensusAlgorithm(_optimizer, _n_subsets, _n_subsetsIgnoreAfter, _optimizerSeed, _optimizerSeedNoise), residual_fcn(_cost_fcn)
 {
@@ -777,6 +791,62 @@ double LMEDS_Algorithm::score(const common::scan_t& pts1, const common::scan_t& 
 	int medianIdx = (int)n_pts / 2;
 	std::nth_element(err_buf, err_buf + medianIdx, err_buf + n_pts);
 	return err_buf[medianIdx];
+}
+
+double LMEDS_Algorithm::get_inliers(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, vector<bool>& inliers)
+{
+	// Scoring hypothesis puts the residual into err_buf
+	double cost = score(pts1, pts2, hypothesis, 1e10);
+
+	// Set inlier flag
+	// Todo: We should probably use the robust standard deviation instead
+	int n_pts = pts1.size();
+	inliers.resize(n_pts);
+	for(int i = 0; i < n_pts; i++)
+		inliers[i] = (err_buf[i] < cost);
+	return cost;
+}
+
+//////////////////////////
+// Refinement Algorithm //
+//////////////////////////
+
+RefinementAlgorithm::RefinementAlgorithm(std::shared_ptr<Optimizer> _optimizer, std::shared_ptr<ConsensusAlgorithm> _consensus_alg)
+	: optimizer(_optimizer), consensus_alg(_consensus_alg)
+{
+	
+}
+
+void RefinementAlgorithm::refine(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& bestModel, EManifold& refinedModel)
+{
+	// Score best hypothesis and get inliers
+	vector<bool> inlierMask;
+	refinedModel = bestModel;
+	double bestCost = consensus_alg->get_inliers(pts1, pts2, bestModel, inlierMask);
+	common::scan_t inliers1;
+	common::scan_t inliers2;
+	for(int i = 0; i < pts1.size(); i++)
+	{
+		if(inlierMask[i])
+		{
+			inliers1.push_back(pts1[i]);
+			inliers2.push_back(pts2[i]);
+		}
+	}
+
+	// Optimize using only inliers
+	EManifold model;
+	optimizer->optimize(inliers1, inliers2, bestModel, model);
+
+	// If the new model scores higher, keep it.
+	double cost = consensus_alg->score(pts1, pts2, model, bestCost);
+	if(cost < bestCost)
+		refinedModel = model;
+	if(common::logs_enabled[common::log_refinement])
+	{
+		common::write_log(common::log_refinement, (char*)&bestCost, sizeof(double));
+		common::write_log(common::log_refinement, (char*)&cost, sizeof(double));
+	}
 }
 
 ////////////////////////////
@@ -845,6 +915,15 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node) : common:
 		exit(EXIT_FAILURE);
 	}
 
+	// Refinement Algorithm
+	common::get_yaml_node("refine", yaml_filename, node, refine);
+	if(refine)
+	{
+		double lambda0 = 1e-4;
+		shared_ptr<Optimizer> refinementOptimizer = make_shared<LevenbergMarquardt>(scoringCost, maxIterations, exitTolerance, lambda0);
+		refinementAlg = make_shared<RefinementAlgorithm>(refinementOptimizer, consensusAlg);
+	}
+
 	// Other parameters
 	string consensus_seed_str, pose_disambig_str;
 	common::get_yaml_node("consensus_seed", yaml_filename, node, consensus_seed_str);
@@ -893,6 +972,10 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 	// Run RANSAC or LMEDS
 	EManifold bestModel;
 	consensusAlg->run(pts1, pts2, initialGuess, bestModel);
+
+	// Refine hypothesis
+	if(refine)
+		refinementAlg->refine(pts1, pts2, bestModel, bestModel);
 
 	// Disambiguate rotation and translation
 	time_cat(common::TimeCatNone);

@@ -234,6 +234,8 @@ public:
 
 	virtual double score(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, double best_cost) = 0;
 
+	virtual double get_inliers(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, std::vector<bool>& inliers) = 0;
+
 private:
 	void getSubset(const common::scan_t& pts1, const common::scan_t& pts2, common::scan_t& subset1, common::scan_t& subset2, int modelPoints, 
 		std::uniform_int_distribution<>& dist, std::default_random_engine& rng);
@@ -251,6 +253,8 @@ public:
 
 	double score(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, double best_cost);
 
+	double get_inliers(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, std::vector<bool>& inliers);	
+
 private:
 	std::shared_ptr<DifferentiableResidual> residual_fcn;
 	double threshold;
@@ -264,8 +268,23 @@ public:
 
 	double score(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, double best_cost);
 
+	double get_inliers(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, std::vector<bool>& inliers);
+
 private:
 	std::shared_ptr<DifferentiableResidual> residual_fcn;
+	double err_buf[MAX_PTS*1];
+};
+
+class RefinementAlgorithm
+{
+public:
+	RefinementAlgorithm(std::shared_ptr<Optimizer> optimizer, std::shared_ptr<ConsensusAlgorithm> consensus_alg);
+
+	void refine(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& bestModel, EManifold& refinedModel);
+
+private:
+	std::shared_ptr<Optimizer> optimizer;
+	std::shared_ptr<ConsensusAlgorithm> consensus_alg;
 	double err_buf[MAX_PTS*1];
 };
 
@@ -289,11 +308,13 @@ public:
 public:
 	std::shared_ptr<Optimizer> optimizer;
 	std::shared_ptr<ConsensusAlgorithm> consensusAlg;
+	std::shared_ptr<RefinementAlgorithm> refinementAlg;
 	std::shared_ptr<DifferentiableResidual> optimizerCost;
 	std::shared_ptr<DifferentiableResidual> scoringCost;
 	initial_guess_t consensusSeed;
 	pose_disambig_t poseDisambigMethod;
 	bool renormalize;
+	bool refine;
 
 private:
 	//Eigen::Matrix4d RT_truth;

@@ -13,3 +13,4 @@ max_iterations: 10
 exit_tolerance: 0.000001
 pose_disambig: trace
 renormalize: false
+refine: false

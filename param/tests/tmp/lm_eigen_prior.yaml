@@ -1,4 +1,0 @@
-#!include:lm_eigen.yaml
-
-optimizer_seed: first
-consensus_seed: previous

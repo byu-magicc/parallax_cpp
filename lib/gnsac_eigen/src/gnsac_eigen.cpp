@@ -514,7 +514,7 @@ void GaussNewton::optimize(const common::scan_t& pts1, const common::scan_t& pts
 		time_cat_verbose(common::TimeCatVerboseMakeJ);
 		residual_fcn->residual_diff(pts1, pts2, result, r, J);
 
-		// Todo: Figure out how to use matrix workspaces
+		// Todo: Figure out how to use matrix workspaces to speed up matrix solving
 		time_cat_verbose(common::TimeCatVerboseSolveMatrix);
 		Matrix<double, 5, 1> dx = -J.fullPivLu().solve(r);
 
@@ -535,6 +535,7 @@ void GaussNewton::optimize(const common::scan_t& pts1, const common::scan_t& pts
 			common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
 			common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
 			common::write_log(common::log_optimizer, (char*)&attempts, sizeof(double));
+			common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
 			time_cat(common::TimeCatHypoGen);
 		}
 
@@ -563,6 +564,14 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 		residual_fcn->residual_diff(pts1, pts2, result, r, J);
 		r_norm = r.norm();
 
+		double dx_norm_gn = 0;
+		if(common::logs_enabled[common::log_optimizer])
+		{
+			// Shows if we have converged in the local-min sense.
+			dx = -J.fullPivLu().solve(r);
+			dx_norm_gn = dx.norm();
+		}
+
 		// JtJ = J'*J;
 		// Jtr = J'*r;
 		Matrix<double, 5, 5> JtJ = J.transpose()*J;
@@ -571,7 +580,7 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 		while(true)
 		{		
 			// dx = -(JtJ + lambda*diag(diag(JtJ)))\J'*r;
-			// Todo: Figure out how to use matrix workspaces
+			// Todo: Figure out how to use matrix workspaces to speed up matrix solving
 			time_cat_verbose(common::TimeCatVerboseSolveMatrix);
 			Matrix<double, 5, 5> JtJ_diag_only = JtJ.diagonal().asDiagonal();
 			dx = -(JtJ + lambda*JtJ_diag_only).fullPivLu().solve(Jtr);
@@ -611,6 +620,7 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 			common::write_log(common::log_optimizer, (char*)&dx_norm, sizeof(double));
 			common::write_log(common::log_optimizer, (char*)&lambda, sizeof(double));
 			common::write_log(common::log_optimizer, (char*)&attempts_double, sizeof(double));
+			common::write_log(common::log_optimizer, (char*)&dx_norm_gn, sizeof(double));
 			time_cat(common::TimeCatHypoGen);
 		}
 

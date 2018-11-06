@@ -1,6 +1,0 @@
-# Log the timing and accuracy
-log_accuracy: true
-log_timing: true
-log_timing_verbose: true
-log_estimate: true
-log_truth: true

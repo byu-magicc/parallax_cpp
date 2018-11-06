@@ -796,15 +796,25 @@ double LMEDS_Algorithm::score(const common::scan_t& pts1, const common::scan_t& 
 double LMEDS_Algorithm::get_inliers(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, vector<bool>& inliers)
 {
 	// Scoring hypothesis puts the residual into err_buf
-	double cost = score(pts1, pts2, hypothesis, 1e10);
-
-	// Set inlier flag
-	// Todo: We should probably use the robust standard deviation instead
+	double median = score(pts1, pts2, hypothesis, 1e10);
 	int n_pts = pts1.size();
 	inliers.resize(n_pts);
+
+	// Threshold method 1
+	// Todo: We should probably use the robust standard deviation instead
+	// double threshold = median;
+
+	// Threshold method 2: Use the robust standard deviation.
+	// Define outliers as anything futher away than the 2.5-sigma bound.
+	// See Zhang1995, "A robust technique for matching two uncalibrated images through the recovery of the unknown epipolar geometry"
+	int modelPoints = 5;
+	double sigma_hat = 1.4826*(1. + 5./(n_pts - modelPoints))*sqrt(median);
+	double threshold = (2.5*sigma_hat)*(2.5*sigma_hat);
+
+	// Return inlier mask
 	for(int i = 0; i < n_pts; i++)
-		inliers[i] = (err_buf[i] < cost);
-	return cost;
+		inliers[i] = (err_buf[i] < threshold);
+	return median;
 }
 
 //////////////////////////

@@ -1,6 +1,6 @@
 %% Plot against time (not authoritative, but useful)
 title_str = 'Essential Matrix Err';
-methods = {'lm_eigen', 'lm_refine'};
+methods = {'poly_opencv', 'lm_eigen', 'lm_refine', 'lm_refine2'};
 video = 'holodeck';
 test = 'refinement';
 ylabels = {'R (radians)', 't (radians)', 'Correct R', 'Correct t', 'LMedS err'};

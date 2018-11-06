@@ -1,3 +1,4 @@
 # Log consensus algorithm over time.
 n_subsets: 1000
+n_subsets_ignore_after: 100
 log_consensus: true

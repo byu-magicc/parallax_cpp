@@ -5,6 +5,6 @@ title_str = 'Essential Matrix Err';
 methods = {'poly_opencv', 'gn_eigen'};
 video = 'holodeck';
 test = 'standard';
-ylabels = {'R (radians)', 't (radians)', 'Correct R', 'Correct t'};
+ylabels = {'R (radians)', 't (radians)', 'Correct R', 'Correct t', 'LMedS error'};
 filename = 'accuracy.bin';
 plot_comparison(title_str, video, test, methods, ylabels, filename);

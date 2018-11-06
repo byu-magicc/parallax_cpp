@@ -227,7 +227,7 @@ private:
 class ConsensusAlgorithm
 {
 protected:
-	ConsensusAlgorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, initial_guess_t optimizerSeed, double _optimizerSeedNoise);
+	ConsensusAlgorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, int n_subsetsIgnoreAfter, initial_guess_t optimizerSeed, double _optimizerSeedNoise);
 
 public:
 	void run(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& initialGuess, EManifold& bestModel);
@@ -238,6 +238,7 @@ private:
 	void getSubset(const common::scan_t& pts1, const common::scan_t& pts2, common::scan_t& subset1, common::scan_t& subset2, int modelPoints, 
 		std::uniform_int_distribution<>& dist, std::default_random_engine& rng);
 	int n_subsets;
+	int n_subsetsIgnoreAfter;
 	initial_guess_t optimizerSeed;
 	double optimizerSeedNoise;
 	std::shared_ptr<Optimizer> optimizer;
@@ -246,7 +247,7 @@ private:
 class RANSAC_Algorithm : public ConsensusAlgorithm
 {
 public:
-	RANSAC_Algorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, initial_guess_t optimizerSeed, double _optimizerSeedNoise, std::shared_ptr<DifferentiableResidual> cost_fcn, double threshold);
+	RANSAC_Algorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, int n_subsetsIgnoreAfter, initial_guess_t optimizerSeed, double _optimizerSeedNoise, std::shared_ptr<DifferentiableResidual> cost_fcn, double threshold);
 
 	double score(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, double best_cost);
 
@@ -259,7 +260,7 @@ private:
 class LMEDS_Algorithm : public ConsensusAlgorithm
 {
 public:
-	LMEDS_Algorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, initial_guess_t optimizerSeed, double _optimizerSeedNoise, std::shared_ptr<DifferentiableResidual> cost_fcn);
+	LMEDS_Algorithm(std::shared_ptr<Optimizer> optimizer, int n_subsets, int n_subsetsIgnoreAfter, initial_guess_t optimizerSeed, double _optimizerSeedNoise, std::shared_ptr<DifferentiableResidual> cost_fcn);
 
 	double score(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& hypothesis, double best_cost);
 

@@ -1,6 +1,7 @@
 # GNSAC, eigen version
 library: gnsac_eigen
 n_subsets: 100
+n_subsets_ignore_after: 100000
 optimizer: GN
 optimizer_cost: algebraic
 optimizer_seed: best

@@ -623,13 +623,13 @@ void LevenbergMarquardt::optimize(const common::scan_t& pts1, const common::scan
 // Consensus Algorithms //
 //////////////////////////
 
-ConsensusAlgorithm::ConsensusAlgorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, initial_guess_t _optimizerSeed, double _optimizerSeedNoise) : 
-	optimizer(_optimizer), n_subsets(_n_subsets), optimizerSeed(_optimizerSeed), optimizerSeedNoise(_optimizerSeedNoise)
+ConsensusAlgorithm::ConsensusAlgorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, int _n_subsetsIgnoreAfter, initial_guess_t _optimizerSeed, double _optimizerSeedNoise) : 
+	optimizer(_optimizer), n_subsets(_n_subsets), n_subsetsIgnoreAfter(_n_subsetsIgnoreAfter), optimizerSeed(_optimizerSeed), optimizerSeedNoise(_optimizerSeedNoise)
 {
 
 }
 
-void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& initialGuess, EManifold& bestModel)
+void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& initialGuess, EManifold& bestModelRet)
 {
 	std::default_random_engine rng(0);
 	std::uniform_int_distribution<> dist(0, pts1.size() - 1);
@@ -637,7 +637,9 @@ void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& p
 
 	// Fully score initial hypothesis
 	time_cat(common::TimeCatHypoScoring);
+	EManifold bestModel;
 	bestModel = initialGuess;
+	bestModelRet = initialGuess;
 	double bestCost = score(pts1, pts2, bestModel, 1e10);
 	EManifold model;
 	EManifold seed;
@@ -686,13 +688,14 @@ void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& p
 		std::normal_distribution<double> dist_normal(0.0, 1.0);
 		common::fill_rnd(t0, dist_normal, rng);
 
-
 		// Partially score hypothesis (terminate early if cost exceeds lowest cost)
 		time_cat(common::TimeCatHypoScoring);
 		double cost = score(pts1, pts2, model, bestCost);
 		if(cost < bestCost)
 		{
 			bestModel = model;
+			if(i < n_subsetsIgnoreAfter)
+				bestModelRet = bestModel;
 			bestCost = cost;
 		}
 		if(common::logs_enabled[common::log_consensus])
@@ -731,8 +734,8 @@ void ConsensusAlgorithm::getSubset(const common::scan_t& pts1, const common::sca
 	}
 }
 
-RANSAC_Algorithm::RANSAC_Algorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, initial_guess_t _optimizerSeed, double _optimizerSeedNoise, std::shared_ptr<DifferentiableResidual> _cost_fcn, double _threshold) :
-	ConsensusAlgorithm(_optimizer, _n_subsets, _optimizerSeed, _optimizerSeedNoise), residual_fcn(_cost_fcn), threshold(_threshold)
+RANSAC_Algorithm::RANSAC_Algorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, int _n_subsetsIgnoreAfter, initial_guess_t _optimizerSeed, double _optimizerSeedNoise, std::shared_ptr<DifferentiableResidual> _cost_fcn, double _threshold) :
+	ConsensusAlgorithm(_optimizer, _n_subsets, _n_subsetsIgnoreAfter, _optimizerSeed, _optimizerSeedNoise), residual_fcn(_cost_fcn), threshold(_threshold)
 {
 
 }
@@ -750,8 +753,8 @@ double RANSAC_Algorithm::score(const common::scan_t& pts1, const common::scan_t&
 	return cost;
 }
 
-LMEDS_Algorithm::LMEDS_Algorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, initial_guess_t _optimizerSeed, double _optimizerSeedNoise, std::shared_ptr<DifferentiableResidual> _cost_fcn) :
-	ConsensusAlgorithm(_optimizer, _n_subsets, _optimizerSeed, _optimizerSeedNoise), residual_fcn(_cost_fcn)
+LMEDS_Algorithm::LMEDS_Algorithm(std::shared_ptr<Optimizer> _optimizer, int _n_subsets, int _n_subsetsIgnoreAfter, initial_guess_t _optimizerSeed, double _optimizerSeedNoise, std::shared_ptr<DifferentiableResidual> _cost_fcn) :
+	ConsensusAlgorithm(_optimizer, _n_subsets, _n_subsetsIgnoreAfter, _optimizerSeed, _optimizerSeedNoise), residual_fcn(_cost_fcn)
 {
 
 }
@@ -808,10 +811,11 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node) : common:
 
 	// Consensus Algorithm
 	string consensus_alg_str;
-	int n_subsets;
+	int n_subsets, n_subsets_ignore_after;
 	string optimizer_seed_str;
 	double optimizer_seed_noise;
 	common::get_yaml_node("n_subsets", yaml_filename, node, n_subsets);
+	common::get_yaml_node("n_subsets_ignore_after", yaml_filename, node, n_subsets_ignore_after);
 	common::get_yaml_node("consensus_alg", yaml_filename, node, consensus_alg_str);
 	common::get_yaml_node("optimizer_seed", yaml_filename, node, optimizer_seed_str);
 	common::get_yaml_node("optimizer_seed_noise", yaml_filename, node, optimizer_seed_noise);
@@ -821,10 +825,10 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node) : common:
 	{
 		double RANSAC_threshold;
 		common::get_yaml_node("RANSAC_threshold", yaml_filename, node, RANSAC_threshold);
-		consensusAlg = make_shared<RANSAC_Algorithm>(optimizer, n_subsets, optimizerSeed, optimizer_seed_noise, scoringCost, RANSAC_threshold);
+		consensusAlg = make_shared<RANSAC_Algorithm>(optimizer, n_subsets, n_subsets_ignore_after, optimizerSeed, optimizer_seed_noise, scoringCost, RANSAC_threshold);
 	}
 	else if(consen_alg == consensus_LMEDS)
-		consensusAlg = make_shared<LMEDS_Algorithm>(optimizer, n_subsets, optimizerSeed, optimizer_seed_noise, scoringCost);
+		consensusAlg = make_shared<LMEDS_Algorithm>(optimizer, n_subsets, n_subsets_ignore_after, optimizerSeed, optimizer_seed_noise, scoringCost);
 	else
 	{
 		printf("Consensus algorithm enum value %d not recognized.", (int)optim);
@@ -837,7 +841,7 @@ GNSAC_Solver::GNSAC_Solver(std::string yaml_filename, YAML::Node node) : common:
 	common::get_yaml_node("pose_disambig", yaml_filename, node, pose_disambig_str);
 	consensusSeed = (initial_guess_t)common::get_enum_from_string(initial_guess_t_vec, consensus_seed_str);
 	poseDisambigMethod = (pose_disambig_t)common::get_enum_from_string(pose_disambig_t_vec, pose_disambig_str);
-	common::get_yaml_node("renormalize", yaml_filename, node, renormalize);
+	common::get_yaml_node("renormalize", yaml_filename, node, renormalize);	
 }
 
 void GNSAC_Solver::generate_hypotheses(const common::scan_t& subset1, const common::scan_t& subset2, const common::EHypothesis& initial_guess, std::vector<common::EHypothesis>& hypotheses)

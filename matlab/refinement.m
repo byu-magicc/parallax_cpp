@@ -13,7 +13,7 @@ clc
 video = 'holodeck';
 test = 'refinement';
 lgnd = cell(1, length(methods));
-fprintf('%-15s %-15s %-15s %-15s %-15s %-15s \n', 'Method', 'Refine sucess', 'Refine amount', 'Rotation err', 'Translation err', 'LMedS err')
+fprintf('%-15s %-15s %-15s %-15s %-15s %-15s %-15s %-15s \n', 'Method', 'Refine sucess', 'Refine amount', 'Rotation err', 'Translation err', 'Rot correct', 'Trans correct', 'LMedS err')
 for i = 1:length(methods)
 	filename = ['../logs/' video '/' test '/' methods{i} '/' name];
 	A = read_binary(filename, 5);
@@ -29,6 +29,6 @@ for i = 1:length(methods)
 		sucess_ratio = 0;
 		sucess_mean = 0;
 	end
-	fprintf('%-15s %-15.3f %-15e %-15e %-15e %-15e \n', methods{i}, sucess_ratio, sucess_mean, mean(A([1 2 5], :), 2).')
+	fprintf('%-15s %-15.3f %-15e %-15e %-15e %-15.3f %-15.3f %-15e \n', methods{i}, sucess_ratio, sucess_mean, mean(A([1 2 3 4 5], :), 2).')
 end
 

@@ -668,7 +668,6 @@ void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& p
 			Vector3d t0;
 			common::fill_rnd(t0, dist_normal, rng);
 			seed = EManifold(R0, t0);
-			optimizer->optimize(subset1, subset2, seed, model);
 		}
 		else if(optimizerSeed == init_first)
 			seed = initialGuess;
@@ -690,13 +689,9 @@ void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& p
 			common::fill_rnd(delta, dist_normal, rng);
 			delta = delta * (-optimizerSeedNoise);
 			seed.boxplus(delta, seed);
-		}		
+		}
 		optimizer->optimize(subset1, subset2, seed, model);
-
-		Matrix3d R0 = Matrix3d::Identity();
-		Vector3d t0;
-		std::normal_distribution<double> dist_normal(0.0, 1.0);
-		common::fill_rnd(t0, dist_normal, rng);
+		time_cat_verbose(common::TimeCatVerboseNone);
 
 		// Partially score hypothesis (terminate early if cost exceeds lowest cost)
 		time_cat(common::TimeCatHypoScoring);
@@ -982,14 +977,17 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 	// Run RANSAC or LMEDS
 	EManifold bestModel;
 	consensusAlg->run(pts1, pts2, initialGuess, bestModel);
+	time_cat_verbose(common::TimeCatVerboseNone);
 
 	// Refine hypothesis
 	if(refine)
+	{
+		time_cat(common::TimeCatRefine);
 		refinementAlg->refine(pts1, pts2, bestModel, bestModel);
+	}
 
 	// Disambiguate rotation and translation
-	time_cat(common::TimeCatNone);
-	time_cat_verbose(common::TimeCatVerboseNone);
+	time_cat(common::TimeCatDisambiguate);
 	Vector3d t = bestModel.t;
 	Matrix3d R1 = bestModel.R;
 	Matrix3d R2 = common::R1toR2(R1, t);
@@ -1026,6 +1024,7 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 	
 	// Save best hypothesis for next time
 	prevResult = bestModel;
+	time_cat(common::TimeCatNone);
 }
 
 double GNSAC_Solver::score_hypothesis(const common::scan_t& pts1, const common::scan_t& pts2, const common::EHypothesis& hypothesis)

@@ -1,0 +1,4 @@
+#!include:lm_eigen.yaml
+# Use trace (already default)
+pose_disambig: none
+renormalize: true

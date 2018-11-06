@@ -1,0 +1,4 @@
+#!include:lm_eigen.yaml
+# Always seed randomly
+optimizer_seed: random
+consensus_seed: random

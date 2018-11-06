@@ -1,3 +1,0 @@
-#!include:gn_eigen.yaml
-# Use trace (already default)
-pose_disambig: trace

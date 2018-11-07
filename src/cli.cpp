@@ -206,6 +206,8 @@ void run_test(string video_str, string test_str, string solver_str, int frames =
 		common::write_log(common::log_truth, (char*)RT_truth.data(), sizeof(double)*4*4);
 		Vector2d RT_truth_mag = common::truth_magnitude(video_data.RT[frame]);
 		common::write_log(common::log_truth_magnitude, (char*)RT_truth_mag.data(), sizeof(double)*2);
+		double n_pts = (double)pts1.size();
+		common::write_log(common::log_truth_magnitude, (char*)&n_pts, sizeof(double));
 		common::progress(frame + 1, frames);
 	}
 	common::close_logs();

@@ -36,7 +36,7 @@ ylabels = {{'R magnitude', '(radians)'}, {'t magnitude', '(radians)'}};
 hold on;
 lgnd = cell(size(methods, 1), 1);
 filename = '../logs/holodeck/truth_mag/gn_eigen/truth_magnitude.bin';
-A = read_binary(filename, 2);
+A = read_binary(filename, 3);
 offset = 0;
 for j = 1:2
 	subplot(4, 1, j*2 + offset)

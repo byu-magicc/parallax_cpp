@@ -247,8 +247,10 @@ Vector4d common::err_truth(const Matrix3d& R1, const Matrix3d& R2, const Vector3
 	Vector3d t_unit = unit(t);
 	double err_t1;
 	double dot_product = t_unit.dot(t_truth);
-	if(dot_product >= 1 || dot_product <= -1)
+	if(dot_product >= 1)
 		err_t1 = 0;
+	else if(dot_product <= -1)
+		err_t1 = M_PI;
 	else
 		err_t1 = acos(dot_product);
 	double err_t2 = M_PI - err_t1;

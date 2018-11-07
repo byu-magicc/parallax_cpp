@@ -632,8 +632,8 @@ void five_point_opencv::FivePointSolver::find_best_hypothesis(const common::scan
 	cv::cv2eigen(E_cv, E);
 
 	// Disambiguate rotation and translation
-	time_cat(common::TimeCatNone);
 	time_cat_verbose(common::TimeCatVerboseNone);
+	time_cat(common::TimeCatDisambiguate);
 	Matrix3d R1, R2, R;
 	Vector3d t;
 	common::decomposeEssentialMat(E, R1, R2, t);
@@ -665,6 +665,7 @@ void five_point_opencv::FivePointSolver::find_best_hypothesis(const common::scan
 	result.t = t;
 	result.E = E;
 	result.has_RT = true;
+	time_cat(common::TimeCatNone);
 }
 
 five_point_opencv::FivePointSolver* five_point_opencv::FivePointSolver::getInstance()

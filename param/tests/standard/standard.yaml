@@ -2,3 +2,4 @@
 log_accuracy: true
 log_timing: true
 log_timing_verbose: true
+log_num_hypotheses: true

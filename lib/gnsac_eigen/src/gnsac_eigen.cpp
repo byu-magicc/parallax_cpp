@@ -692,6 +692,11 @@ void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& p
 		}
 		optimizer->optimize(subset1, subset2, seed, model);
 		time_cat_verbose(common::TimeCatVerboseNone);
+		if(common::logs_enabled[common::log_num_hypotheses])
+		{
+			double num_hypotheses = 1;
+			common::write_log(common::log_num_hypotheses, (char*)&num_hypotheses, sizeof(double));
+		}
 
 		// Partially score hypothesis (terminate early if cost exceeds lowest cost)
 		time_cat(common::TimeCatHypoScoring);

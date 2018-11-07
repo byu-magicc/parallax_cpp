@@ -30,9 +30,11 @@ for i = 1:length(methods)
 	method = methods{i};
 	t = read_binary(['../logs/' video '/' test '/' method '/timing.bin'], length(total_lgnd));
 	t = mean(t, 2);
+	n_hypotheses = read_binary(['../logs/' video '/' test '/' method '/num_hypotheses.bin'], 1);
+	n_hypotheses = mean(n_hypotheses);
 	fprintf('%-25s %-15e %-15e %-15e %-15e %-15e\n', methods{i}, t)
 	fprintf('%-25s %-15e %-15e %-15e %-15e %-15e\n', ' - per subset', t / n_subsets)
-	fprintf('%-25s %-15e %-15e %-15e %-15e %-15e\n', ' - per point', t / n_pts)
+	fprintf('%-25s %-15e %-15e %-15e %-15e %-15e\n', sprintf(' - per hypothesis (%.2f)', n_hypotheses), t / n_subsets / n_hypotheses)
 end
 
 %% read verbose timing

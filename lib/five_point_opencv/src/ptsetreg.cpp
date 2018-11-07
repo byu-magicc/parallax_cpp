@@ -451,6 +451,11 @@ namespace five_point_opencv
 				}
 				if(common::logs_enabled[common::log_consensus])
 					common::write_log(common::log_consensus, (char*)&minMedian, sizeof(double));
+				if(common::logs_enabled[common::log_num_hypotheses])
+				{
+					double num_hypotheses = nmodels;
+					common::write_log(common::log_num_hypotheses, (char*)&num_hypotheses, sizeof(double));
+				}
 			}
 
 			if (minMedian < DBL_MAX)

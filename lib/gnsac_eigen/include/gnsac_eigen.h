@@ -24,7 +24,7 @@ enum_str(initial_guess_t, initial_guess_t_vec, init_random, init_previous, init_
 
 enum_str(pose_disambig_t, pose_disambig_t_vec, disambig_none, disambig_chierality, disambig_trace)
 
-const int MAX_PTS = 2000;
+const int MAX_PTS = 4000;
 
 ///////////////////////
 // Manifold Elements //

@@ -201,6 +201,7 @@ void EManifold::updateE()
 	E_ = Tx*R;
 }
 
+// Renormalize a rotation matrix using the Orthogonal Procrustes solution
 void renormalize_rotation(const Matrix3d& R, Matrix3d& R_normalized)
 {
 	JacobiSVD<Matrix3d> svd(R, ComputeFullU | ComputeFullV);

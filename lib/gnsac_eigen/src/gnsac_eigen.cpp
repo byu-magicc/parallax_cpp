@@ -846,13 +846,19 @@ void RefinementAlgorithm::refine(const common::scan_t& pts1, const common::scan_
 	}
 
 	// Optimize using only inliers
-	EManifold model;
-	optimizer->optimize(inliers1, inliers2, bestModel, model);
+	double cost;
+	if(inliers1.size() >= 5)
+	{
+		EManifold model;
+		optimizer->optimize(inliers1, inliers2, bestModel, model);
 
-	// If the new model scores higher, keep it.
-	double cost = consensus_alg->score(pts1, pts2, model, bestCost);
-	if(cost < bestCost)
-		refinedModel = model;
+		// If the new model scores higher, keep it.
+		cost = consensus_alg->score(pts1, pts2, model, bestCost);
+		if(cost < bestCost)
+			refinedModel = model;
+	}
+	else
+		double cost = 1e99;
 	if(common::logs_enabled[common::log_refinement])
 	{
 		common::write_log(common::log_refinement, (char*)&bestCost, sizeof(double));

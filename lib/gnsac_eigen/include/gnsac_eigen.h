@@ -183,7 +183,7 @@ void numericalDerivative_i(_Function fcn, _X& x, Eigen::Matrix<double, _Rows, _C
 class Optimizer
 {
 protected:
-	Optimizer(std::shared_ptr<DifferentiableResidual> residual, int maxIterations, int exitTolerance);
+	Optimizer(std::shared_ptr<DifferentiableResidual> residual, int maxIterations, double exitTolerance);
 
 public:
 	virtual void optimize(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& initialGuess, EManifold& result) = 0;
@@ -192,13 +192,13 @@ protected:
 	std::shared_ptr<DifferentiableResidual> residual_fcn;
 	int maxIterations;
 public:
-	int exitTolerance;
+	double exitTolerance;
 };
 
 class GaussNewton : public Optimizer
 {
 public:
-	GaussNewton(std::shared_ptr<DifferentiableResidual> residual, int maxIterations, int exitTolerance);
+	GaussNewton(std::shared_ptr<DifferentiableResidual> residual, int maxIterations, double exitTolerance);
 
 	void optimize(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& initialGuess, EManifold& result);
 
@@ -210,7 +210,7 @@ private:
 class LevenbergMarquardt : public Optimizer
 {
 public:
-	LevenbergMarquardt(std::shared_ptr<DifferentiableResidual> residual, int maxIterations, int exitTolerance, double lambda0);
+	LevenbergMarquardt(std::shared_ptr<DifferentiableResidual> residual, int maxIterations, double exitTolerance, double lambda0);
 
 	void optimize(const common::scan_t& pts1, const common::scan_t& pts2, const EManifold& initialGuess, EManifold& result);
 

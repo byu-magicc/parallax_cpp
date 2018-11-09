@@ -494,13 +494,13 @@ void SampsonResidual::residual_diff(const common::scan_t& pts1, const common::sc
 // Optimizers //
 ////////////////
 
-Optimizer::Optimizer(std::shared_ptr<DifferentiableResidual> _residual, int _maxIterations, int _exitTolerance) :
+Optimizer::Optimizer(std::shared_ptr<DifferentiableResidual> _residual, int _maxIterations, double _exitTolerance) :
 	residual_fcn(_residual), maxIterations(_maxIterations), exitTolerance(_exitTolerance)
 {
 
 }
 
-GaussNewton::GaussNewton(std::shared_ptr<DifferentiableResidual> _residual, int _maxIterations, int _exitTolerance) : Optimizer(_residual, _maxIterations, _exitTolerance)
+GaussNewton::GaussNewton(std::shared_ptr<DifferentiableResidual> _residual, int _maxIterations, double _exitTolerance) : Optimizer(_residual, _maxIterations, _exitTolerance)
 {
 
 }
@@ -545,7 +545,7 @@ void GaussNewton::optimize(const common::scan_t& pts1, const common::scan_t& pts
 	}
 }
 
-LevenbergMarquardt::LevenbergMarquardt(std::shared_ptr<DifferentiableResidual> _residual, int _maxIterations, int _exitTolerance, double _lambda0) : Optimizer(_residual, _maxIterations, _exitTolerance), lambda0(_lambda0)
+LevenbergMarquardt::LevenbergMarquardt(std::shared_ptr<DifferentiableResidual> _residual, int _maxIterations, double _exitTolerance, double _lambda0) : Optimizer(_residual, _maxIterations, _exitTolerance), lambda0(_lambda0)
 {
 
 }

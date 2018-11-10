@@ -966,7 +966,6 @@ void GNSAC_Solver::find_best_hypothesis(const common::scan_t& pts1, const common
 		throw common::Exception(common::str_format("GNSAC pts1.size() != pts2.size()! (%d != %d)", pts1.size(), pts2.size()));
 	if(pts1.size() > MAX_PTS)
 		throw common::Exception(common::str_format("GNSAC buffer size exceeded! (%d > %d). To fix this error, increase MAX_PTS in gnsac_eigen.h", pts1.size(), MAX_PTS));
-	printf("GNSAC_before: Optimizer: %p ", (void*)refinementAlg->optimizer.get());
 	// Init
 	//unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine rng(0);

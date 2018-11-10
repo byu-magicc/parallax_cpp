@@ -10,7 +10,7 @@ scoring_cost: sampson
 consensus_alg: LMEDS
 consensus_seed: previous
 max_iterations: 10
-exit_tolerance: 0.000001
+exit_tolerance: 0
 pose_disambig: trace
 renormalize: false
 refine: false

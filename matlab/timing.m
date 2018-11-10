@@ -49,29 +49,47 @@ for i = 1:length(methods)
 	bar_lgnd{i} = replace(methods{i}, '_', ' ');
 end
 
-% OpenCV
-figure(1)
-method_idxs = [3 3];
+%% OpenCV
+gen_lgnd = {'Setup', 'SVD', 'Coeffs1', 'Coeffs2', 'Coeffs3', 'Solve poly', 'Construct E', ...
+	'Make Jacobian', 'Solve matrix', 'Manifold update', 'Calc residual', 'Total'};
+bar_lgnd = {'LM + LMedS', 'GN + LMedS', 'OpenCV Poly'}
+x_limits = [0 500];
+ax1 = axes();
+method_idxs = 1:3;
 lgnd_idxs = 1:7;
-b = barh([gen_time(method_idxs, lgnd_idxs)]*1000, 'stacked', 'FaceColor', 'flat');
+b = barh(gen_time(method_idxs, lgnd_idxs)*1000, 'stacked', 'FaceColor', 'flat', 'Parent', ax1);
+set(ax1, 'Box', 'off') % turn off the tick marks around the legend
 n_groups = length(methods);
 legend(gen_lgnd{lgnd_idxs})
-xlabel('Hypothesis generation time per subset (us)')
+xlabel('Hypothesis generation time per subset (microseconds)')
 yticklabels(bar_lgnd(method_idxs));
 grid on
-xlim([0, 500])
-delta_pos = [0.05, 0, -0.05, 0];
+xlim(x_limits)
+delta_pos = [0.02, 0.04, -0.05, -0.03];
 set(gca, 'Position', get(gca, 'Position') + delta_pos)
+set(gcf, 'Position', [560   674   560   258]);
 
 % LM/GN
-figure(2)
-method_idxs = [1 2];
+ax2 = copyobj(ax1, gcf); % copy axis
+co = [211, 0, 0
+      64/2, 147, 0
+      0, 119/2, 255
+      94, 25, 255
+      1, 41, 95] / 255;
+set(ax2, 'ColorOrder', co, 'NextPlot', 'replacechildren')
+delete(get(ax2, 'Children'));
 lgnd_idxs = 8:11;
-b = barh([gen_time(method_idxs, lgnd_idxs)]*1000, 'stacked', 'FaceColor', 'flat');
+b = barh(gen_time(method_idxs, lgnd_idxs)*1000, 'stacked', 'FaceColor', 'flat', 'Parent', ax2);
 n_groups = length(methods);
-legend(gen_lgnd{lgnd_idxs})
-xlabel('Hypothesis generation time per subset (us)')
-yticklabels(bar_lgnd(method_idxs));
-grid on
-delta_pos = -[0.05, 0, -0.05, 0];
-set(gca, 'Position', get(gca, 'Position') + delta_pos)
+set(ax2, 'Color', 'none', 'YTick', [], 'XTick', [], 'Box', 'off', 'XLim', x_limits)
+%set(ax2, 'Position', get(ax1, 'Position'))
+legend(ax2, gen_lgnd{lgnd_idxs}, 'Location', 'SouthEast')
+ax2.XLabel.String = ''
+
+%% Swap order if we need to drag the other legend around.
+figChildren = get(gcf, 'Children')
+uistack(figChildren([3, 4]));
+
+%% Change xlabel
+figChildren = get(gcf, 'Children')
+figChildren(4).XLabel.String = 'Hypothesis generation time per subset (microseconds)';

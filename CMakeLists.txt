@@ -19,26 +19,6 @@ find_package(Eigen3 REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(OpenCV REQUIRED)
 
-
-# Project paths
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-
-# Define the installation directories and paths
-set(INSTALL_LIB_DIR     lib                       CACHE PATH "Installation directory for libraries")
-set(INSTALL_BIN_DIR     bin                       CACHE PATH "Installation directory for executables")
-set(INSTALL_INCLUDE_DIR include/${PROJECT_NAME}   CACHE PATH "Installation directory for header files")
-set(INSTALL_CMAKE_DIR   lib/cmake/${PROJECT_NAME} CACHE PATH "Installation directory for CMake Config files")
-
-
-# Make relative paths absolute (needed later on)
-foreach(p LIB BIN INCLUDE CMAKE)
-    set(var INSTALL_${p}_DIR)
-    if(NOT IS_ABSOLUTE "${${var}}")
-        set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
-    endif()
-endforeach()
-
-
 set(pkg_srcs
 		src/common/common.cpp
 		src/common/comm_loaders.cpp
@@ -51,6 +31,7 @@ set(pkg_srcs
 		src/solvers/gnsac_ptr_ocv.cpp
 		src/solvers/gnsac_eigen.cpp
 		src/solvers/gnsac_ptr_eig.cpp
+		src/parallax_detector/parallax_detector.cpp
 	)
 
 ##################################
@@ -61,6 +42,29 @@ set(pkg_srcs
 
 option(SHARED_LIB "Option to build a shared library for use in other projects" ON)
 if(SHARED_LIB)
+
+	# Project paths
+	set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
+	# Define the installation directories and paths
+	set(INSTALL_LIB_DIR     lib                       CACHE PATH "Installation directory for libraries")
+	set(INSTALL_BIN_DIR     bin                       CACHE PATH "Installation directory for executables")
+	set(INSTALL_INCLUDE_DIR include/${PROJECT_NAME}   CACHE PATH "Installation directory for header files")
+	set(INSTALL_CMAKE_DIR   lib/cmake/${PROJECT_NAME} CACHE PATH "Installation directory for CMake Config files")
+
+
+	# Make relative paths absolute (needed later on)
+	foreach(p LIB BIN INCLUDE CMAKE)
+	    set(var INSTALL_${p}_DIR)
+	    if(NOT IS_ABSOLUTE "${${var}}")
+	        set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
+	    endif()
+	endforeach()
+
+
+
+
+
 	add_library(${PROJECT_NAME} SHARED
 		${pkg_srcs}
 		)
@@ -76,7 +80,7 @@ if(SHARED_LIB)
 		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}>
 		)
 
-	message("blah: " ${PROJECT_SOURCE_DIR}/${INSTALL_INCLUDE_DIR})
+	
 
 	target_link_libraries(${PROJECT_NAME} ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
 
@@ -88,18 +92,7 @@ if(SHARED_LIB)
 						SOVERSION ${GNSAC_MAJOR_VERSION})
 
 
-	###################
-	#   CMake Package #
-	###################
-
-	# # The EXPORT tells CMake that we want to generate a .cmake
-	# # file that other projects can find using `find_package`
-	# set(INSTALL_LIB_DIR  lib  CACHE PATH "Installation directory for libraries")
-	# install(TARGETS gnsac
-	# 	EXPORT  gnsac
-	# 	LIBRARY DESTINATION "${INSTALL_LIB_DIR}")
-	# export(EXPORT gnsac)
-
+	
 	##################################
 	#  Install library and headers   #
 	##################################

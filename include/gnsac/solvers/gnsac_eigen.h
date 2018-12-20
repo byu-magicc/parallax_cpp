@@ -322,6 +322,7 @@ public:
 
 private:
 	//Eigen::Matrix4d RT_truth;
+	// The best result of the previous optimization
 	EManifold prevResult;
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW	

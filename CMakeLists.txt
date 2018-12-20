@@ -147,6 +147,10 @@ if(SHARED_LIB)
 
 
 
+##################################
+#   Create executable            #
+##################################
+
 else()
 
 	include_directories(
@@ -162,4 +166,22 @@ else()
 	)
 	target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
 
+endif()
+
+
+
+
+##################################
+#   Build Tests                  #
+##################################
+
+option(BUILD_TESTS "Build the Params GTests" OFF)
+if(BUILD_TESTS)
+
+	if(SHARED_LIB)
+  	add_subdirectory(test)
+	else()
+		message("Must build project as a library to use google tests.")
+	endif()
+	
 endif()

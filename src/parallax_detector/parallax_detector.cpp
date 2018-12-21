@@ -20,7 +20,7 @@ bool ParallaxDetector::Init(const std::string solver_param_filename)
 
 // ----------------------------------------------------------------------------
 
-void ParallaxDetector::ParallaxCompensation(const std::vector<cv::Point2f>& prev_pts, const  std::vector<cv::Point2f>& curr_pts,std::vector<bool>& moving_parallax)
+common::EHypothesis ParallaxDetector::ParallaxCompensation(const std::vector<cv::Point2f>& prev_pts, const  std::vector<cv::Point2f>& curr_pts,std::vector<bool>& moving_parallax)
 {
   // Convert points to eigen
   int n_pts = curr_pts.size();
@@ -54,6 +54,8 @@ void ParallaxDetector::ParallaxCompensation(const std::vector<cv::Point2f>& prev
   std::vector<cv::Point2f> point_velocities;
   std::vector<cv::Point2f> vel_rotated;
   ThresholdVelocities(E, R, prev_pts, curr_pts, point_velocities, vel_rotated, moving_parallax);
+
+  return result;
 }
 
 // ----------------------------------------------------------------------------

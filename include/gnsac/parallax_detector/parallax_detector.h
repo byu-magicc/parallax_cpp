@@ -40,7 +40,7 @@ public:
   * @param moving_parallax sets a flag (true) for every matched point if the point has a velocity component perpendicular to the parallax field. 
   * @return Returns true if there are still more than 10 matched features. 
   */
-  void ParallaxCompensation(const std::vector<cv::Point2f>& prev_pts, const  std::vector<cv::Point2f>& curr_pts, std::vector<bool>& moving_parallax);
+  common::EHypothesis ParallaxCompensation(const std::vector<cv::Point2f>& prev_pts, const  std::vector<cv::Point2f>& curr_pts, std::vector<bool>& moving_parallax);
 
   void SetParallaxThrehold(double parallax_threshold);
 

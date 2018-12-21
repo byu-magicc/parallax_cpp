@@ -135,7 +135,7 @@ if(SHARED_LIB)
 	# Get the relative path of the file ${INSTALL_INCLUDE_DIR} from the directory ${INSTALL_CMAKE_DIR} and store it in the variable REL_INCLUDE_DIR
 	file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${INSTALL_INCLUDE_DIR}")
 
-	set(CONF_INCLUDE_DIRS "\${GNSAC_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+	set(CONF_INCLUDE_DIRS "\${GNSAC_CMAKE_DIR}/${REL_INCLUDE_DIR}/include/${PROJECT_NAME}")
 	configure_file("cmake/gnsac-config.cmake.in" "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/gnsac-config.cmake" @ONLY)
 	configure_file("cmake/gnsac-config-version.cmake.in" "${PROJECT_BINARY_DIR}/gnsac-config-version.cmake" @ONLY)
 

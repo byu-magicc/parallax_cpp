@@ -42,7 +42,15 @@ public:
   */
   common::EHypothesis ParallaxCompensation(const std::vector<cv::Point2f>& prev_pts, const  std::vector<cv::Point2f>& curr_pts, std::vector<bool>& moving_parallax);
 
-  void SetParallaxThrehold(double parallax_threshold);
+  void SetParallaxThreshold(double parallax_threshold);
+
+  /**
+  * \brief  Thresholds the given points
+  * \detail Sets the moving flag if the perpendicular velocity is greater than the parallax_threshold_.
+  */
+  void ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::vector<cv::Point2f>& imagePts1, const std::vector<cv::Point2f>& imagePts2, 
+                           std::vector<cv::Point2f>& pointVelocities, std::vector<cv::Point2f>& velRotated, std::vector<bool>& moving);
+
 
 private:
 
@@ -53,12 +61,6 @@ private:
   */
   void GetParallaxField(cv::Mat& E, const cv::Point2f& loc, cv::Point2f& perpendicular, cv::Point2f& parallel);
 
-  /**
-  * \brief  Thresholds the given points
-  * \detail Sets the moving flag if the perpendicular velocity is greater than the parallax_threshold_.
-  */
-  void ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::vector<cv::Point2f>& imagePts1, const std::vector<cv::Point2f>& imagePts2, 
-                           std::vector<cv::Point2f>& pointVelocities, std::vector<cv::Point2f>& velRotated, std::vector<bool>& moving);
 
 
 

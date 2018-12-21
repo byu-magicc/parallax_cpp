@@ -8,11 +8,11 @@ bool ParallaxDetector::Init(const std::string solver_param_filename)
 
   bool initiated = true;
 
-  if(!fs::exists(solver_param_filename))
-  {
-    throw common::Exception("File \"" + solver_param_filename + "\" does not exist.");
-    initiated = false;
-  }
+  // if(!fs::exists(solver_param_filename))
+  // {
+  //   throw common::Exception("File \"" + solver_param_filename + "\" does not exist.");
+  //   initiated = false;
+  // }
   solver_ = common::ESolver::from_yaml(solver_param_filename);
 
   return initiated;
@@ -61,7 +61,7 @@ common::EHypothesis ParallaxDetector::ParallaxCompensation(const std::vector<cv:
 // ----------------------------------------------------------------------------
 
 
-void ParallaxDetector::SetParallaxThrehold(double parallax_threshold)
+void ParallaxDetector::SetParallaxThreshold(double parallax_threshold)
 {
 
   parallax_threshold_ = parallax_threshold;

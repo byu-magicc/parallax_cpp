@@ -73,9 +73,19 @@ void ParallaxDetector::SetParallaxThreshold(double parallax_threshold)
 void ParallaxDetector::GetParallaxField(cv::Mat& E, const cv::Point2f& loc, cv::Point2f& perpendicular, cv::Point2f& parallel)
 {
   cv::Mat line = E * (cv::Mat_<double>(3, 1) << loc.x, loc.y, 1);
-  perpendicular = cv::Point2f(line.at<double>(0), line.at<double>(1));
+  perpendicular = cv::Point2f(line.at<double>(0), line.at<double>(1));  // Mark:: This line is parallel to the epipolar line. 
   perpendicular = perpendicular / sqrt(perpendicular.x * perpendicular.x + perpendicular.y * perpendicular.y);
-  parallel = cv::Point2f(perpendicular.y, -perpendicular.x);
+  parallel = cv::Point2f(perpendicular.y, -perpendicular.x);            // Mark:: This line is perpendicular to the epipolar line.
+
+
+  // Mark:: I felt like this was backwards so I switched them. 
+  // parallel = cv::Point2f(line.at<double>(0), line.at<double>(1));  // Mark:: This line is parallel to the epipolar line. 
+  // parallel = parallel / sqrt(parallel.x * parallel.x + parallel.y * parallel.y);
+  // perpendicular = cv::Point2f(parallel.y, -parallel.x);            // Mark:: This line is perpendicular to the epipolar line.
+
+  // std::cout << "line: " << line << std::endl;
+  // std::cout << "parallel: " << parallel << std::endl;
+  // std::cout << "perpendicular: " << perpendicular << std::endl;
 }
 
 // ----------------------------------------------------------------------------
@@ -87,7 +97,11 @@ void ParallaxDetector::ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::ve
   // H_e = R + T_x*n
   cv::Mat H_e = R;
   std::vector<cv::Point2f> imagePts1_warped;
-  cv::perspectiveTransform(imagePts1, imagePts1_warped, H_e);
+  cv::perspectiveTransform(imagePts1, imagePts1_warped, H_e); // Mark:: why arn't we using the essential matrix in this transform to account for 
+                                                              // rotational and translational changes?
+
+  // cv::perspectiveTransform(imagePts1, imagePts1_warped, E); // Mark:: why arn't we using the essential matrix in this transform to account for 
+  //                                                             // rotational and translational changes?
 
   // Calculate the point velocities (velocity = parallax + actual velocity)
   pointVelocities = std::vector<cv::Point2f>(imagePts1.size());
@@ -121,6 +135,7 @@ void ParallaxDetector::ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::ve
     double velParallel = pointVelocities[i].dot(fieldParallel[i]);
     double velPerpendicular = pointVelocities[i].dot(fieldPerpendicular[i]);
     velRotated[i] = cv::Point2f(velPerpendicular, velParallel)*multiplier;
+    // std::cout << velRotated[i] << std::endl;
   }
 
   // Determine which points are moving

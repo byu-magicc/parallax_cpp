@@ -10,6 +10,11 @@
 #include <random>
 #include <cmath>
 #include <yaml-cpp/yaml.h>
+#include <experimental/filesystem>
+
+
+namespace fs = std::experimental::filesystem;
+
 
 const double kPI = 3.14159265;
 
@@ -26,10 +31,10 @@ void GenerateWorldPoints(int num_points, int& moving_velocity_final, int& parall
 	// used to create features in the world frame. 
 	std::random_device rd;  //Will be used to obtain a seed for the random number engine
 	std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
-	std::uniform_int_distribution<> feature_dist(-50, 50);
-	std::uniform_int_distribution<> velocity_dist(1, 2);
-	std::uniform_int_distribution<> height_dist(0, 2);
-	std::uniform_int_distribution<> parallax_dist(4, 5);
+	std::uniform_real_distribution<> feature_dist(-20, 20);
+	std::uniform_real_distribution<> velocity_dist(1, 20);
+	std::uniform_real_distribution<> height_dist(0, 0.5);
+	std::uniform_real_distribution<> parallax_dist(2, 5);
 
 	// Clear history
 	world_points1.clear();
@@ -37,8 +42,9 @@ void GenerateWorldPoints(int num_points, int& moving_velocity_final, int& parall
 	
 
 	// Generate points in NED coordinates
-	moving_velocity_final = num_points*0.05;
-	parallax_final = num_points*0.1;
+	moving_velocity_final = num_points*0.1;
+	parallax_final = num_points*0.2;
+	float Ts = 1.0/15.0;                         // Time sample is 15 frames per second. 
 	for(int i = 0; i < num_points; i++)
 	{
 
@@ -48,9 +54,9 @@ void GenerateWorldPoints(int num_points, int& moving_velocity_final, int& parall
 		// Make 10 percent of the points have moving velocity
 		if(i < moving_velocity_final)
 		{
-
+			std::cout << "moving here" << std::endl;
 			// Create random velocity in the x and y direction
-			cv::Point3f v2(velocity_dist(gen),velocity_dist(gen),0);
+			cv::Point3f v2(velocity_dist(gen)*Ts,velocity_dist(gen)*Ts,0);
 			p2 = p1 + v2;
 
 		}
@@ -129,34 +135,33 @@ cv::Mat EulerAnglesToRotationMatrix(double phi, double theta, double psi, bool d
 
 // Test the parallax compensation algorithm
 TEST(ParallaxTest, ProjectionTest) {
+fs::path test_path = fs::path(__FILE__).remove_filename().parent_path();
+std::cout << test_path << std::endl;
+std::string param_filename = test_path / "param/test_param.yaml";
 
 
+// Set the camera matrix to identity so we work in the normalized image plane. 
 cv::Mat camera_matrix = cv::Mat::eye(3,3,CV_32F);
 
 // Get the world points from two different time frames.
 std::vector<cv::Point3f> world_points1, world_points2;
 std::vector<cv::Point2f> image_points1, image_points2;
 int num_points = 10;
-int moving_velocity_final = 0;
-int parallax_final = 0;
+int moving_velocity_final;
+int parallax_final;
 GenerateWorldPoints(num_points, moving_velocity_final, parallax_final, world_points1, world_points2);
 
 // Allocate memory for the rotation vectors
-cv::Mat vR1_wc1(3,1,CV_32F);
-cv::Mat vR2_c1c2(3,1,CV_32F);
-
-
+cv::Mat vR1_wc1(3,1,CV_32F);    // Rotation from world to first camera frame.
+cv::Mat vR2_c1c2(3,1,CV_32F);   // Rotation from first camera frame to second camera frame. 
 
 // Generate initial rotation matarix
 cv::Mat R1_wc1 = EulerAnglesToRotationMatrix(0,0,0, true);
-
-// std::cout << R1_wc1 << std::endl;
 
 // Convert the rotation matrix to Rodrigues vector
 cv::Rodrigues(R1_wc1, vR1_wc1);
 
 std::cout << "here0" << std::endl;
-
 
 // create initial translation vector and rotate it to the camera frame. 
 cv::Mat T_wc1_c1(3,1,CV_32F);
@@ -170,10 +175,16 @@ T_wc1_c1 = R1_wc1*T_wc1_c1;
 
 std::cout << "here1" << std::endl;
 
-// Project the world points onto the image plane in the first frame
+// Project the world points onto the image plane in the first camera frame
 cv::projectPoints(world_points1, vR1_wc1, T_wc1_c1, camera_matrix, cv::Mat(), image_points1);
 
-std::cout << "here2" << std::endl;
+std::cout << "Printing image points 1" << std::endl;
+for(int i = 0; i < image_points1.size(); i++)
+{
+
+	std::cout << image_points1[i] << std::endl;
+
+}
 
 
 // Generate intermediate rotation matrix
@@ -182,7 +193,7 @@ cv::Mat R1_c1c2 = EulerAnglesToRotationMatrix(1,1,1, true);
 // Convert the rotation matrix to Rodrigues vector
 cv::Rodrigues(R1_c1c2*R1_wc1, vR2_c1c2);
 
-// Create initial translation vector and rotate it to the camera frame. 
+// Create translation vector from camera frame 1 to camera frame 2
 cv::Mat T_c1c2_c2(3,1,CV_32F);
 T_c1c2_c2.at<float>(0) = 0.5;
 T_c1c2_c2.at<float>(1) = 0;
@@ -193,31 +204,35 @@ T_c1c2_c2.at<float>(2) = 0;
 // Project the world points onto the image plane in the second frame
 cv::projectPoints(world_points2, vR2_c1c2, T_c1c2_c2 + R1_c1c2*T_wc1_c1, camera_matrix, cv::Mat(), image_points2);
 
+std::cout << "Printing image points 2" << std::endl;
+for(int i = 0; i < image_points2.size(); i++)
+{
+
+	std::cout << image_points2[i] << std::endl;
+
+}
+
+
+
 // Create the solver
 common::EHypothesis result;
 std::vector<bool> is_moving;
 
 gnsac::ParallaxDetector pd;
-pd.Init("");                    // Use default param values
-pd.SetParallaxThreshold(0.1);  // Set the threshold value
+pd.Init(param_filename);       // Load param file
+pd.SetParallaxThreshold(0.001);  // Set the threshold value
 result = pd.ParallaxCompensation(image_points1,image_points2,is_moving);
 
-std::cout << "is moving" << std::endl;
-for (int i = 0; i < is_moving.size() ; i++)
-{
-	std::cout << is_moving[i] << std::endl;
-}
-std::cout << "E: " << result.E << std::endl;
-std::cout << "R: " << result.R << std::endl;
-std::cout << "T: " << result.t << std::endl;
-std::cout << "cost: " << result.cost << std::endl;
-std::cout << "has rt: " << result.has_RT << std::endl;
-
-std::cout << "R1_c1c2: " << R1_c1c2 << std::endl;
+std::cout << std::endl;
+std::cout << "Printing values from gnsac." << std::endl;
+std::cout << "E: " << std::endl << result.E << std::endl;
+std::cout << "R: " << std::endl << result.R << std::endl;
+std::cout << "T: " << std::endl << result.t << std::endl;
 
 
 
 // Compose the true essential matrix
+cv::Mat T_c1c2_c2_normalized(3,1,CV_32F);
 cv::Mat temp = cv::Mat::zeros(3,3,CV_32F);
 temp.at<float>(0,1) = -T_c1c2_c2.at<float>(2,0);
 temp.at<float>(0,2) = T_c1c2_c2.at<float>(1,0);
@@ -226,19 +241,12 @@ temp.at<float>(1,2) = -T_c1c2_c2.at<float>(0,0);
 temp.at<float>(2,0) = T_c1c2_c2.at<float>(1,0);
 temp.at<float>(2,1) = T_c1c2_c2.at<float>(0,0);
 cv::normalize(temp,temp);
+cv::normalize(T_c1c2_c2, T_c1c2_c2_normalized);
 
-std::cout << "temp: " << temp << std::endl;
-
-std::cout << "E truth: " << std::endl << temp*R1_c1c2 << std::endl;
 
 cv::Mat E_cv, R1,R2, t,R_cv;
 E_cv = cv::findEssentialMat(image_points1,image_points2, 1,cv::Point2d(0,0), cv::RANSAC, 0.999, 1e-4);
 cv::decomposeEssentialMat(E_cv, R1,R2,t);
-
-std::cout << "E cv: " << std::endl << E_cv << std::endl;
-std::cout << "R1: " << R1 << std::endl;
-std::cout << "R2: " << R2 << std::endl;
-std::cout << "t: " << t << std::endl;
 
 if(cv::trace(R1).val > cv::trace(R2).val)
 {
@@ -247,45 +255,36 @@ if(cv::trace(R1).val > cv::trace(R2).val)
 	R_cv = R2;
 }
 
-std::vector<cv::Point2f> point_velocities;
-std::vector<cv::Point2f> vel_rotated;
-pd.ThresholdVelocities(E_cv,R_cv,image_points1,image_points2,point_velocities,vel_rotated,is_moving);
+std::cout << std::endl;
+std::cout << "Printing opencv values" << std::endl;
+std::cout << "E cv: " << std::endl << E_cv << std::endl;
+std::cout << "R_cv: " << std::endl << R1 << std::endl;
+std::cout << "t_cv: " << std::endl << t << std::endl;
 
+
+std::cout << std::endl;
+std::cout << "Printing true values" << std::endl;
+std::cout << "E truth: " << std::endl << temp*R1_c1c2 << std::endl;
+std::cout << "R truth: " << std::endl << R1_c1c2 << std::endl;
+std::cout << " |T_truth| " << std::endl << T_c1c2_c2_normalized << std::endl;
+
+
+std::cout << "GNSAC is moving results" << std::endl;
 for (int i = 0; i < is_moving.size() ; i++)
 {
 	std::cout << is_moving[i] << std::endl;
 }
 
+std::vector<cv::Point2f> point_velocities;
+std::vector<cv::Point2f> vel_rotated;
 
 
-
-
-
-
-// std::cout << "world points: " << world_points1 << std::endl;
-// std::cout << "image_points1: " << image_points1 << std::endl;
-// std::cout << "T_wc_c: " << T_wc_c << std::endl;
-
-// Generate intermediate rotation
-// cv::Mat R2_c1c2 = EulerAnglesToRotationMatrix(2,2,2,true);
-// cv::Rodrigues(R2_c1c2, vR2_c1c2);
-
-
-// Generate initial rotation from world to camera
-
-// cv::Mat camera_matrix = cv::Mat::eye(3,3,CV_32F);
-
-// cv::projectPoints(world_points, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix, cv::Mat(), image_points);
-
-
-
-// common::EHypothesis result;
-// std::cout <<image_points << std::endl;
-
-// std::cout << "points1 " << world_points1 << std::endl;
-// std::cout << "world_points2 " << world_points2 << std::endl;
-// std::cout << "moving_velocity_final " << moving_velocity_final << std::endl;
-// std::cout << "parallax_final " << parallax_final << std::endl;
+pd.ThresholdVelocities(E_cv,R_cv,image_points1,image_points2,point_velocities,vel_rotated,is_moving);
+std::cout << "OPENCV is moving results" << std::endl;
+for (int i = 0; i < is_moving.size() ; i++)
+{
+	std::cout << is_moving[i] << std::endl;
+}
 
 
 }

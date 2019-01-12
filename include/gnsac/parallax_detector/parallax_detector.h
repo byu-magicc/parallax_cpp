@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <experimental/filesystem>
+#include <algorithm>
 
 // GNSAC
 #include "common/solvers.h" 

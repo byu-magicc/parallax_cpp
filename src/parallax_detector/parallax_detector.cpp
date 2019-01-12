@@ -90,58 +90,105 @@ void ParallaxDetector::GetParallaxField(cv::Mat& E, const cv::Point2f& loc, cv::
 
 // ----------------------------------------------------------------------------
 
+// void ParallaxDetector::ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::vector<cv::Point2f>& imagePts1, const std::vector<cv::Point2f>& imagePts2, 
+//                                          std::vector<cv::Point2f>& pointVelocities, std::vector<cv::Point2f>& velRotated, std::vector<bool>& moving)
+// {
+//   // Use rotation as euclidian homography Matrix to transform points to 2nd frame
+//   // H_e = R + T_x*n
+//   cv::Mat H_e = R;
+//   std::vector<cv::Point2f> imagePts1_warped;
+//   cv::perspectiveTransform(imagePts1, imagePts1_warped, H_e); // Mark:: why arn't we using the essential matrix in this transform to account for 
+//                                                               // rotational and translational changes?
+
+//   // cv::perspectiveTransform(imagePts1, imagePts1_warped, E); // Mark:: why arn't we using the essential matrix in this transform to account for 
+//   //                                                             // rotational and translational changes?
+
+//   // Calculate the point velocities (velocity = parallax + actual velocity)
+//   pointVelocities = std::vector<cv::Point2f>(imagePts1.size());
+//   for (int i = 0; i < imagePts1.size(); i++)
+//     pointVelocities[i] = imagePts2[i] - imagePts1_warped[i];
+
+//   // Use the essential Matrix to calculate the field normal and parallel vectors
+//   std::vector<cv::Point2f> fieldPerpendicular = std::vector<cv::Point2f>(imagePts1.size());
+//   std::vector<cv::Point2f> fieldParallel = std::vector<cv::Point2f>(imagePts1.size());
+//   for (int i = 0; i < imagePts1.size(); i++)
+//     GetParallaxField(E, imagePts1[i], fieldPerpendicular[i], fieldParallel[i]);
+
+//   // Use the dot product to find the directionality of the essential Matrix field
+//   // The essential Matrix will often flip back and forth between directions, so
+//   // it's important to verify which direction is correct.
+//   int numPosDotProduct = 0;
+//   int numNegDotProduct = 0;
+//   for (int i = 0; i < imagePts1.size(); i++)
+//   {
+//     if (pointVelocities[i].dot(fieldParallel[i]) > 0)
+//       numPosDotProduct++;
+//     else
+//       numNegDotProduct++;
+//   }
+//   int multiplier = (numPosDotProduct > numNegDotProduct) ? 1 : -1;
+
+//   // Use the dot product to find parallel and perpendicular components of the velocity vectors
+//   velRotated = std::vector<cv::Point2f>(imagePts1.size());
+//   for (int i = 0; i < imagePts1.size(); i++)
+//   {
+//     double velParallel = pointVelocities[i].dot(fieldParallel[i]);
+//     double velPerpendicular = pointVelocities[i].dot(fieldPerpendicular[i]);
+//     velRotated[i] = cv::Point2f(velPerpendicular, velParallel)*multiplier;
+//     // std::cout << velRotated[i] << std::endl;
+//   }
+
+//   // Determine which points are moving
+//   moving = std::vector<bool>(imagePts1.size());
+//   for (int i = 0; i < imagePts1.size() && i < imagePts1.size(); i++)
+//     moving[i] = abs(velRotated[i].x) > parallax_threshold_ || velRotated[i].y < -parallax_threshold_;
+// }
+
 void ParallaxDetector::ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::vector<cv::Point2f>& imagePts1, const std::vector<cv::Point2f>& imagePts2, 
                                          std::vector<cv::Point2f>& pointVelocities, std::vector<cv::Point2f>& velRotated, std::vector<bool>& moving)
+
 {
-  // Use rotation as euclidian homography Matrix to transform points to 2nd frame
-  // H_e = R + T_x*n
-  cv::Mat H_e = R;
-  std::vector<cv::Point2f> imagePts1_warped;
-  cv::perspectiveTransform(imagePts1, imagePts1_warped, H_e); // Mark:: why arn't we using the essential matrix in this transform to account for 
-                                                              // rotational and translational changes?
 
-  // cv::perspectiveTransform(imagePts1, imagePts1_warped, E); // Mark:: why arn't we using the essential matrix in this transform to account for 
-  //                                                             // rotational and translational changes?
-
-  // Calculate the point velocities (velocity = parallax + actual velocity)
-  pointVelocities = std::vector<cv::Point2f>(imagePts1.size());
-  for (int i = 0; i < imagePts1.size(); i++)
-    pointVelocities[i] = imagePts2[i] - imagePts1_warped[i];
-
-  // Use the essential Matrix to calculate the field normal and parallel vectors
-  std::vector<cv::Point2f> fieldPerpendicular = std::vector<cv::Point2f>(imagePts1.size());
-  std::vector<cv::Point2f> fieldParallel = std::vector<cv::Point2f>(imagePts1.size());
-  for (int i = 0; i < imagePts1.size(); i++)
-    GetParallaxField(E, imagePts1[i], fieldPerpendicular[i], fieldParallel[i]);
-
-  // Use the dot product to find the directionality of the essential Matrix field
-  // The essential Matrix will often flip back and forth between directions, so
-  // it's important to verify which direction is correct.
-  int numPosDotProduct = 0;
-  int numNegDotProduct = 0;
-  for (int i = 0; i < imagePts1.size(); i++)
+  
+  for (unsigned i = 0; i < imagePts1.size(); i++)
   {
-    if (pointVelocities[i].dot(fieldParallel[i]) > 0)
-      numPosDotProduct++;
-    else
-      numNegDotProduct++;
-  }
-  int multiplier = (numPosDotProduct > numNegDotProduct) ? 1 : -1;
 
-  // Use the dot product to find parallel and perpendicular components of the velocity vectors
-  velRotated = std::vector<cv::Point2f>(imagePts1.size());
-  for (int i = 0; i < imagePts1.size(); i++)
-  {
-    double velParallel = pointVelocities[i].dot(fieldParallel[i]);
-    double velPerpendicular = pointVelocities[i].dot(fieldPerpendicular[i]);
-    velRotated[i] = cv::Point2f(velPerpendicular, velParallel)*multiplier;
-    // std::cout << velRotated[i] << std::endl;
+      cv::Mat_<double> x1(3/*rows*/,1 /* cols */); 
+
+      x1(0,0)=imagePts1[i].x; 
+      x1(1,0)=imagePts1[i].y; 
+      x1(2,0)=1.0; 
+
+      cv::Mat_<double> x2(3,1);
+      x2(0,0)=imagePts2[i].x; 
+      x2(1,0)=imagePts2[i].y; 
+      x2(2,0)=1.0; 
+
+      cv::Mat_<double> ans(1,1);
+      ans = x2.t()*E*x1;
+
+      if(fabs(ans(0,0)) > parallax_threshold_)
+      {
+        moving.push_back(true);
+      }
+      else
+      {
+        moving.push_back(false);
+      }
+
+      if(i < 10)
+      {
+        std::cout << fabs(ans(0,0)) << std::endl;
+      }
+
+      
+
   }
 
-  // Determine which points are moving
-  moving = std::vector<bool>(imagePts1.size());
-  for (int i = 0; i < imagePts1.size() && i < imagePts1.size(); i++)
-    moving[i] = abs(velRotated[i].x) > parallax_threshold_ || velRotated[i].y < -parallax_threshold_;
+
+
+
+
 }
 
 }

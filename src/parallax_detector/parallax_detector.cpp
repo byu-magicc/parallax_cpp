@@ -141,7 +141,7 @@ void ParallaxDetector::GetParallaxField(cv::Mat& E, const cv::Point2f& loc, cv::
 //   // Determine which points are moving
 //   moving = std::vector<bool>(imagePts1.size());
 //   for (int i = 0; i < imagePts1.size() && i < imagePts1.size(); i++)
-//     moving[i] = abs(velRotated[i].x) > parallax_threshold_ || velRotated[i].y < -parallax_threshold_;
+//     moving[i] = fabs(velRotated[i].x) > parallax_threshold_ || velRotated[i].y < -parallax_threshold_;
 // }
 
 void ParallaxDetector::ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::vector<cv::Point2f>& imagePts1, const std::vector<cv::Point2f>& imagePts2, 
@@ -176,10 +176,10 @@ void ParallaxDetector::ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::ve
         moving.push_back(false);
       }
 
-      if(i < 10)
-      {
-        std::cout << fabs(ans(0,0)) << std::endl;
-      }
+      // if(i < 10)
+      // {
+      //   std::cout << fabs(ans(0,0)) << std::endl;
+      // }
 
       
 

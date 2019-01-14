@@ -24,22 +24,22 @@ const double kPI = 3.14159265;
 // Keeps track of the number of correct classifications.
 struct Score {
 
-	unsigned correct_moving     = 0;
-	unsigned incorrect_moving   = 0;
-	unsigned correct_parallax   = 0;
-	unsigned incorrect_parallax = 0;
-	unsigned correct_others     = 0;
-	unsigned incorrect_others   = 0;
-	unsigned total_correct      = 0;
-	unsigned total_incorrect    = 0;
-	unsigned total_points       = 0;
+	float correct_moving     = 0;
+	float incorrect_moving   = 0;
+	float correct_parallax   = 0;
+	float incorrect_parallax = 0;
+	float correct_others     = 0;
+	float incorrect_others   = 0;
+	float total_correct      = 0;
+	float total_incorrect    = 0;
+	float total_points       = 0;
 
-	unsigned correct_essential_matrix     = 0;
-	unsigned correct_rotation_matrix      = 0;
-	unsigned correct_translation_matrix   = 0;
-	unsigned incorrect_essential_matrix   = 0;
-	unsigned incorrect_rotation_matrix    = 0;
-	unsigned incorrect_translation_matrix = 0;
+	float correct_essential_matrix     = 0;
+	float correct_rotation_matrix      = 0;
+	float correct_translation_matrix   = 0;
+	float incorrect_essential_matrix   = 0;
+	float incorrect_rotation_matrix    = 0;
+	float incorrect_translation_matrix = 0;
 
 };
 
@@ -114,6 +114,24 @@ void GenerateWorldPoints(int num_points, float& moving_velocity_final, int& para
 }
 
 // ----------------------------------------------------------------------------
+// Transforms a 3x1 vector to a normalized skew symmetric matrix
+cv::Mat Vec2Skew(const cv::Mat& vec)
+{
+
+	cv::Mat T_skew = cv::Mat::zeros(3,3,CV_64F);
+	T_skew.at<double>(0,1) = -vec.at<double>(2,0);
+	T_skew.at<double>(0,2) =  vec.at<double>(1,0);
+	T_skew.at<double>(1,0) =  vec.at<double>(2,0);
+	T_skew.at<double>(1,2) = -vec.at<double>(0,0);
+	T_skew.at<double>(2,0) = -vec.at<double>(1,0);
+	T_skew.at<double>(2,1) =  vec.at<double>(0,0);
+	cv::normalize(T_skew,T_skew);
+
+	return T_skew;
+
+}
+
+// ----------------------------------------------------------------------------
 // NED rotation matrix
 cv::Mat EulerAnglesToRotationMatrix(double phi, double theta, double psi, bool degrees)
 {
@@ -170,8 +188,18 @@ void GenerateImagePoints(const std::vector<cv::Point3f>& world_points1, const st
 	                  cv::Mat& E_truth, cv::Mat& R_truth, cv::Mat& T_norm_truth)
 {
 
+
+
+	// Create a uniform random distribution generator. This will be 
+	// used to create the transform from camera frame 1 to camera frame 2. 
+	std::random_device rd;  //Will be used to obtain a seed for the random number engine
+	std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+	std::uniform_real_distribution<> angle_dist(-3, 3);          // degrees
+	std::uniform_real_distribution<> translation_dist(-2, 2);
+
 	// Set the camera matrix to identity so we work in the normalized image plane. 
 	cv::Mat camera_matrix = cv::Mat::eye(3,3,CV_64F);
+	float velocity = 1;  // m/s
 
 	// Allocate memory for the rotation and translation vectors
 	cv::Mat vR1_wc1(3,1,CV_64F);    // Rotation from world to camera frame 1
@@ -196,27 +224,22 @@ void GenerateImagePoints(const std::vector<cv::Point3f>& world_points1, const st
 
 
 	// Generate intermediate rotation matrix and convert it to rodriguez vector
-	cv::Mat R1_c1c2 = EulerAnglesToRotationMatrix(1,1,1, true);
+	cv::Mat R1_c1c2 = EulerAnglesToRotationMatrix(angle_dist(gen),angle_dist(gen),angle_dist(gen), true);
 	cv::Rodrigues(R1_c1c2*R1_wc1, vR2_c1c2);
 
 	// Create translation vector from camera frame 1 to camera frame 2
-	T_c1c2_c2.at<double>(0) = 0.5;
-	T_c1c2_c2.at<double>(1) = 0.1;
-	T_c1c2_c2.at<double>(2) = 0.1;
+	T_c1c2_c2.at<double>(0) = translation_dist(gen) + 0.0001;
+	T_c1c2_c2.at<double>(1) = translation_dist(gen);
+	T_c1c2_c2.at<double>(2) = translation_dist(gen);
+	cv::normalize(T_c1c2_c2,T_c1c2_c2);
+	T_c1c2_c2 = T_c1c2_c2*velocity;
 
 	// Project the world points onto the image plane in the second frame
 	cv::projectPoints(world_points2, vR2_c1c2, T_c1c2_c2 + R1_c1c2*T_wc1_c1, camera_matrix, cv::Mat(), image_points2);
 
 	// Compose the True essential matrix, rotation matrix, and normalized translation vector
 		
-	cv::Mat T_skew = cv::Mat::zeros(3,3,CV_64F);
-	T_skew.at<double>(0,1) = -T_c1c2_c2.at<double>(2,0);
-	T_skew.at<double>(0,2) =  T_c1c2_c2.at<double>(1,0);
-	T_skew.at<double>(1,0) =  T_c1c2_c2.at<double>(2,0);
-	T_skew.at<double>(1,2) = -T_c1c2_c2.at<double>(0,0);
-	T_skew.at<double>(2,0) = -T_c1c2_c2.at<double>(1,0);
-	T_skew.at<double>(2,1) =  T_c1c2_c2.at<double>(0,0);
-	cv::normalize(T_skew,T_skew);
+	cv::Mat T_skew = Vec2Skew(T_c1c2_c2);
 
 	R_truth = R1_c1c2.clone();
 	E_truth = T_skew*R1_c1c2;
@@ -286,11 +309,8 @@ void ScoreMethod(const std::vector<bool>& is_moving, const float& moving_velocit
 
 	}
 
-		// std::cout << E_truth.type() << std::endl;
-		// std::cout << E_method.type() << std::endl;
-		// cv::Mat temp = E_truth - E_method;
 
-	if (cv::norm(E_truth - E_method))
+	if (cv::norm(E_truth - E_method) < 0.5) // I don't know of an intuitive way to think of this.
 	{
 		score.correct_essential_matrix++;
 	}
@@ -299,7 +319,7 @@ void ScoreMethod(const std::vector<bool>& is_moving, const float& moving_velocit
 		score.incorrect_essential_matrix++;
 	}
 
-	if (cv::norm(R_truth - R_method))
+	if (fabs(cv::trace(R_truth.t()*R_method)[0]- 3) < 0.001) // Less than 1 degree error in the roll pitch and yaw
 	{
 		score.correct_rotation_matrix++;
 	}
@@ -308,12 +328,13 @@ void ScoreMethod(const std::vector<bool>& is_moving, const float& moving_velocit
 		score.incorrect_rotation_matrix++;
 	}
 
-	if (cv::norm(T_norm_truth - T_norm_method))
+	if (cv::norm(T_norm_truth - T_norm_method) < 0.001)
 	{
 		score.correct_translation_matrix++;
 	}
 	else
 	{
+		std::cout << "T_norm error: " << cv::norm(T_norm_truth - T_norm_method) << std::endl;
 		score.incorrect_translation_matrix++;
 	}
 
@@ -321,6 +342,41 @@ void ScoreMethod(const std::vector<bool>& is_moving, const float& moving_velocit
 
 
 }
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------
+
+float PrintScore(Score score, int method)
+{
+
+
+	if(method == 1)
+	{
+		std::cout << std::endl << "Scores for GNSAC: " << std::endl;
+	}
+	else
+	{
+		std::cout << std::endl << "Scores for OpenCV: " << std::endl;
+	}
+
+	std::cout << "Pts: " << std::endl;
+	std::cout << "Correct Moving: " << score.correct_moving/(score.correct_moving + score.incorrect_moving)*100.0 << "%" << std::endl;
+	std::cout << "Correct Parallax: " << score.correct_parallax/(score.correct_parallax + score.incorrect_parallax)*100.0 << "%" << std::endl;
+	std::cout << "Correct Others: " << score.correct_others/(score.correct_others + score.incorrect_others)*100.0 << "%" << std::endl;
+	std::cout << "Correct Total: " << score.total_correct/(score.total_correct + score.total_incorrect)*100.0 << "%" << std::endl;
+	std::cout << "Total Number of Points: " << score.total_points << std::endl << std::endl;
+
+	std::cout << "Transformation: " << std::endl;
+	std::cout << "Correct Essential Matrix: " << score.correct_essential_matrix/(score.correct_essential_matrix + score.incorrect_essential_matrix)*100.0 << "%" << std::endl;
+	std::cout << "Correct Rotation Matrix: " << score.correct_rotation_matrix/(score.correct_rotation_matrix + score.incorrect_rotation_matrix)*100.0 << "%" << std::endl;
+	std::cout << "Correct Translation Matrix: " << score.correct_translation_matrix/(score.correct_translation_matrix + score.incorrect_translation_matrix)*100.0 << "%" << std::endl;
+	std::cout << "Total Number of Iterations: " << score.correct_essential_matrix + score.incorrect_essential_matrix << std::endl << std::endl;
+
+
+	return score.total_correct/score.total_points*100.0;
+
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 // Test the parallax compensation algorithm
@@ -333,8 +389,8 @@ std::string param_filename = test_path / "param/test_param.yaml";
 
 
 // Parameters
-int num_sims = 10;              // Number of times to run the tests
-int num_points = 100;           // Number of points to generate for each test
+int num_sims = 20;              // Number of times to run the tests
+int num_points = 300;           // Number of points to generate for each test
 float moving_velocity_final;    // Points with indexs < moving_velocity_final will be moving in the world plane.
 int parallax_final;             // Points with index > moving_velocity_final and < parallax_final will be closer to the camera to create parallax. 
 
@@ -360,95 +416,121 @@ std::vector<bool> cv_is_moving;         // If true, the point is moving perpendi
 gnsac::ParallaxDetector gnsac;          // Declare the solver
 gnsac.Init(param_filename);             // Load param file
 
-GenerateWorldPoints(num_points, moving_velocity_final, parallax_final, world_points1, world_points2);
 
-GenerateImagePoints(world_points1, world_points2,image_points1, image_points2,E_truth, R_truth, T_norm_truth);
-
-
-//
-// Implement GNSAC
-//
-
-gnsac.SetParallaxThreshold(0.001);  // Set the threshold value
-gnsac_result = gnsac.ParallaxCompensation(image_points1,image_points2,gnsac_is_moving);
-eigen2cv(gnsac_result.E, E_gnsac);
-eigen2cv(gnsac_result.R, R_gnsac);
-eigen2cv(gnsac_result.t, T_norm_gnsac);
-
-//
-// Implement OpenCV
-//
-
-
-E_cv = cv::findEssentialMat(image_points1,image_points2, 1,cv::Point2d(0,0), cv::RANSAC, 0.999, 1e-4);
-cv::decomposeEssentialMat(E_cv, R1,R2,T_norm_cv);
-if(cv::trace(R1)[0] > cv::trace(R2)[0])
+for (unsigned i = 0; i < num_sims; i++)
 {
-	R_cv = R1;
-} else {
-	R_cv = R2;
-}
 
-std::vector<cv::Point2f> point_velocities; 
-std::vector<cv::Point2f> vel_rotated;
-gnsac.ThresholdVelocities(E_cv,R_cv,image_points1,image_points2,point_velocities,vel_rotated,cv_is_moving);
+	GenerateWorldPoints(num_points, moving_velocity_final, parallax_final, world_points1, world_points2);
+
+	GenerateImagePoints(world_points1, world_points2,image_points1, image_points2,E_truth, R_truth, T_norm_truth);
 
 
+	//
+	// Implement GNSAC
+	//
+
+	gnsac.SetParallaxThreshold(0.0005);  // Set the threshold value
+	gnsac_result = gnsac.ParallaxCompensation(image_points1,image_points2,gnsac_is_moving);
+	eigen2cv(gnsac_result.E, E_gnsac);
+	eigen2cv(gnsac_result.R, R_gnsac);
+	eigen2cv(gnsac_result.t, T_norm_gnsac);
+
+	//
+	// Implement OpenCV
+	//
+
+
+	E_cv = cv::findEssentialMat(image_points1,image_points2, 1,cv::Point2d(0,0), cv::RANSAC, 0.999, 1e-5);
+	cv::recoverPose(E_cv, image_points1, image_points2, R_cv, T_norm_cv);
+
+	// Reconstruct the essential matrix using the correct rotation and norm translation
+	cv::Mat T_skew = Vec2Skew(T_norm_cv);
+	E_cv = T_skew*R_cv;
 
 
 
-// Score the opencv and gnsac methods
-ScoreMethod(gnsac_is_moving, moving_velocity_final, parallax_final, score_gnsac,
-								 E_truth, R_truth, T_norm_truth, 
-								 E_gnsac, R_gnsac, T_norm_gnsac);
-
-ScoreMethod(cv_is_moving, moving_velocity_final, parallax_final, score_cv,
-								 E_truth, R_truth, T_norm_truth, 
-								 E_cv, R_cv, T_norm_cv);
 
 
-std::cout << std::endl;
-std::cout << "Printing values from gnsac." << std::endl;
-std::cout << "E: " << std::endl << E_gnsac << std::endl;
-std::cout << "R: " << std::endl << R_gnsac << std::endl;
-std::cout << "T: " << std::endl << T_norm_gnsac << std::endl;
-std::cout << "Printing values from gnsac." << std::endl;
-std::cout << "E: " << std::endl << gnsac_result.E << std::endl;
-std::cout << "R: " << std::endl << gnsac_result.R << std::endl;
-std::cout << "T: " << std::endl << gnsac_result.t << std::endl;
-
-std::cout << std::endl;
-std::cout << "Printing opencv values" << std::endl;
-std::cout << "E cv: " << std::endl << E_cv << std::endl;
-std::cout << "R_cv: " << std::endl << R_cv << std::endl;
-std::cout << "t_cv: " << std::endl << T_norm_cv << std::endl;
 
 
-std::cout << std::endl;
-std::cout << "Printing true values" << std::endl;
-std::cout << "E truth: " << std::endl << E_truth << std::endl;
-std::cout << "R truth: " << std::endl << R_truth << std::endl;
-std::cout << " |T_truth| " << std::endl << T_norm_truth << std::endl;
+
+	std::vector<cv::Point2f> point_velocities; 
+	std::vector<cv::Point2f> vel_rotated;
+	gnsac.ThresholdVelocities(E_cv,R_cv,image_points1,image_points2,point_velocities,vel_rotated,cv_is_moving);
+
+	// std::cout << "cv: t_norm: " << T_norm_cv << std::endl;
+	// std::cout << "t truth: " << T_norm_truth << std::endl; 
 
 
-std::cout << "GNSAC is moving results" << std::endl;
-for (int i = 0; i < parallax_final ; i++)
-{
-	std::cout << gnsac_is_moving[i] << std::endl;
-	// if(gnsac_is_moving[i] == false && i < moving_velocity_final)
-	// {
 
-	// }
+
+	// Score the opencv and gnsac methods
+	ScoreMethod(gnsac_is_moving, moving_velocity_final, parallax_final, score_gnsac,
+									 E_truth, R_truth, T_norm_truth, 
+									 E_gnsac, R_gnsac, T_norm_gnsac);
+
+	ScoreMethod(cv_is_moving, moving_velocity_final, parallax_final, score_cv,
+									 E_truth, R_truth, T_norm_truth, 
+									 E_cv, R_cv, T_norm_cv);
+
+
+
 }
 
 
 
 
-std::cout << "OPENCV is moving results" << std::endl;
-for (int i = 0; i < parallax_final ; i++)
-{
-	std::cout << cv_is_moving[i] << std::endl;
-}
+float final_score_gnsac = PrintScore(score_gnsac,1);
+float final_score_cv = PrintScore(score_cv,2);
+
+
+ASSERT_TRUE(final_score_cv > 90.0 && final_score_gnsac > 90.0);
+
+
+
+
+// std::cout << std::endl;
+// std::cout << "Printing values from gnsac." << std::endl;
+// std::cout << "E: " << std::endl << E_gnsac << std::endl;
+// std::cout << "R: " << std::endl << R_gnsac << std::endl;
+// std::cout << "T: " << std::endl << T_norm_gnsac << std::endl;
+// std::cout << "Printing values from gnsac." << std::endl;
+// std::cout << "E: " << std::endl << gnsac_result.E << std::endl;
+// std::cout << "R: " << std::endl << gnsac_result.R << std::endl;
+// std::cout << "T: " << std::endl << gnsac_result.t << std::endl;
+
+// std::cout << std::endl;
+// std::cout << "Printing opencv values" << std::endl;
+// std::cout << "E cv: " << std::endl << E_cv << std::endl;
+// std::cout << "R_cv: " << std::endl << R_cv << std::endl;
+// std::cout << "t_cv: " << std::endl << T_norm_cv << std::endl;
+
+
+// std::cout << std::endl;
+// std::cout << "Printing true values" << std::endl;
+// std::cout << "E truth: " << std::endl << E_truth << std::endl;
+// std::cout << "R truth: " << std::endl << R_truth << std::endl;
+// std::cout << " |T_truth| " << std::endl << T_norm_truth << std::endl;
+
+
+// std::cout << "GNSAC is moving results" << std::endl;
+// for (int i = 0; i < parallax_final ; i++)
+// {
+// 	std::cout << gnsac_is_moving[i] << std::endl;
+// 	// if(gnsac_is_moving[i] == false && i < moving_velocity_final)
+// 	// {
+
+// 	// }
+// }
+
+
+
+
+// std::cout << "OPENCV is moving results" << std::endl;
+// for (int i = 0; i < parallax_final ; i++)
+// {
+// 	std::cout << cv_is_moving[i] << std::endl;
+// }
 
 
 }

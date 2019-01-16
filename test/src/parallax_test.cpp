@@ -57,8 +57,8 @@ void GenerateWorldPoints(int num_points, float& moving_velocity_final, int& para
 	std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
 	std::uniform_real_distribution<> feature_dist(-20, 20);
 	std::uniform_real_distribution<> velocity_dist(2, 5);
-	std::uniform_real_distribution<> height_dist(0, 0.5);
-	std::uniform_real_distribution<> parallax_dist(2, 5);
+	std::uniform_real_distribution<> height_dist(-1, 1);
+	std::uniform_real_distribution<> parallax_dist(3, 5);
 	std::uniform_real_distribution<> sgn(-1, 1);
 
 	// Clear history
@@ -103,6 +103,9 @@ void GenerateWorldPoints(int num_points, float& moving_velocity_final, int& para
 		}
 		else 
 		{
+			// cv::Point3f par(0,0,-parallax_dist(gen));
+			// p1 = p1 +par;
+			// p2 = p1;
 			p2=p1;
 		}
 
@@ -199,7 +202,7 @@ void GenerateImagePoints(const std::vector<cv::Point3f>& world_points1, const st
 
 	// Set the camera matrix to identity so we work in the normalized image plane. 
 	cv::Mat camera_matrix = cv::Mat::eye(3,3,CV_64F);
-	float velocity = 1;  // m/s
+	float velocity = 2;  // m/s
 
 	// Allocate memory for the rotation and translation vectors
 	cv::Mat vR1_wc1(3,1,CV_64F);    // Rotation from world to camera frame 1
@@ -208,7 +211,7 @@ void GenerateImagePoints(const std::vector<cv::Point3f>& world_points1, const st
 	cv::Mat T_c1c2_c2(3,1,CV_64F);  // Translation vector from camera frame 1 to camera frame 2
 
 		// Generate initial rotation matarix and convert it to rodriguez vector
-	cv::Mat R1_wc1 = EulerAnglesToRotationMatrix(90,0,45, true);
+	cv::Mat R1_wc1 = EulerAnglesToRotationMatrix(45,0,90, true);
 	cv::Rodrigues(R1_wc1, vR1_wc1);
 
 	// create initial translation vector and rotate it to the camera frame. 
@@ -353,9 +356,13 @@ float PrintScore(Score score, int method)
 	{
 		std::cout << std::endl << "Scores for GNSAC: " << std::endl;
 	}
-	else
+	else if(method ==2)
 	{
 		std::cout << std::endl << "Scores for OpenCV: " << std::endl;
+	}
+	else
+	{
+		std::cout << std::endl << "Scores for Truth: " << std::endl;
 	}
 
 	std::cout << "Pts: " << std::endl;
@@ -398,6 +405,7 @@ int parallax_final;             // Points with index > moving_velocity_final and
 // point classification (moving, parallax, other)
 Score score_gnsac;
 Score score_cv;
+Score score_truth;
 
 // World points and corresponding image points from two different time frames.
 std::vector<cv::Point3f> world_points1, world_points2;
@@ -412,6 +420,7 @@ cv::Mat E_gnsac, T_norm_gnsac,R_gnsac;  // OpenCV results for E,R, and T_norm
 cv::Mat E_cv, R1,R2, T_norm_cv,R_cv;    // OpenCV results for E,R, and T_norm
 std::vector<bool> gnsac_is_moving;      // If true, the point is moving perpendicular to the parallax field
 std::vector<bool> cv_is_moving;         // If true, the point is moving perpendicular to the parallax field
+std::vector<bool> truth_is_moving;      // If true, the point is moving perpendicular to the parallax field
 
 gnsac::ParallaxDetector gnsac;          // Declare the solver
 gnsac.Init(param_filename);             // Load param file
@@ -429,7 +438,8 @@ for (unsigned i = 0; i < num_sims; i++)
 	// Implement GNSAC
 	//
 
-	gnsac.SetParallaxThreshold(0.0005);  // Set the threshold value
+	// gnsac.SetParallaxThreshold(0.0005);  // Set the threshold value
+	gnsac.SetParallaxThreshold(0.00005);  // Set the threshold value
 	gnsac_result = gnsac.ParallaxCompensation(image_points1,image_points2,gnsac_is_moving);
 	eigen2cv(gnsac_result.E, E_gnsac);
 	eigen2cv(gnsac_result.R, R_gnsac);
@@ -461,8 +471,10 @@ for (unsigned i = 0; i < num_sims; i++)
 	// std::cout << "cv: t_norm: " << T_norm_cv << std::endl;
 	// std::cout << "t truth: " << T_norm_truth << std::endl; 
 
-
-
+	//
+	// Test Truth
+	//
+	gnsac.ThresholdVelocities(E_truth,R_truth,image_points1,image_points2,point_velocities,vel_rotated,truth_is_moving);
 
 	// Score the opencv and gnsac methods
 	ScoreMethod(gnsac_is_moving, moving_velocity_final, parallax_final, score_gnsac,
@@ -473,6 +485,10 @@ for (unsigned i = 0; i < num_sims; i++)
 									 E_truth, R_truth, T_norm_truth, 
 									 E_cv, R_cv, T_norm_cv);
 
+	ScoreMethod(truth_is_moving, moving_velocity_final, parallax_final, score_truth,
+								 E_truth, R_truth, T_norm_truth, 
+								 E_truth, R_truth, T_norm_truth);
+
 
 
 }
@@ -482,6 +498,7 @@ for (unsigned i = 0; i < num_sims; i++)
 
 float final_score_gnsac = PrintScore(score_gnsac,1);
 float final_score_cv = PrintScore(score_cv,2);
+float final_score_truth = PrintScore(score_truth,3);
 
 
 ASSERT_TRUE(final_score_cv > 90.0 && final_score_gnsac > 90.0);

@@ -164,10 +164,13 @@ void ParallaxDetector::ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::ve
       x2(1,0)=imagePts2[i].y; 
       x2(2,0)=1.0; 
 
-      cv::Mat_<double> ans(1,1);
-      ans = x2.t()*E*x1;
+      cv::Mat_<double> l2(3,1);
+      l2 = E*x1;
 
-      if(fabs(ans(0,0)) > parallax_threshold_)
+      cv::Mat_<double> ans(1,1);
+      ans = x2.t()*l2/(sqrt(l2.at<double>(0)*l2.at<double>(0) + l2.at<double>(1)*l2.at<double>(1)));
+
+      if(fabs(ans.at<double>(0)) > parallax_threshold_)
       {
         moving.push_back(true);
       }

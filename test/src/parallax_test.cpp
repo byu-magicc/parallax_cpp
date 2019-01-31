@@ -396,8 +396,8 @@ std::string param_filename = test_path / "param/test_param.yaml";
 
 
 // Parameters
-int num_sims = 20;              // Number of times to run the tests
-int num_points = 300;           // Number of points to generate for each test
+int num_sims = 20;               // Number of times to run the tests
+int num_points = 2000;           // Number of points to generate for each test
 float moving_velocity_final;    // Points with indexs < moving_velocity_final will be moving in the world plane.
 int parallax_final;             // Points with index > moving_velocity_final and < parallax_final will be closer to the camera to create parallax. 
 
@@ -424,6 +424,8 @@ std::vector<bool> truth_is_moving;      // If true, the point is moving perpendi
 
 gnsac::ParallaxDetector gnsac;          // Declare the solver
 gnsac.Init(param_filename);             // Load param file
+gnsac.SetErrorType(gnsac::SAMPSON);
+gnsac.SetParallaxThreshold(0.0001);  // Set the threshold value
 
 
 for (unsigned i = 0; i < num_sims; i++)
@@ -434,12 +436,18 @@ for (unsigned i = 0; i < num_sims; i++)
 	GenerateImagePoints(world_points1, world_points2,image_points1, image_points2,E_truth, R_truth, T_norm_truth);
 
 
+
+	// Clear History
+	gnsac_is_moving.clear();
+	cv_is_moving.clear();
+	truth_is_moving.clear();
+
+
 	//
 	// Implement GNSAC
 	//
 
 	// gnsac.SetParallaxThreshold(0.0005);  // Set the threshold value
-	gnsac.SetParallaxThreshold(0.00005);  // Set the threshold value
 	gnsac_result = gnsac.ParallaxCompensation(image_points1,image_points2,gnsac_is_moving);
 	eigen2cv(gnsac_result.E, E_gnsac);
 	eigen2cv(gnsac_result.R, R_gnsac);
@@ -501,53 +509,7 @@ float final_score_cv = PrintScore(score_cv,2);
 float final_score_truth = PrintScore(score_truth,3);
 
 
-ASSERT_TRUE(final_score_cv > 90.0 && final_score_gnsac > 90.0);
-
-
-
-
-// std::cout << std::endl;
-// std::cout << "Printing values from gnsac." << std::endl;
-// std::cout << "E: " << std::endl << E_gnsac << std::endl;
-// std::cout << "R: " << std::endl << R_gnsac << std::endl;
-// std::cout << "T: " << std::endl << T_norm_gnsac << std::endl;
-// std::cout << "Printing values from gnsac." << std::endl;
-// std::cout << "E: " << std::endl << gnsac_result.E << std::endl;
-// std::cout << "R: " << std::endl << gnsac_result.R << std::endl;
-// std::cout << "T: " << std::endl << gnsac_result.t << std::endl;
-
-// std::cout << std::endl;
-// std::cout << "Printing opencv values" << std::endl;
-// std::cout << "E cv: " << std::endl << E_cv << std::endl;
-// std::cout << "R_cv: " << std::endl << R_cv << std::endl;
-// std::cout << "t_cv: " << std::endl << T_norm_cv << std::endl;
-
-
-// std::cout << std::endl;
-// std::cout << "Printing true values" << std::endl;
-// std::cout << "E truth: " << std::endl << E_truth << std::endl;
-// std::cout << "R truth: " << std::endl << R_truth << std::endl;
-// std::cout << " |T_truth| " << std::endl << T_norm_truth << std::endl;
-
-
-// std::cout << "GNSAC is moving results" << std::endl;
-// for (int i = 0; i < parallax_final ; i++)
-// {
-// 	std::cout << gnsac_is_moving[i] << std::endl;
-// 	// if(gnsac_is_moving[i] == false && i < moving_velocity_final)
-// 	// {
-
-// 	// }
-// }
-
-
-
-
-// std::cout << "OPENCV is moving results" << std::endl;
-// for (int i = 0; i < parallax_final ; i++)
-// {
-// 	std::cout << cv_is_moving[i] << std::endl;
-// }
+ASSERT_TRUE(final_score_cv > 98.0 && final_score_gnsac > 98.0);
 
 
 }

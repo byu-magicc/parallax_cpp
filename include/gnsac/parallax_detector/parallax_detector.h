@@ -17,6 +17,7 @@ namespace fs = std::experimental::filesystem;
 
 namespace gnsac {
 
+enum ErrorType {ALGEBRAIC, SINGLE_IMAGE, SAMPSON};
 
 class ParallaxDetector {
 
@@ -45,6 +46,8 @@ public:
 
   void SetParallaxThreshold(double parallax_threshold);
 
+  void SetErrorType(const ErrorType type);
+
   /**
   * \brief  Thresholds the given points
   * \detail Sets the moving flag if the perpendicular velocity is greater than the parallax_threshold_.
@@ -62,13 +65,40 @@ private:
   */
   void GetParallaxField(cv::Mat& E, const cv::Point2f& loc, cv::Point2f& perpendicular, cv::Point2f& parallel);
 
+  /**
+  * \brief  Computes the algebraic error
+  * \detail
+  * @param x1 3x1 matrix that represent the calibrated point in the first image plane
+  * @param x2 3x1 matrix that represent the corresponding calibrated point in the second image plane
+  * @param E  3x3 matrix representing the essential matrix
+  */
+  float AlgebraicError(const cv::Mat& x1, const cv::Mat& x2, const cv::Mat& E);
 
+  /**
+  * \brief  Computes the Single Image error
+  * \detail
+  * @param x1 3x1 matrix that represent the calibrated point in the first image plane
+  * @param x2 3x1 matrix that represent the corresponding calibrated point in the second image plane
+  * @param E  3x3 matrix representing the essential matrix
+  */
+  float SingleImageError(const cv::Mat& x1, const cv::Mat& x2, const cv::Mat& E);
+
+  /**
+  * \brief  Computes Sampson error
+  * \detail
+  * @param x1 3x1 matrix that represent the calibrated point in the first image plane
+  * @param x2 3x1 matrix that represent the corresponding calibrated point in the second image plane
+  * @param E  3x3 matrix representing the essential matrix
+  */
+  float SampsonError(const cv::Mat& x1, const cv::Mat& x2, const cv::Mat& E);
 
 
   double parallax_threshold_;  /**< Minimum Perpendicular (to epipolar line) Velocity */
 
   std::shared_ptr<common::ESolver> solver_;  /**< GNSAC Solver - optimizes the Essential Matrix on the SO(2) & SO(3) manifold,
                                                     rejects outliers using LMEDS or RANSAC  */
+
+  ErrorType et_ = SAMPSON;
 
 };
 

@@ -70,6 +70,13 @@ void ParallaxDetector::SetParallaxThreshold(double parallax_threshold)
 
 // ----------------------------------------------------------------------------
 
+void ParallaxDetector::SetErrorType(const ErrorType type)
+{
+  et_ = type;
+}
+
+// ----------------------------------------------------------------------------
+
 void ParallaxDetector::GetParallaxField(cv::Mat& E, const cv::Point2f& loc, cv::Point2f& perpendicular, cv::Point2f& parallel)
 {
   cv::Mat line = E * (cv::Mat_<double>(3, 1) << loc.x, loc.y, 1);
@@ -77,15 +84,6 @@ void ParallaxDetector::GetParallaxField(cv::Mat& E, const cv::Point2f& loc, cv::
   perpendicular = perpendicular / sqrt(perpendicular.x * perpendicular.x + perpendicular.y * perpendicular.y);
   parallel = cv::Point2f(perpendicular.y, -perpendicular.x);            // Mark:: This line is perpendicular to the epipolar line.
 
-
-  // Mark:: I felt like this was backwards so I switched them. 
-  // parallel = cv::Point2f(line.at<double>(0), line.at<double>(1));  // Mark:: This line is parallel to the epipolar line. 
-  // parallel = parallel / sqrt(parallel.x * parallel.x + parallel.y * parallel.y);
-  // perpendicular = cv::Point2f(parallel.y, -parallel.x);            // Mark:: This line is perpendicular to the epipolar line.
-
-  // std::cout << "line: " << line << std::endl;
-  // std::cout << "parallel: " << parallel << std::endl;
-  // std::cout << "perpendicular: " << perpendicular << std::endl;
 }
 
 // ----------------------------------------------------------------------------
@@ -142,14 +140,13 @@ void ParallaxDetector::GetParallaxField(cv::Mat& E, const cv::Point2f& loc, cv::
 //   moving = std::vector<bool>(imagePts1.size());
 //   for (int i = 0; i < imagePts1.size() && i < imagePts1.size(); i++)
 //     moving[i] = fabs(velRotated[i].x) > parallax_threshold_ || velRotated[i].y < -parallax_threshold_;
+
 // }
 
 void ParallaxDetector::ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::vector<cv::Point2f>& imagePts1, const std::vector<cv::Point2f>& imagePts2, 
                                          std::vector<cv::Point2f>& pointVelocities, std::vector<cv::Point2f>& velRotated, std::vector<bool>& moving)
 
-{
-
-  
+{  
   for (unsigned i = 0; i < imagePts1.size(); i++)
   {
 
@@ -164,33 +161,89 @@ void ParallaxDetector::ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::ve
       x2(1,0)=imagePts2[i].y; 
       x2(2,0)=1.0; 
 
-      cv::Mat_<double> l2(3,1);
-      l2 = E*x1;
+      float error = 10000;
 
-      cv::Mat_<double> ans(1,1);
-      ans = x2.t()*l2/(sqrt(l2.at<double>(0)*l2.at<double>(0) + l2.at<double>(1)*l2.at<double>(1)));
-
-      if(fabs(ans.at<double>(0)) > parallax_threshold_)
+      switch(et_)
       {
-        moving.push_back(true);
+        case ALGEBRAIC:
+        {
+          error = AlgebraicError(x1,x2,E);
+          break;
+        }
+        case SAMPSON:
+        {
+          error = SingleImageError(x1,x2,E);
+          break;
+        }
+        case SINGLE_IMAGE:
+        {
+          error = SampsonError(x1,x2,E);
+          break;
+        }
+      }
+
+      bool is_moving = false;
+      if(error > parallax_threshold_)
+      {
+        is_moving = true;
       }
       else
       {
-        moving.push_back(false);
+        is_moving = false;
+        if(i < 30)
+        {
+          // std::cout << "error: " << std::endl << x1 << std::endl << x2 << std::endl << error << std::endl;
+        }
       }
 
-      // if(i < 10)
-      // {
-      //   std::cout << fabs(ans(0,0)) << std::endl;
-      // }
-
-      
+      moving.push_back(is_moving);
 
   }
 
+}
+
+// ----------------------------------------------------------------------------
+
+float ParallaxDetector::AlgebraicError(const cv::Mat& x1, const cv::Mat& x2, const cv::Mat& E)
+{
+
+  cv::Mat temp = x2.t()*E*x1;
+
+  return fabs(temp.at<double>(0,0));
+}
+
+// ----------------------------------------------------------------------------
+
+float ParallaxDetector::SingleImageError(const cv::Mat& x1, const cv::Mat& x2, const cv::Mat& E)
+{
+
+  cv::Mat ell2 = E*x1;
+  float a2 = ell2.at<double>(0,0);
+  float b2 = ell2.at<double>(1,0);
+
+  cv::Mat temp = x2.t()*E*x1;
+
+  return fabs(temp.at<double>(0,0)/sqrt(pow(a2,2)+ pow(b2,2)));
+
+}
+
+// ----------------------------------------------------------------------------
+
+float ParallaxDetector::SampsonError(const cv::Mat& x1, const cv::Mat& x2, const cv::Mat& E)
+{
+
+  cv::Mat ell1 = (x2.t()*E).t();
+  float a1 = ell1.at<double>(0,0);
+  float b1 = ell1.at<double>(0,1);
+
+  cv::Mat ell2 = E*x1;
+  float a2 = ell2.at<double>(0,0);
+  float b2 = ell2.at<double>(1,0);
+
+  cv::Mat temp = x2.t()*E*x1;
 
 
-
+  return fabs(temp.at<double>(0,0)/sqrt(pow(a1,2)+ pow(b1,2) + pow(a2,2)+ pow(b2,2)));
 
 }
 

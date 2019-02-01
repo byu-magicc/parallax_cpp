@@ -1,9 +1,9 @@
 #include <eigen3/Eigen/Dense>
 #include <iostream>
-#include "gnsac_ptr_eig.h"
-#include "gnsac_ptr_ocv.h"
-#include "gnsac_eigen.h"
-#include "common.h"
+#include "solvers/gnsac_ptr_eig.h"
+#include "solvers/gnsac_ptr_ocv.h"
+#include "solvers/gnsac_eigen.h"
+#include "common/common.h"
 #include <vector>
 #include <fstream>
 #include <random>

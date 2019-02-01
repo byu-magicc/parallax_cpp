@@ -18,119 +18,170 @@ endif()
 find_package(Eigen3 REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(OpenCV REQUIRED)
-# find_package(Ceres REQUIRED)
 
-include_directories(
-	lib/five_point_opencv/include
-	lib/common/include
-	lib/gnsac_ptr_eigen/include
-	lib/gnsac_ptr_opencv/include
-	lib/gnsac_eigen/include
-	${EIGEN3_INCLUDE_DIRS}
-	${YAML_CPP_INCLUDE_DIR}
-	${OPENCV_INCLUDE_DIRS}
-	# ${CERES_INCLUDE_DIRS}
-)
-
-add_executable(cli
-	src/cli.cpp
-	lib/common/src/common.cpp
-	lib/common/src/comm_loaders.cpp
-	lib/common/src/comm_math.cpp
-	lib/common/src/solvers.cpp
-	lib/five_point_opencv/src/five-point.cpp
-	lib/five_point_opencv/src/levmarq.cpp
-	lib/five_point_opencv/src/preempt.cpp
-	lib/five_point_opencv/src/ptsetreg.cpp
-	lib/gnsac_ptr_eigen/src/gnsac_ptr_eig.cpp
-	lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
-	lib/gnsac_eigen/src/gnsac_eigen.cpp
-)
-target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
-
-# add_executable(det_test_ocv
-# 	lib/gnsac_ptr_opencv/src/determinism_test.cpp
-# 	lib/gnsac_ptr_eigen/src/gnsac_ptr_eig.cpp
-# 	lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
-# 	lib/common/src/common.cpp
-# 	lib/common/src/comm_loaders.cpp
-# 	lib/common/src/comm_math.cpp
-# 	lib/common/src/solvers.cpp
-# 	lib/gnsac_eigen/src/gnsac_eigen.cpp
-# )
-# target_link_libraries(det_test_ocv ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
-
-# add_executable(det_test_eig
-# 	lib/gnsac_ptr_eigen/src/determinism_test.cpp
-# 	lib/gnsac_ptr_eigen/src/gnsac_ptr_eig.cpp
-# 	lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
-# 	lib/common/src/common.cpp
-# 	lib/common/src/comm_loaders.cpp
-# 	lib/common/src/comm_math.cpp
-# 	lib/common/src/solvers.cpp
-# 	lib/gnsac_eigen/src/gnsac_eigen.cpp
-# )
-# target_link_libraries(det_test_eig ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
+set(pkg_srcs
+		src/common/common.cpp
+		src/common/comm_loaders.cpp
+		src/common/comm_math.cpp
+		src/common/solvers.cpp
+		src/five_point_opencv/five-point.cpp
+		src/five_point_opencv/levmarq.cpp
+		src/five_point_opencv/preempt.cpp
+		src/five_point_opencv/ptsetreg.cpp		
+		src/solvers/gnsac_ptr_ocv.cpp
+		src/solvers/gnsac_eigen.cpp
+		src/solvers/gnsac_ptr_eig.cpp
+		src/parallax_detector/parallax_detector.cpp
+	)
 
 ##################################
 #    Create a shared library     #
 ##################################
 
+
+
 option(SHARED_LIB "Option to build a shared library for use in other projects" ON)
 if(SHARED_LIB)
-	add_library(gnsac SHARED
-		lib/common/src/common.cpp
-		lib/common/src/comm_loaders.cpp
-		lib/common/src/comm_math.cpp
-		lib/common/src/solvers.cpp
-		lib/five_point_opencv/src/five-point.cpp
-		lib/five_point_opencv/src/levmarq.cpp
-		lib/five_point_opencv/src/preempt.cpp
-		lib/five_point_opencv/src/ptsetreg.cpp
-		lib/gnsac_ptr_eigen/src/gnsac_ptr_eig.cpp
-		lib/gnsac_ptr_opencv/src/gnsac_ptr_ocv.cpp
-		lib/gnsac_eigen/src/gnsac_eigen.cpp)
 
-	target_include_directories(gnsac PUBLIC
-		${EIGEN3_INCLUDE_DIR}
-		${YAML_CPP_INCLUDE_DIR}
-		${OPENCV_INCLUDE_DIRS}
-		lib/common/include
-		lib/gnsac_ptr_eigen/include
-		lib/gnsac_ptr_opencv/include
-		lib/five_point_opencv/include
-		lib/gnsac_eigen/include)
+	# Project paths
+	set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
-	target_link_libraries(gnsac ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
+	# Define the installation directories and paths
+	set(INSTALL_LIB_DIR     lib                       CACHE PATH "Installation directory for libraries")
+	set(INSTALL_BIN_DIR     bin                       CACHE PATH "Installation directory for executables")
+	set(INSTALL_INCLUDE_DIR include/${PROJECT_NAME}   CACHE PATH "Installation directory for header files")
+	set(INSTALL_CMAKE_DIR   lib/cmake/${PROJECT_NAME} CACHE PATH "Installation directory for CMake Config files")
+
+
+	# Make relative paths absolute (needed later on)
+	foreach(p LIB BIN INCLUDE CMAKE)
+	    set(var INSTALL_${p}_DIR)
+	    if(NOT IS_ABSOLUTE "${${var}}")
+	        set(${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
+	    endif()
+	endforeach()
+
+
+
+
+
+	add_library(${PROJECT_NAME} SHARED
+		${pkg_srcs}
+		)
+
+	target_include_directories(${PROJECT_NAME} PUBLIC
+		$<INSTALL_INTERFACE:${EIGEN3_INCLUDE_DIR}>
+		$<INSTALL_INTERFACE:${YAML_CPP_INCLUDE_DIR}>
+		$<INSTALL_INTERFACE:${OPENCV_INCLUDE_DIRS}>
+		$<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
+		$<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIR}>
+		$<BUILD_INTERFACE:${YAML_CPP_INCLUDE_DIR}>
+		$<BUILD_INTERFACE:${OPENCV_INCLUDE_DIRS}>
+		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}>
+		)
+
+	
+
+	target_link_libraries(${PROJECT_NAME} ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
 
 	set(GNSAC_VERSION "0.9")
 	set(GNSAC_MAJOR_VERSION "0")
 
-	set_target_properties(gnsac PROPERTIES
+	set_target_properties(${PROJECT_NAME} PROPERTIES
 						VERSION ${GNSAC_VERSION}
 						SOVERSION ${GNSAC_MAJOR_VERSION})
 
-	###################
-	#   CMake Package #
-	###################
 
-	set(CONF_INCLUDE_DIRS 
+	
+	##################################
+	#  Install library and headers   #
+	##################################
+
+
+	# Install the library to $prefix/${INSTALL_LIB_DIR}  (/usr/local/${INSTALL_LIB_DIR}   in linux)
+	install(TARGETS ${PROJECT_NAME} 
+		EXPORT ${PROJECT_NAME}
+		LIBRARY 
+			DESTINATION ${INSTALL_LIB_DIR}
+		RUNTIME
+			DESTINATION ${INSTALL_LIB_DIR})
+
+	# Install the headers to $prefix/${INSTALL_INCLUDE_DIR}  (/usr/local/${INSTALL_INCLUDE_DIR}   in linux)
+	install(DIRECTORY include DESTINATION ${INSTALL_INCLUDE_DIR})
+
+	# Add `make uninstall` target
+	configure_file(
+	    "${CMAKE_MODULE_PATH}/gnsac_uninstall.cmake.in"
+	    "${CMAKE_CURRENT_BINARY_DIR}/gnsac_uninstall.cmake"
+	    IMMEDIATE @ONLY)
+
+	add_custom_target(uninstall
+	    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/gnsac_uninstall.cmake)
+
+
+	##################################
+	#   CMake Package Installation   #
+	##################################
+
+	# Actually place the `find_package` instructions on the user's system
+	install(EXPORT ${PROJECT_NAME} DESTINATION "${INSTALL_CMAKE_DIR}")
+
+	# Similiar to the `install(EXPORT ...)` command above, but this creates
+	# the gnsac.cmake file that exports all the neccessary CMake info
+	# for use of librgnsac out of the build tree.
+	export(EXPORT ${PROJECT_NAME})
+
+
+	# Get the relative path of the file ${INSTALL_INCLUDE_DIR} from the directory ${INSTALL_CMAKE_DIR} and store it in the variable REL_INCLUDE_DIR
+	file(RELATIVE_PATH REL_INCLUDE_DIR "${INSTALL_CMAKE_DIR}" "${INSTALL_INCLUDE_DIR}")
+
+	set(CONF_INCLUDE_DIRS "\${GNSAC_CMAKE_DIR}/${REL_INCLUDE_DIR}/include/${PROJECT_NAME}")
+	configure_file("cmake/gnsac-config.cmake.in" "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/gnsac-config.cmake" @ONLY)
+	configure_file("cmake/gnsac-config-version.cmake.in" "${PROJECT_BINARY_DIR}/gnsac-config-version.cmake" @ONLY)
+
+	# Install the rransac-config.cmake and rransac-config-version.cmake
+	install(FILES
+	  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/gnsac-config.cmake"
+	  "${PROJECT_BINARY_DIR}/gnsac-config-version.cmake"
+	  DESTINATION "${INSTALL_CMAKE_DIR}")
+
+
+
+##################################
+#   Create executable            #
+##################################
+
+else()
+
+	include_directories(
 		${EIGEN3_INCLUDE_DIR}
 		${YAML_CPP_INCLUDE_DIR}
 		${OPENCV_INCLUDE_DIRS}
-		"${PROJECT_SOURCE_DIR}/lib/common/include"
-		"${PROJECT_SOURCE_DIR}/lib/gnsac_ptr_eigen/include"
-		"${PROJECT_SOURCE_DIR}/lib/gnsac_ptr_opencv/include"
-		"${PROJECT_SOURCE_DIR}/lib/five_point_opencv/include"
-		"${PROJECT_SOURCE_DIR}/lib/gnsac_eigen/include")
-	configure_file("cmake/gnsac-config.cmake.in" "${PROJECT_BINARY_DIR}/gnsac-config.cmake" @ONLY)
-	configure_file("cmake/gnsac-config-version.cmake.in" "${PROJECT_BINARY_DIR}/gnsac-config-version.cmake" @ONLY)
+		include/${PROJECT_NAME}
+	)
 
-	# The EXPORT tells CMake that we want to generate a .cmake
-	# file that other projects can find using `find_package`
-	set(INSTALL_LIB_DIR  lib  CACHE PATH "Installation directory for libraries")
-	install(TARGETS gnsac
-		EXPORT  gnsac
-		LIBRARY DESTINATION "${INSTALL_LIB_DIR}")
-	export(EXPORT gnsac)
+	add_executable(cli
+		src/cli.cpp
+		${pkg_srcs}
+	)
+	target_link_libraries(cli ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} stdc++fs)
+
+endif()
+
+
+
+
+##################################
+#   Build Tests                  #
+##################################
+
+option(BUILD_TESTS "Build the Params GTests" OFF)
+if(BUILD_TESTS)
+
+	if(SHARED_LIB)
+  	add_subdirectory(test)
+	else()
+		message("Must build project as a library to use google tests.")
+	endif()
+	
 endif()

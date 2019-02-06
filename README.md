@@ -49,7 +49,7 @@ parallax_initiated_ = parallax_detec_.Init(gnsac_solver_filename);
 
 // Run the parallax compensation algorithm which computes and returns essential matrix, rotation matrix, and translation vector.
 // @param ud_prev_matched_ Calibrated image points in the previous frame
-// @param ud_curr_matched_ Calibrated image points in the current frame
+// @param ud_curr_matched_ Corresponding calibrated image points in the current frame
 // @param moving_parallax_ Output vector of bools corresponding to each matched points. If moving_parallax_[i] is true, then point
 //                         ud_curr_matched_[i] is considered moving perpendicular to the epipolar lines and has velocity in the world frame.
 results_ parallax_detec_.ParallaxCompensation(ud_prev_matched_, ud_curr_matched_, moving_parallax_);

@@ -18,8 +18,10 @@ namespace common
 
 #define unit(vec)  ((vec) / (vec).norm())
 
-typedef std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d> > scan_t;
-typedef std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> > scan4_t;
+// typedef std::vector<Eigen::Vector2d, Eigen::aligned_allocator<Eigen::Vector2d> > scan_t;
+// typedef std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> > scan4_t;
+typedef std::vector<Eigen::Vector2d> scan_t;
+typedef std::vector<Eigen::Vector4d> scan4_t;
 
 template <typename T, typename T2>
 void fill_rnd(Eigen::MatrixBase<T>& A, T2 dist, std::default_random_engine& rng)

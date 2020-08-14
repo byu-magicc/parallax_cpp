@@ -638,6 +638,7 @@ void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& p
 	std::default_random_engine rng(0);
 	std::uniform_int_distribution<> dist(0, pts1.size() - 1);
 	std::normal_distribution<double> dist_normal(0.0, 1.0);
+	int n_model = 5;
 
 	// Fully score initial hypothesis
 	time_cat(common::TimeCatHypoScoring);
@@ -653,7 +654,9 @@ void ConsensusAlgorithm::run(const common::scan_t& pts1, const common::scan_t& p
 		time_cat(common::TimeCatHypoGen);
 		common::scan_t subset1;
 		common::scan_t subset2;
-		getSubset(pts1, pts2, subset1, subset2, 5, dist, rng);
+		subset1.reserve(n_model);
+		subset2.reserve(n_model);
+		getSubset(pts1, pts2, subset1, subset2, n_model, dist, rng);
 
 		// Generate a hypothesis using subset
 		if(optimizerSeed == init_random)

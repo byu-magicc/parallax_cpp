@@ -173,12 +173,12 @@ void ParallaxDetector::ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::ve
         }
         case SAMPSON:
         {
-          error = SingleImageError(x1,x2,E);
+          error = SampsonError(x1,x2,E);
           break;
         }
         case SINGLE_IMAGE:
         {
-          error = SampsonError(x1,x2,E);
+          error = SingleImageError(x1,x2,E);
           break;
         }
       }

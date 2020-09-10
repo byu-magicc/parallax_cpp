@@ -147,6 +147,7 @@ void ParallaxDetector::ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::ve
                                          std::vector<cv::Point2f>& pointVelocities, std::vector<cv::Point2f>& velRotated, std::vector<bool>& moving)
 
 {  
+  std::vector<bool> moving_temp;
   for (unsigned i = 0; i < imagePts1.size(); i++)
   {
 
@@ -196,10 +197,10 @@ void ParallaxDetector::ThresholdVelocities(cv::Mat& E, cv::Mat& R, const std::ve
         }
       }
 
-      moving.push_back(is_moving);
+      moving_temp.push_back(is_moving);
 
   }
-
+  moving = moving_temp;
 }
 
 // ----------------------------------------------------------------------------
